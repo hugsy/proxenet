@@ -1,0 +1,6 @@
+This directory contains all plugins to be treated by proxenet. 
+To be executed, a script must :
+- be in a language supported by proxenet (C, Python, ...)
+- have a must a name using this structure : <priority><name>.<ext> where
+  priority is an integer (1: high priority, 9: low priority). ex:
+    * 900MyScript.foo -> prio:1, name:00MyScript, ext:py

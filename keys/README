@@ -1,0 +1,10 @@
+This directory contains the keys for SSL interception in proxenet. You can add
+your own public/private keys by :
+- overwriting the ones in this directory
+- or specifying the keys on proxenet command line
+
+You can generate new keys running the command `make` in this directory or 
+`make -C keys` in proxenet root directory.
+
+NOTE : If you choose to use your own private key, make sure it is not be
+       protected by a passphrase.
