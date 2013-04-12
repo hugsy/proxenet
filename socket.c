@@ -193,12 +193,12 @@ ssize_t proxenet_write(sock_t sock, void *buf, size_t count, gnutls_session_t* s
 int proxenet_read_all_data(sock_t sock, char** ptr, gnutls_session_t* ssl_ctx) 
 {  
 	int l=0, n=0;
-	size_t malloced_size = sizeof(char)*STEP+1;
+	size_t malloced_size = sizeof(char)*STEP;
 	char *data;  
 	
 	data = (char*)xmalloc(malloced_size);
 	do {
-		l = proxenet_read(sock, data+n, STEP, ssl_ctx);
+		l = proxenet_read(sock, data+n, STEP-1, ssl_ctx);
 		if (l < 0) {
 			if (!ssl_ctx)
 				xlog(LOG_ERROR, "Error while reading PLAINTEXT data: %s\n",

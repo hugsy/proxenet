@@ -10,7 +10,7 @@ typedef int sock_t;
 #endif
 
 #define MAX_CONN_SIZE 10
-#define STEP sysconf(_SC_PAGESIZE)
+#define STEP 4095
 #define ECONNREFUSED_MSG "Server refused connection (closed port?)"
 #define EHOSTUNREACH_MSG "Server is not reachable"
 

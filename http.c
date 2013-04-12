@@ -115,7 +115,7 @@ int format_http_request(char* request)
 	char* old_ptr = NULL;
 	char* new_ptr = NULL;
 	int i = -1;
-	
+
 	old_ptr = strstr(request, "http://");
 	if (old_ptr) {
 		new_ptr = old_ptr + 7;

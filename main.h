@@ -2,6 +2,7 @@
 #define _MAIN_H
 
 #include <stdio.h>
+#include "utils.h"
 
 #define MAX_THREADS sizeof(long long)*4
 
@@ -19,11 +20,12 @@
 
 
 typedef struct __proxenet_config {
+	  unsigned char verbose;
+	  boolean use_color;
+	  unsigned short nb_threads;
 	  char* logfile;
 	  FILE* logfile_fd;
-	  unsigned char verbose;
-	  char* port;
-	  unsigned short nb_threads;
+	  char* port;	
 	  char* iface;
 	  char* plugins_path;
 	  char* certfile;

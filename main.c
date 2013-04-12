@@ -47,7 +47,7 @@ void usage(int retcode)
 		"\nSYNTAXE :\n"
 		"\t%s [OPTIONS+]\n"
 		"\nOPTIONS:\n"
-		"\t-t, --nb_threads=N\t\t\tNumber of threads (default: %d)\n"
+		"\t-t, --nb-threads=N\t\t\tNumber of threads (default: %d)\n"
 		"\t-b, --lbind=bindaddr\t\t\tBind local address (default: %s)\n"
 		"\t-p, --lport=N\t\t\t\tBind local port file (default: %s)\n"
 		"\t-l, --logfile=/path/to/logfile\t\tLog actions in file\n"
@@ -55,6 +55,7 @@ void usage(int retcode)
 		"\t-k, --key=/path/to/ssl.key\t\tSpecify SSL key to use (default: %s)\n"
 		"\t-c, --cert=/path/to/ssl.crt\t\tSpecify SSL cert to use (default: %s)\n"
 		"\t-v, --verbose\t\t\t\tIncrease verbosity (default: 0)\n"
+		"\t-n, --no-color\t\t\t\tDisable colored output\n"
 		"\t-4, \t\t\t\t\tIPv4 only (default: all)\n"
 		"\t-6, \t\t\t\t\tIPv6 only (default: all)\n"
 		"\t-h, --help\t\t\t\tShow help\n"
@@ -104,51 +105,54 @@ void help(char* argv0)
 /**
  *
  */
-boolean parse_options (conf_t* config, int argc, char** argv)
+boolean parse_options (int argc, char** argv)
 {
 	int curopt, curopt_idx;
 	
 	const struct option long_opts[] = {
 		{ "help",       0, 0, 'h' },
 		{ "verbose",    0, 0, 'v' },
-		{ "nb_threads", 1, 0, 't' },
+		{ "nb-threads", 1, 0, 't' },
 		{ "liface",     1, 0, 'b' },
 		{ "lport",      1, 0, 'p' },
 		{ "logfile",    1, 0, 'l' },
 		{ "certfile",   1, 0, 'c' },
 		{ "keyfile",    1, 0, 'k' },
 		{ "plugins",    1, 0, 'x' },
+		{ "no-color",   0, 0, 'n' },
 		{ "version",    0, 0, 'V' },
 		{ 0, 0, 0, 0 } 
 	};
 	
-	cfg->iface          = CFG_DEFAULT_BIND_ADDR;
-	cfg->port           = CFG_DEFAULT_PORT;
-	cfg->logfile_fd     = CFG_DEFAULT_OUTPUT;
-	cfg->nb_threads     = CFG_DEFAULT_NB_THREAD;
-	cfg->plugins_path   = CFG_DEFAULT_PLUGINS_PATH;
-	cfg->keyfile        = CFG_DEFAULT_SSL_KEYFILE;
-	cfg->certfile       = CFG_DEFAULT_SSL_CERTFILE;
-	
+	cfg->iface		= CFG_DEFAULT_BIND_ADDR;
+	cfg->port		= CFG_DEFAULT_PORT;
+	cfg->logfile_fd		= CFG_DEFAULT_OUTPUT;
+	cfg->nb_threads		= CFG_DEFAULT_NB_THREAD;
+	cfg->plugins_path	= CFG_DEFAULT_PLUGINS_PATH;
+	cfg->keyfile		= CFG_DEFAULT_SSL_KEYFILE;
+	cfg->certfile		= CFG_DEFAULT_SSL_CERTFILE;
+	cfg->use_color		= TRUE;
+		
 	while (1) {
 		curopt = -1;
 		curopt_idx = 0;
-		curopt = getopt_long (argc,argv,"46Vhvb:p:l:t:c:k:x:",long_opts, &curopt_idx);
+		curopt = getopt_long (argc,argv,"n46Vhvb:p:l:t:c:k:x:",long_opts, &curopt_idx);
 		if (curopt == -1) break;
 		
 		switch (curopt) {
-			case 'v': config->verbose++; break;
-			case 'b': config->iface = optarg; break;
-			case 'p': config->port = optarg; break;
-			case 'l': config->logfile = optarg; break;
-			case 't': config->nb_threads = (unsigned short)atoi(optarg); break;
-			case 'c': config->certfile = optarg; break;
-			case 'k': config->keyfile = optarg; break;	   
+			case 'v': cfg->verbose++; break;
+			case 'b': cfg->iface = optarg; break;
+			case 'p': cfg->port = optarg; break;
+			case 'l': cfg->logfile = optarg; break;
+			case 't': cfg->nb_threads = (unsigned short)atoi(optarg); break;
+			case 'c': cfg->certfile = optarg; break;
+			case 'k': cfg->keyfile = optarg; break;	   
 			case 'h': help(argv[0]); break;
 			case 'V': version(TRUE); break;
-			case '4': config->ip_version = AF_INET; break;
-			case '6': config->ip_version = AF_INET6; break;
-			case 'x': config->plugins_path = optarg; break;
+			case 'n': cfg->use_color = FALSE; break;
+			case '4': cfg->ip_version = AF_INET; break;
+			case '6': cfg->ip_version = AF_INET6; break;
+			case 'x': cfg->plugins_path = optarg; break;
 			case '?':
 			default:
 				usage (EXIT_FAILURE);
@@ -190,7 +194,7 @@ int main (int argc, char **argv, char** envp)
 	
 	/* get configuration */
 	cfg = xmalloc(sizeof(conf_t));
-	if (parse_options(cfg, argc, argv) == FALSE) {
+	if (parse_options(argc, argv) == FALSE) {
 		xlog(LOG_ERROR, "%s\n", "Failed to parse arguments");
 		goto end;
 	}     

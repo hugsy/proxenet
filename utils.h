@@ -27,9 +27,17 @@ enum log_level {
 	LOG_CRITICAL
 };
 
+#define	RED	"\x1b[31;1m"
+#define MAGENTA "\x1b[35;1m"
+#define CYAN	"\x1b[36;1m"
+#define BLUE	"\x1b[34;1m"
+#define GREEN	"\x1b[32;1m"
+#define WHITE	"\x1b[37;1m"
+#define NORMAL	"\x1b[0m"
+
 
 #ifdef DEBUG
-#define GEN_FMT "in %s (%s:%d) "
+#define GEN_FMT "in `%s'(%s:%d) "
 #define __xlog(t, ...) _xlog(t, __VA_ARGS__)
 #define xlog(t, _f, ...) __xlog(t, GEN_FMT _f, __FUNCTION__, __FILE__, __LINE__, __VA_ARGS__)
 

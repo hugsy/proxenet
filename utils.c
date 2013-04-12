@@ -24,18 +24,40 @@ void _xlog(int type, const char* fmt, ...)
 	sem_wait(&tty_semaphore);
 	
 	switch (type) {
-		case LOG_CRITICAL:  fprintf(cfg->logfile_fd, "/!\\ CRITICAL: "); break;	  
-		case LOG_ERROR:     fprintf(cfg->logfile_fd, "[-] ERROR: "); break;
-		case LOG_WARNING:   fprintf(cfg->logfile_fd, "[!] WARNING: "); break;
-		case LOG_DEBUG:     fprintf(cfg->logfile_fd, "[*] DEBUG: "); break;
+		case LOG_CRITICAL:
+			if (cfg->use_color) fprintf(cfg->logfile_fd, RED);
+			fprintf(cfg->logfile_fd, "CRITICAL: ");
+			break;
+			
+		case LOG_ERROR:
+			if (cfg->use_color) fprintf(cfg->logfile_fd, MAGENTA);
+			fprintf(cfg->logfile_fd, "ERROR ");
+			break;
+
+		case LOG_WARNING:
+			if (cfg->use_color) fprintf(cfg->logfile_fd, CYAN);
+			fprintf(cfg->logfile_fd, "WARNING: ");
+			break;
+						    
+		case LOG_DEBUG:
+			if (cfg->use_color) fprintf(cfg->logfile_fd, BLUE);
+			fprintf(cfg->logfile_fd, "DEBUG: ");
+			break;
+
 		case LOG_INFO:
-		default:            fprintf(cfg->logfile_fd, "[+] INFO: "); break;
+		default:
+			if (cfg->use_color) fprintf(cfg->logfile_fd, GREEN);
+			fprintf(cfg->logfile_fd, "INFO: ");
+			break;
 	}
-	
+
+	if (cfg->use_color) fprintf(cfg->logfile_fd, NORMAL);
+
+/*	
 #ifdef DEBUG
-	fprintf(cfg->logfile_fd, "Thread-%ld - ", pthread_self());
+	fprintf(cfg->logfile_fd, "tid-%ld ", pthread_self());
 #endif
-	
+*/	
 	va_start(ap, fmt);
 	vfprintf(cfg->logfile_fd, fmt, ap);
 	fflush(cfg->logfile_fd);

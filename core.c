@@ -157,7 +157,7 @@ char* proxenet_apply_plugins(char* data, const char* function_name)
 				xlog(LOG_CRITICAL, "Type %d not supported (yet)\n", p->type);
 				break;
 		}
-		
+
 		if (!ok) continue;
 		
 		old_data = new_data;
@@ -220,7 +220,10 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 				n = proxenet_read_all_data(server_socket, &http_request, NULL);
 			}
 			
-			if (n < 0) goto init_end;
+			if (n < 0) {
+				xfree(http_request);
+				goto init_end;
+			}
 			
 #ifdef DEBUG
 			xlog(LOG_DEBUG, "Received %d bytes from client (%s)\n", n, (is_ssl)?"SSL":"PLAIN");
@@ -237,14 +240,15 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 				
 				if (ssl_ctx.srv && ssl_ctx.cli) {
 #ifdef DEBUG
-					xlog(LOG_DEBUG, "%s\n", "SSL context negociated, intercept established");
+					xlog(LOG_DEBUG, "%s\n", "SSL interception established");
 #endif	      
 					xfree(http_request);
 					continue;
 				}
 				
 			}
-			
+
+			/* check if request is valid  */
 			if (format_http_request(http_request) < 0) {
 				xfree(http_request);
 				goto init_end;
@@ -292,10 +296,15 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 #ifdef DEBUG
 			xlog(LOG_DEBUG, "Received %d bytes from server\n", n);
 #endif
+
+			if (strlen(http_response)==0){
+				xfree(http_response);
+				continue;
+			}
 			
 			/* execute response hooks */
 			http_response = proxenet_apply_plugins(http_response, CFG_RESPONSE_PLUGIN_FUNCTION);
-			if (strlen(http_response)<2) {
+			if (strlen(http_response)==0) {
 				xlog(LOG_ERROR, "%s\n", "Invalid plugins results, ignore response");
 				xfree(http_response);
 				goto init_end;
@@ -346,7 +355,7 @@ thread_end:
 /**
  *
  */
-static void* treat_thread_job(void* arg) 
+static void* process_thread_job(void* arg) 
 {
 	tinfo_t* tinfo = (tinfo_t*) arg;
 	/* int retcode = -1; */
@@ -399,7 +408,7 @@ int proxenet_start_new_thread(sock_t conn, int tnum, pthread_t* thread,
 	}
 	
 	tinfo_t* tinfo = (tinfo_t*)xmalloc(sizeof(tinfo_t));
-	void* tfunc = &treat_thread_job;
+	void* tfunc = &process_thread_job;
 	
 	tinfo->thread_num = tnum;
 	tinfo->sock = conn;
