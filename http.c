@@ -33,7 +33,7 @@ boolean get_url_information(char* request, http_request_t* http)
 	end_pos = index(start_pos+1, ' ');
 	
 	if (start_pos==NULL || end_pos==NULL) {
-		xlog(LOG_ERROR, "Malformed HTTP Header\n");
+		xlog(LOG_ERROR, "%s\n", "Malformed HTTP Header");
 		return FALSE;
 	}
 	
@@ -60,7 +60,7 @@ boolean get_url_information(char* request, http_request_t* http)
 		http->port = 443;
 		http->is_ssl = TRUE;
 	} else {
-		xlog(LOG_ERROR, "Malformed HTTP/HTTPS URL, unknown proto\n");
+		xlog(LOG_ERROR, "%s\n", "Malformed HTTP/HTTPS URL, unknown proto");
 		xlog(LOG_DEBUG, "%s\n", request);
 		xfree(http->method);
 		return FALSE;
@@ -124,7 +124,7 @@ int format_http_request(char* request)
 		if (old_ptr) {
 			new_ptr = old_ptr + 8;
 		} else {
-			xlog(LOG_ERROR, "Cannot find protocol\n");	       
+			xlog(LOG_ERROR, "%s\n", "Cannot find protocol");
 			return -1;
 		}
 	}
@@ -159,7 +159,7 @@ sock_t create_http_socket(char* http_request, sock_t srv_sock, ssl_ctx_t* ssl_ct
 	
 	/* get target from string and establish client socket to dest */
 	if (get_url_information(http_request, &http_infos) == FALSE) {
-		xlog(LOG_ERROR, "Failed to extract valid parameters from URL.\n");
+		xlog(LOG_ERROR, "%s\n", "Failed to extract valid parameters from URL.");
 		return -1;
 	}
 	
@@ -189,12 +189,12 @@ sock_t create_http_socket(char* http_request, sock_t srv_sock, ssl_ctx_t* ssl_ct
 			
 			proxenet_ssl_wrap_socket(ssl_ctx->cli, http_socket);
 			if (proxenet_ssl_handshake(ssl_ctx->cli) < 0) {
-				xlog(LOG_ERROR, "proxy->server: handshake\n");
+				xlog(LOG_ERROR, "%s\n", "proxy->server: handshake");
 				retcode = -1;
 				goto create_http_socket_end;
 			}
 #ifdef DEBUG
-			xlog(LOG_DEBUG, "SSL Handshake with server done\n");
+			xlog(LOG_DEBUG, "%s\n", "SSL Handshake with server done");
 #endif
 			proxenet_write(srv_sock, "HTTP/1.1 200 OK\r\n\r\n", 19, NULL);
 			
@@ -207,13 +207,13 @@ sock_t create_http_socket(char* http_request, sock_t srv_sock, ssl_ctx_t* ssl_ct
 			
 			proxenet_ssl_wrap_socket(ssl_ctx->srv, srv_sock);
 			if (proxenet_ssl_handshake(ssl_ctx->srv) < 0) {
-				xlog(LOG_ERROR, "proxy->client: handshake\n");
+				xlog(LOG_ERROR, "%s\n", "proxy->client: handshake");
 				retcode = -1;
 				goto create_http_socket_end;
 			}
 			
 #ifdef DEBUG
-			xlog(LOG_DEBUG, "SSL Handshake with client done\n");
+			xlog(LOG_DEBUG, "%s\n", "SSL Handshake with client done");
 #endif
 		}
 	}
@@ -236,14 +236,14 @@ void generic_http_error_page(sock_t sock, char* msg)
 	char* html_footer = "</body></html>";
 	
 	if (write(sock, html_header, strlen(html_header)) < 0) {
-		xlog(LOG_ERROR, "Failed to write error HTML header\n");
+		xlog(LOG_ERROR, "%s\n", "Failed to write error HTML header");
 	}
 	
 	if(write(sock, msg, strlen(msg)) < 0){
-		xlog(LOG_ERROR, "Failed to write error HTML page\n");
+		xlog(LOG_ERROR, "%s\n", "Failed to write error HTML page");
 	}
 	
 	if(write(sock, html_footer, strlen(html_footer)) < 0){
-		xlog(LOG_ERROR, "Failed to write error HTML footer\n");
+		xlog(LOG_ERROR, "%s\n", "Failed to write error HTML footer");
 	}
 }

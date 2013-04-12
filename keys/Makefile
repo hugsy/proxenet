@@ -19,5 +19,5 @@ keys:
 
 
 clean:
-	@rm -fr $(CA_KEY_PREFIX).pem $(CA_KEY_PREFIX).key
+	@rm -fr $(CA_KEY_PREFIX).crt $(CA_KEY_PREFIX).key
 	@echo "[+] Removed keys"

@@ -204,7 +204,7 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 			break;
 		} else if (retcode==0) {
 #ifdef DEBUG
-			xlog(LOG_DEBUG, "No data to read/write, closing pending socket\n");
+			xlog(LOG_DEBUG, "%s\n", "No data to read/write, closing pending socket");
 #endif
 			break;
 		}
@@ -230,14 +230,14 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 			if (client_socket < 0) {
 				client_socket = create_http_socket(http_request, server_socket, &ssl_ctx);
 				if (client_socket < 0) {
-					xlog(LOG_ERROR, "Failed to create proxy->server socket\n");
+					xlog(LOG_ERROR, "%s\n", "Failed to create proxy->server socket");
 					xfree(http_request);
 					goto thread_end;
 				}
 				
 				if (ssl_ctx.srv && ssl_ctx.cli) {
 #ifdef DEBUG
-					xlog(LOG_DEBUG, "SSL context negociated, intercept established\n");
+					xlog(LOG_DEBUG, "%s\n", "SSL context negociated, intercept established");
 #endif	      
 					xfree(http_request);
 					continue;
@@ -254,7 +254,7 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 			/* hook request with all plugins in plugins_l  */
 			http_request = proxenet_apply_plugins(http_request, CFG_REQUEST_PLUGIN_FUNCTION);
 			if (strlen(http_request)<2) {
-				xlog(LOG_ERROR, "Invalid plugins results, ignore request.\n");
+				xlog(LOG_ERROR, "%s\n", "Invalid plugins results, ignore request");
 				xfree(http_request);
 				break;
 			}
@@ -296,7 +296,7 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 			/* execute response hooks */
 			http_response = proxenet_apply_plugins(http_response, CFG_RESPONSE_PLUGIN_FUNCTION);
 			if (strlen(http_response)<2) {
-				xlog(LOG_ERROR, "Invalid plugins results, ignore response.\n");
+				xlog(LOG_ERROR, "%s\n", "Invalid plugins results, ignore response");
 				xfree(http_response);
 				goto init_end;
 			}
@@ -394,7 +394,7 @@ int proxenet_start_new_thread(sock_t conn, int tnum, pthread_t* thread,
 {
 	
 	if (active_threads_bitmask == 0xffffffffffffffff) {
-		xlog (LOG_ERROR, "No more thread available, request dropped\n");
+		xlog (LOG_ERROR, "%s\n", "No more thread available, request dropped");
 		return (-1);
 	}
 	
@@ -477,13 +477,13 @@ void kill_zombies(pthread_t* threads)
 			xlog(LOG_ERROR, "xloop: failed to join Thread-%d: %s\n",i);
 			switch(retcode) {
 				case EDEADLK:
-					xlog(LOG_ERROR, "Deadlock detected\n");
+					xlog(LOG_ERROR, "%s\n", "Deadlock detected");
 					break;
 				case EINVAL:
-					xlog(LOG_ERROR, "thread is not a joinable thread\n");
+					xlog(LOG_ERROR, "%s\n", "Thread not joinable");
 					break;
 				case ESRCH:
-					xlog(LOG_ERROR, "No thread with this ID could be found\n");
+					xlog(LOG_ERROR, "%s\n", "No thread matches this Id");
 					break;
 				default :
 					xlog(LOG_ERROR, "Unknown errcode %d\n", retcode);
@@ -503,12 +503,12 @@ void kill_zombies(pthread_t* threads)
 int proxenet_init_plugins() 
 {
 	if(proxenet_create_list_plugins(cfg->plugins_path) < 0) {
-		xlog(LOG_ERROR, "Failed to build plugins list, leaving\n");
+		xlog(LOG_ERROR, "%s\n", "Failed to build plugins list, leaving");
 		return -1;
 	}
 	
 	if(cfg->verbose) {
-		xlog(LOG_INFO, "Plugins loaded\n");
+		xlog(LOG_INFO, "%s\n", "Plugins loaded");
 		if (cfg->verbose > 1) {
 			xlog(LOG_INFO, "%d plugin(s) found\n",
 			     proxenet_plugin_list_size(&plugins_list));
@@ -542,7 +542,7 @@ void xloop(sock_t sock)
 		pthread_mutex_init(&threads_mutex[i], NULL);
 	
 	if (pthread_attr_init(&pattr)) {
-		xlog(LOG_ERROR, "failed to pthread_attr_init\n");
+		xlog(LOG_ERROR, "%s\n", "Failed to pthread_attr_init");
 		return;
 	}
 	pthread_attr_setdetachstate(&pattr, PTHREAD_CREATE_JOINABLE);
@@ -553,7 +553,7 @@ void xloop(sock_t sock)
 	
 	/* proxenet is now running :) */
 	proxenet_state = ACTIVE;
-	xlog(LOG_INFO, "Starting interactive mode, press h for help\n");
+	xlog(LOG_INFO, "%s\n", "Starting interactive mode, press h for help");
 	
 	/* big loop  */
 	while (proxenet_state != INACTIVE) {
@@ -599,7 +599,7 @@ void xloop(sock_t sock)
 							    &threads_mutex[tnum],
 							    &pattr);
 			if (retcode < 0) {
-				xlog(LOG_ERROR, "Error while spawn new thread\n");
+				xlog(LOG_ERROR, "%s\n", "Error while spawn new thread");
 				continue;
 			}
 			
@@ -618,7 +618,7 @@ void xloop(sock_t sock)
 					break;
 					
 				case 'q':
-					xlog(LOG_INFO, "Leaving gracefully\n");
+					xlog(LOG_INFO, "%s\n", "Leaving gracefully");
 					proxenet_state = INACTIVE;
 					break;
 					
@@ -642,11 +642,12 @@ void xloop(sock_t sock)
 					if (proxenet_plugin_list_size())
 						proxenet_print_plugins_list();
 					else
-						xlog(LOG_INFO, "No plugin loaded\n");
+						xlog(LOG_INFO, "%s\n", "No plugin loaded");
 					
 					break;
 					
 				case 'v':
+					if (cfg->verbose < MAX_VERBOSE_LEVEL)
 					xlog(LOG_INFO, "Verbosity is now %d\n", ++(cfg->verbose));
 					break;
 					
@@ -657,10 +658,10 @@ void xloop(sock_t sock)
 					
 				case 's':
 					if (proxenet_state==SLEEPING) {
-						xlog(LOG_INFO, "Disabling sleep-mode\n");
+						xlog(LOG_INFO, "%s\n", "Disabling sleep-mode");
 						proxenet_state = ACTIVE;
 					} else {
-						xlog(LOG_INFO, "Enabling sleep-mode\n");
+						xlog(LOG_INFO, "%s\n", "Enabling sleep-mode");
 						proxenet_state = SLEEPING;
 					}
 					
@@ -668,14 +669,14 @@ void xloop(sock_t sock)
 					
 				case 'r':
 					if (get_active_threads_size()>0) {
-						xlog(LOG_ERROR, "Threads still active, cannot reload\n");
+						xlog(LOG_ERROR, "%s\n", "Threads still active, cannot reload");
 						break;
 					}
 					
 					proxenet_state = SLEEPING; 
 					if( proxenet_init_plugins() < 0) {
 						if (cfg->verbose)
-							xlog(LOG_ERROR, "Failed to reinitilize plugins\n");
+							xlog(LOG_ERROR, "%s\n", "Failed to reinitilize plugins");
 						proxenet_state = INACTIVE;
 						break;
 					}
@@ -685,13 +686,14 @@ void xloop(sock_t sock)
 					
 					proxenet_state = ACTIVE;
 					
-					xlog(LOG_INFO, "Plugins list successfully reloaded\n");
+					xlog(LOG_INFO, "%s\n", "Plugins list successfully reloaded");
 					if (cfg->verbose) proxenet_print_plugins_list();
 					
 					break;
 					
 				case 'h':
-					xlog(LOG_INFO, "Menu:\n"
+					xlog(LOG_INFO, "%s",
+					     "Menu:\n"
 					     "\ta: print number of active threads\n"
 					     "\ts: toggle sleep mode (stop treating requests)\n"
 					     "\tr: reload plugins list\n"
@@ -781,7 +783,7 @@ int proxenet_start()
 	/* create listening socket */
 	listening_socket = create_bind_socket(cfg->iface, cfg->port, &err);
 	if (listening_socket < 0){
-		xlog(LOG_CRITICAL, "Cannot create bind socket, leaving.\n");
+		xlog(LOG_CRITICAL, "%s\n", "Cannot create bind socket, leaving");
 		return -1;
 	}
 	
@@ -794,7 +796,7 @@ int proxenet_start()
 	/* set up ssl/tls global environnement */
 	retcode = proxenet_ssl_init_global_context();
 	if (retcode < 0) {
-		xlog(LOG_CRITICAL, "Failed to initialize global SSL context.\n");
+		xlog(LOG_CRITICAL, "%s\n", "Failed to initialize global SSL context");
 		return retcode;
 	}
 	

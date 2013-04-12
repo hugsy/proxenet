@@ -13,12 +13,10 @@
 #include "utils.h"
 
 
-
-
 /**
  *
  */
-void xlog(int type, const char* fmt, ...) 
+void _xlog(int type, const char* fmt, ...) 
 {
 	va_list ap;
 	
@@ -35,7 +33,7 @@ void xlog(int type, const char* fmt, ...)
 	}
 	
 #ifdef DEBUG
-	fprintf(cfg->logfile_fd, "Thread-%ld - ", pthread_self()); 
+	fprintf(cfg->logfile_fd, "Thread-%ld - ", pthread_self());
 #endif
 	
 	va_start(ap, fmt);
@@ -66,7 +64,7 @@ void* xmalloc(size_t size)
 	
 	ptr = malloc(size);
 	if ( ptr == NULL ) {
-		xlog(LOG_CRITICAL, "xmalloc: fail to allocate space\n");
+		xlog(LOG_CRITICAL, "%s\n", "xmalloc: fail to allocate space");
 		abort();
 	}
 	
@@ -110,7 +108,7 @@ void* xrealloc(void* oldptr, size_t new_size)
 	
 	newptr = realloc(oldptr, new_size);
 	if (newptr == NULL) {
-		xlog(LOG_CRITICAL, "xrealloc: fail to allocate space\n");
+		xlog(LOG_CRITICAL, "%s\n", "xrealloc: fail to allocate space");
 		abort();
 	}
 	

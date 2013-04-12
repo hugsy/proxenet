@@ -27,7 +27,17 @@ enum log_level {
 	LOG_CRITICAL
 };
 
-void xlog(int type, const char* fmt, ...);
+
+#ifdef DEBUG
+#define GEN_FMT "in %s (%s:%d) "
+#define __xlog(t, ...) _xlog(t, __VA_ARGS__)
+#define xlog(t, _f, ...) __xlog(t, GEN_FMT _f, __FUNCTION__, __FILE__, __LINE__, __VA_ARGS__)
+
+#else
+#define xlog(t, ...) _xlog(t, __VA_ARGS__)
+#endif
+
+void _xlog(int type, const char* fmt, ...);
 void* xmalloc(size_t size);
 void xfree(void* ptr);
 void xzero(void* buf, size_t buflen);

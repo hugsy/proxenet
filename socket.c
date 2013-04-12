@@ -117,7 +117,7 @@ sock_t create_connect_socket(char *host, char* port, char** errcode)
 	
 #ifdef DEBUG     
 	if (!ll || sock == -1) {
-		xlog(LOG_ERROR, "Failed to create socket\n");
+		xlog(LOG_ERROR, "%s\n", "Failed to create socket");
 	} else {
 		xlog(LOG_DEBUG, "Connected to %s (%s)\n", host, port);
 	}
@@ -226,7 +226,7 @@ int proxenet_read_all_data(sock_t sock, char** ptr, gnutls_session_t* ssl_ctx)
 	
 	if (n==0) {
 #ifdef DEBUG
-		xlog(LOG_DEBUG, "No data read from socket\n");
+		xlog(LOG_DEBUG, "%s\n", "No data read from socket");
 #endif
 		xfree(data);
 		return -1;

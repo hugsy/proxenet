@@ -222,7 +222,7 @@ char* get_plugin_path(char* plugin_name)
 	retcode = snprintf(pathname, pathlen+1, "%s/%s", cfg->plugins_path, plugin_name);
 	if (retcode < 0)
 	{
-		xlog(LOG_ERROR, "Failed to set path name\n");
+		xlog(LOG_ERROR, "%s\n", "Failed to set path name");
 		return NULL;
 	}
 	
