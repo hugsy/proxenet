@@ -180,10 +180,10 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 	int retcode;
 	fd_set rfds;
 	struct timeval tv;
-	ssl_ctx_t ssl_ctx;
+	ssl_context_t ssl_context;
 	
 	client_socket = retcode =-1;
-	xzero(&ssl_ctx, sizeof(ssl_ctx_t));
+	xzero(&ssl_context, sizeof(ssl_context_t));
 	
 	/* wait for any event on sockets */
 	for(;;) {
@@ -198,26 +198,28 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 		FD_SET(server_socket, &rfds);
 		FD_SET(client_socket, &rfds);
 		
-		retcode = select(MAX(client_socket,server_socket)+1, &rfds, NULL, NULL, &tv);
+		retcode = select(MAX(client_socket, server_socket)+1, &rfds, NULL, NULL, &tv);
 		if (retcode < 0) {
 			xlog(LOG_CRITICAL, "select: %s\n", strerror(errno));
 			break;
-		} else if (retcode==0) {
+			
+		} else if (retcode == 0) {
 #ifdef DEBUG
 			xlog(LOG_DEBUG, "%s\n", "No data to read/write, closing pending socket");
 #endif
 			break;
 		}
+
+		boolean is_ssl = ssl_context.server.is_valid;
 		
 		/* is there data from web browser to proxy ? */
 		if( FD_ISSET(server_socket, &rfds ) ) {
 			int n = -1;
-			boolean is_ssl = (ssl_ctx.srv != 0) ? TRUE : FALSE;
-			
+						
 			if(is_ssl) {
-				n = proxenet_read_all_data(server_socket, &http_request, &ssl_ctx.srv);
+				n = proxenet_read_all(server_socket, &http_request, &(ssl_context.server.context));
 			} else {
-				n = proxenet_read_all_data(server_socket, &http_request, NULL);
+				n = proxenet_read(server_socket, &http_request, NULL);
 			}
 			
 			if (n < 0) {
@@ -231,14 +233,14 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 			
 			/* is connection to server already established ? */
 			if (client_socket < 0) {
-				client_socket = create_http_socket(http_request, server_socket, &ssl_ctx);
+				client_socket = create_http_socket(http_request, server_socket, &ssl_context);
 				if (client_socket < 0) {
 					xlog(LOG_ERROR, "%s\n", "Failed to create proxy->server socket");
 					xfree(http_request);
 					goto thread_end;
 				}
 				
-				if (ssl_ctx.srv && ssl_ctx.cli) {
+				if (ssl_context.server.is_valid && ssl_context.client.is_valid) {
 #ifdef DEBUG
 					xlog(LOG_DEBUG, "%s\n", "SSL interception established");
 #endif	      
@@ -268,9 +270,9 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 #endif
 			/* send modified data */
 			if (is_ssl) {
-				retcode = proxenet_write(client_socket, http_request, strlen(http_request), &ssl_ctx.cli);
+				retcode = proxenet_ssl_write(client_socket, http_request, strlen(http_request), &ssl_context.client);
 			} else {
-				retcode = proxenet_write(client_socket, http_request, strlen(http_request), NULL);
+				retcode = proxenet_write(client_socket, http_request, strlen(http_request));
 			}
 			
 			if (retcode < 0) {
@@ -279,19 +281,21 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 			
 			xfree(http_request);
 			
+			continue;
 		} /* end FD_ISSET(data_from_browser) */
 		
 		
 		/* is there data from remote web server to proxy ? */
 		if( FD_ISSET(client_socket, &rfds ) ) {
 			int n = -1;
-			boolean is_ssl = (ssl_ctx.cli!=0) ? TRUE : FALSE;
 			
 			if (is_ssl)
-				n = proxenet_read_all_data(client_socket, &http_response, &ssl_ctx.cli);
+				n = proxenet_read_all(client_socket, &http_response, &ssl_context.client.context);
 			else
-				n = proxenet_read_all_data(client_socket, &http_response, NULL);
-			if (n<0) goto init_end;
+				n = proxenet_read_all(client_socket, &http_response, NULL);
+			
+			if (n < 0)
+				goto init_end;
 			
 #ifdef DEBUG
 			xlog(LOG_DEBUG, "Received %d bytes from server\n", n);
@@ -312,10 +316,11 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 			
 			/* send modified data to client */
 			if (is_ssl)
-				retcode = proxenet_write(server_socket, http_response, n, &ssl_ctx.srv);
+				retcode = proxenet_ssl_write(server_socket, http_response, n, &ssl_context.server.context);
 			else
-				retcode = proxenet_write(server_socket, http_response, n, NULL);
-			if (retcode < 0){
+				retcode = proxenet_write(server_socket, http_response, n);
+			
+			if (retcode < 0) {
 				xlog(LOG_DEBUG, "proxy->client: write failed: %s\n", strerror(errno));
 			}
 			
@@ -328,23 +333,27 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 	
 	/* close client socket */
 init_end:
-	if (ssl_ctx.cli) {
-		if (ssl_ctx.cli_credz)
-			gnutls_certificate_free_credentials(ssl_ctx.cli_credz);
-		close_socket(client_socket, &ssl_ctx.cli);
+	if (ssl_context.client.is_valid) {
+		/* if (ssl_context.client.cert) */
+		proxenet_ssl_free_certificate(ssl_context.client.cert);
+		
+		close_socket_ssl(client_socket, &ssl_context.client.context);
+		
 	} else {
-		close_socket(client_socket, NULL);
+		close_socket(client_socket);
 	}
 	
 	
 	/* close local socket */  
 thread_end:
-	if (ssl_ctx.srv) {
-		if (ssl_ctx.srv_credz)
-			gnutls_certificate_free_credentials(ssl_ctx.srv_credz);
-		close_socket(server_socket, &ssl_ctx.srv);
+	if (ssl_context.server.is_valid) {
+		/* if (ssl_context.server.cert) */
+		proxenet_ssl_free_certificate(ssl_context.server.cert);
+		
+		close_socket_ssl(server_socket, &ssl_context.server);
+		
 	} else {
-		close_socket(server_socket, NULL);
+		close_socket(server_socket);
 	}
 	
 	/* and that's all folks */
@@ -358,16 +367,8 @@ thread_end:
 static void* process_thread_job(void* arg) 
 {
 	tinfo_t* tinfo = (tinfo_t*) arg;
-	/* int retcode = -1; */
 	
 	active_threads_bitmask |= 1<<tinfo->thread_num;
-	
-	/* retcode = pthread_mutex_lock(tinfo->mutex); */
-	/* if (retcode) { */
-	/* xlog(LOG_ERROR, "Thread-%d: failed to lock mutex: [%d] %s\n", */
-	/* tinfo->thread_num, retcode, strerror(retcode)); */
-	/* goto end_job; */
-	/* } */
 	
 #ifdef DEBUG  
 	xlog(LOG_DEBUG, "Thread-%d: running with mutex %#.8x\n", tinfo->thread_num, tinfo->mutex); 
@@ -375,20 +376,6 @@ static void* process_thread_job(void* arg)
 	
 	proxenet_process_http_request(tinfo->sock, tinfo->plugin_list);
 	
-	/* retcode = pthread_mutex_unlock(tinfo->mutex); */
-	/* if (retcode) { */
-	/* xlog(LOG_ERROR, "Thread-%d: failed to unlock mutex[%s]\n", */
-	/* tinfo->thread_num, */
-	/* strerror(retcode)); */
-/* #ifdef DEBUG       */
-	/* } else { */
-	/* xlog(LOG_DEBUG, "Thread-%d: unlocked mutex %#.8x\n", */
-	/* tinfo->thread_num, tinfo->mutex); */
-/* #endif */
-	/* goto end_job; */
-	/* } */
-	
-/* end_job: */
 	tinfo->plugin_list = NULL;
 	xfree(arg);
 	pthread_exit(NULL);
@@ -527,8 +514,6 @@ int proxenet_init_plugins()
 	
 	return 0;
 }
-
-
 
 
 /**
@@ -825,5 +810,5 @@ int proxenet_start()
 	
 	proxenet_ssl_free_global_context();
 	
-	return close_socket(listening_socket, NULL);
+	return close_socket(listening_socket);
 }

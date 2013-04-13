@@ -16,16 +16,16 @@
 
 typedef enum {
 	FALSE = 0,
-	TRUE  = 1
+	TRUE  = 1,
 } boolean;
 
-enum log_level {
+typedef enum {
 	LOG_DEBUG = 0,
 	LOG_INFO,
 	LOG_WARNING,
 	LOG_ERROR,
-	LOG_CRITICAL
-};
+	LOG_CRITICAL,
+} log_level;
 
 #define	RED	"\x1b[31;1m"
 #define MAGENTA "\x1b[35;1m"

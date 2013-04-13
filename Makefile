@@ -15,11 +15,11 @@ DEBUG           =       1
 # LIB		= 	-L/usr/lib
 # endif
 
-CC              =       gcc
+CC              =       cc
 BIN             =       proxenet
 DEFINES         =       -DVERSION=$(VERSION)
 # HARDEN		=	-Wl,-z,relro -pie -fstack-protector-all -fPIE
-LDFLAGS         =       -lpthread -lgnutls
+LDFLAGS         =       -lpthread 
 SRC		=	$(wildcard *.c)
 OBJECTS         =       $(patsubst %.c, %.o, $(SRC))
 INC             =       -I/usr/include
@@ -30,6 +30,19 @@ CFLAGS          =       -O2 -Wall $(HARDEN) $(DEFINES) $(INC) $(LIB)
 ifeq ($(DEBUG), 1)
 DBGFLAGS        =       -ggdb -DDEBUG
 CFLAGS          +=      $(DBGFLAGS)
+endif
+
+
+# SSL 
+USE_POLARSSL		=	1
+
+ifeq ($(USE_POLARSSL), 1)
+DEFINES			+=	-D_USE_POLARSSL
+INC			+=	-Ipolarssl/include
+LIB			+=	-Lpolarssl/library
+LDFLAGS			+=	-lpolarssl
+else
+LDFLAGS			+=	-lgnutls
 endif
 
 
@@ -48,7 +61,8 @@ LDFLAGS			+=	-lpython2.7
 INC			+=	-I/usr/include/python2.7
 endif
 
-
+# TEST
+TEST_ARGS		= -4 -vvvv
 
 # Compile rules
 .PHONY : all check-syntax clean keys tags purge
@@ -87,5 +101,8 @@ stable: clean
 check-syntax:
 	$(CC) $(CFLAGS) -fsyntax-only $(CHK_SOURCES)
 
-valgrind:  $(BIN)
-	valgrind --leak-check=full --show-reachable=yes ./$(BIN) $(ARGS
+test: clean $(BIN)
+	./$(BIN) $(TEST_ARGS)
+
+valgrind: $(BIN)
+	valgrind -v --leak-check=full --show-reachable=yes ./$(BIN) $(TEST_ARGS)

@@ -22,7 +22,7 @@ typedef struct _http_request_fields
 boolean get_url_information(char*, http_request_t*); 
 boolean is_http_header(char*, int);
 void generic_http_error_page(sock_t, char*);
-sock_t create_http_socket(char*, sock_t, ssl_ctx_t*); 
+sock_t create_http_socket(char*, sock_t, ssl_context_t*); 
 int format_http_request(char*);
 
 #endif /* _HTTP_H */

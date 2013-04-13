@@ -4,6 +4,11 @@
 #include <stdio.h>
 #include "utils.h"
 
+#define PROGNAME 	"proxenet"
+#define AUTHOR 		"hugsy < @__hugsy__>"
+#define LICENSE 	"BeerWare"
+
+
 #define MAX_THREADS sizeof(long long)*4
 
 /* some configuration variables */

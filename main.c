@@ -17,10 +17,6 @@
 #include "socket.h"
 #include "tty.h"
 
-#define PROGNAME 	"proxenet"
-#define AUTHOR 		"hugsy < @__hugsy__>"
-#define LICENSE 	"BeerWare"
-
 
 /**
  * 

@@ -143,7 +143,7 @@ int format_http_request(char* request)
 /**
  *
  */
-sock_t create_http_socket(char* http_request, sock_t srv_sock, ssl_ctx_t* ssl_ctx) 
+sock_t create_http_socket(char* http_request, sock_t srv_sock, ssl_context_t* ssl_ctx) 
 {
 	sock_t http_socket;
 	http_request_t http_infos;
@@ -181,14 +181,13 @@ sock_t create_http_socket(char* http_request, sock_t srv_sock, ssl_ctx_t* ssl_ct
 		if (http_infos.is_ssl) {
 			
 			/* 1. set up proxy->server ssl session */ 
-			ssl_ctx->cli = proxenet_ssl_init_client_context(ssl_ctx);
-			if(ssl_ctx->cli==NULL) {
+			if(proxenet_ssl_init_client_context(&(ssl_ctx->client)) < 0) {
 				retcode = -1;
 				goto create_http_socket_end;
 			}
 			
-			proxenet_ssl_wrap_socket(ssl_ctx->cli, http_socket);
-			if (proxenet_ssl_handshake(ssl_ctx->cli) < 0) {
+			proxenet_ssl_wrap_socket(ssl_ctx->client.context, http_socket);
+			if (proxenet_ssl_handshake(ssl_ctx->client.context) < 0) {
 				xlog(LOG_ERROR, "%s\n", "proxy->server: handshake");
 				retcode = -1;
 				goto create_http_socket_end;
@@ -196,17 +195,16 @@ sock_t create_http_socket(char* http_request, sock_t srv_sock, ssl_ctx_t* ssl_ct
 #ifdef DEBUG
 			xlog(LOG_DEBUG, "%s\n", "SSL Handshake with server done");
 #endif
-			proxenet_write(srv_sock, "HTTP/1.1 200 OK\r\n\r\n", 19, NULL);
+			proxenet_write(srv_sock, "HTTP/1.1 200 OK\r\n\r\n", 19);
 			
 			/* 2. respond to client with our own ssl materials */
-			ssl_ctx->srv = proxenet_ssl_init_server_context(ssl_ctx);
-			if(ssl_ctx->srv==NULL) {
+			if(proxenet_ssl_init_server_context(&(ssl_ctx->server)) < 0) {
 				retcode = -1;
 				goto create_http_socket_end;		 
 			}
 			
-			proxenet_ssl_wrap_socket(ssl_ctx->srv, srv_sock);
-			if (proxenet_ssl_handshake(ssl_ctx->srv) < 0) {
+			proxenet_ssl_wrap_socket(ssl_ctx->server.context, srv_sock);
+			if (proxenet_ssl_handshake(ssl_ctx->server.context) < 0) {
 				xlog(LOG_ERROR, "%s\n", "proxy->client: handshake");
 				retcode = -1;
 				goto create_http_socket_end;
