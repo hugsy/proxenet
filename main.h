@@ -25,17 +25,17 @@
 
 
 typedef struct __proxenet_config {
-	  unsigned char verbose;
-	  boolean use_color;
-	  unsigned short nb_threads;
-	  char* logfile;
-	  FILE* logfile_fd;
-	  char* port;	
-	  char* iface;
-	  char* plugins_path;
-	  char* certfile;
-	  char* keyfile;
-	  int ip_version;
+		unsigned char verbose;
+		boolean use_color;
+		unsigned short nb_threads;
+		char* logfile;
+		FILE* logfile_fd;
+		char* port;	
+		char* iface;
+		char* plugins_path;
+		char* certfile;
+		char* keyfile;
+		int ip_version;
 } conf_t;
 
 conf_t* cfg;

@@ -9,21 +9,15 @@ VERSION         =       0.01
 ARCH            =       $(shell uname)
 DEBUG           =       1
 
-# ifeq ($(shell uname -m), x86_64)
-# LIB		= 	-L/usr/lib64
-# else
-# LIB		= 	-L/usr/lib
-# endif
-
 CC              =       cc
 BIN             =       proxenet
 DEFINES         =       -DVERSION=$(VERSION)
 # HARDEN		=	-Wl,-z,relro -pie -fstack-protector-all -fPIE
-LDFLAGS         =       -lpthread 
+LDFLAGS         =       $(HARDEN) -lpthread 
 SRC		=	$(wildcard *.c)
 OBJECTS         =       $(patsubst %.c, %.o, $(SRC))
 INC             =       -I/usr/include
-CFLAGS          =       -O2 -Wall $(HARDEN) $(DEFINES) $(INC) $(LIB)
+CFLAGS          =       -O2 -Wall $(DEFINES) $(INC) 
 
 
 # DEBUG
@@ -34,16 +28,8 @@ endif
 
 
 # SSL 
-USE_POLARSSL		=	1
-
-ifeq ($(USE_POLARSSL), 1)
-DEFINES			+=	-D_USE_POLARSSL
 INC			+=	-Ipolarssl/include
-LIB			+=	-Lpolarssl/library
-LDFLAGS			+=	-lpolarssl
-else
-LDFLAGS			+=	-lgnutls
-endif
+LDFLAGS			+=	-Lpolarssl/library -lpolarssl
 
 
 # PLUGINS 
@@ -51,7 +37,7 @@ WITH_C_PLUGIN		=	0
 WITH_PYTHON_PLUGIN	=	0
 
 ifeq ($(WITH_C_PLUGIN), 1)
-DEFINES			+=	-D_C_PLUGIN #-rdynamic
+DEFINES			+=	-D_C_PLUGIN 
 LDFLAGS			+=	-ldl
 endif
 
@@ -62,27 +48,35 @@ INC			+=	-I/usr/include/python2.7
 endif
 
 # TEST
-TEST_ARGS		= -4 -vvvv
+TEST_ARGS		= -4 -vvvv --nb-threads=10
 
 # Compile rules
 .PHONY : all check-syntax clean keys tags purge
 
 .c.o :
-	$(CC) $(CFLAGS) -c -o $@ $<
+	@echo "CC $< -> $@"
+	@$(CC) $(CFLAGS) -c -o $@ $<
 
 all : $(BIN)
 
-$(BIN): $(OBJECTS)
-	$(CC) $(CFLAGS) -o $@ $(OBJECTS) $(LDFLAGS)
+$(BIN): $(OBJECTS) polarssl/library/libpolarssl.a
+	@echo "LINK $(BIN)"
+	@$(CC) $(CFLAGS) -o $@ $(OBJECTS) $(LDFLAGS)
 
 purge:
-	rm -fr $(OBJECTS) ./core-$(BIN)-*
+	@echo "RM objects"
+	@rm -fr $(OBJECTS) ./core-$(BIN)-*
 
 clean: purge
-	rm -fr $(BIN)
+	@make -C polarssl clean
+	@echo "RM $(BIN)"
+	@rm -fr $(BIN)
 
 keys:
-	make -C keys all
+	@make -C keys all
+
+polarssl/library/libpolarssl.a:
+	@make -C polarssl lib
 
 # Packaging
 snapshot: clean

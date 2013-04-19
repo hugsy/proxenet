@@ -9,11 +9,8 @@
 #include "errno.h"
 #include "main.h"
 
-#ifdef _USE_POLARSSL
 #include <polarssl/error.h>
-#else
-#include <gnutls/gnutls.h>
-#endif
+
 
 /**
  *
@@ -120,7 +117,7 @@ sock_t create_connect_socket(char *host, char* port, char** errcode)
 	}
 	
 #ifdef DEBUG     
-	if (!ll || sock == -1) {
+	if (!ll || sock < 0) {
 		xlog(LOG_ERROR, "%s\n", "Failed to create socket");
 	} else {
 		xlog(LOG_DEBUG, "Connected to %s (%s)\n", host, port);
@@ -142,7 +139,7 @@ int close_socket(sock_t sock)
 	int ret;	
 	ret = close(sock);
 	if (ret < 0)
-		xlog(LOG_ERROR, "Error while closing fd %d: %s", sock, strerror(errno));
+		xlog(LOG_ERROR, "Error while closing fd %d: %s\n", sock, strerror(errno));
 	
 	return ret;
 }
@@ -155,9 +152,24 @@ int close_socket(sock_t sock)
 /**
  *
  */
+ssize_t proxenet_ioctl(ssize_t (*func)(), sock_t sock, void *buf, size_t count) {
+	int retcode = (*func)(sock, buf, count);
+	if (retcode < 0) {
+		xlog(LOG_ERROR, "Error while I/O plaintext data: %s\n", strerror(errno));
+		return -1;
+	}
+
+	return retcode;
+}
+
+
+/**
+ *
+ */
 ssize_t proxenet_read(sock_t sock, void *buf, size_t count) 
 {
-	return read(sock, buf, count);
+	ssize_t (*func)() = &read;
+	return proxenet_ioctl(func, sock, buf, count);	
 }
 
 
@@ -166,78 +178,66 @@ ssize_t proxenet_read(sock_t sock, void *buf, size_t count)
  */
 ssize_t proxenet_write(sock_t sock, void *buf, size_t count) 
 {
-	return write(sock, buf, count);
+	ssize_t (*func)() = &write;
+	return proxenet_ioctl(func, sock, buf, count);	
 }
 
 
 /**
  *
  */
-int proxenet_read_all(sock_t sock, char** ptr, proxenet_ssl_session_t* ssl_sess) 
+int proxenet_read_all(sock_t sock, char** ptr, proxenet_ssl_context_t* ssl) 
 {  
-	int ret, total_bytes_read;
-	size_t malloced_size = sizeof(char)*STEP;
+	int ret;
+	unsigned int total_bytes_read;
+	size_t malloced_size = sizeof(char) * MAX_READ_SIZE;
 	char *data, *current_offset;  
 		
 	total_bytes_read = 0;
 	current_offset = NULL;	
 	data = (char*)xmalloc(malloced_size+1);
 	
-	do {
+	while (TRUE) {
 		ret = -1;
 		current_offset = data + total_bytes_read;
 		
-		if (ssl_sess) {
-			ret = proxenet_ssl_read(sock, current_offset, STEP, ssl_sess);
-			if (ret < 0) {
-				char ssl_error_buffer[128] = {0, };
-				error_strerror( ret, ssl_error_buffer, 127);
-				
-				xlog(LOG_ERROR,
-				     "Error while reading SSL data: %s\n",
-#ifdef _USE_POLARSSL
-				     ssl_error_buffer 
-#else				     
-				     gnutls_strerror(ret)
-#endif
-				    );
-				xfree(data);
-				return -1;   
-			}
-			
+		if (ssl) {
+			/* ssl */
+			ret = proxenet_ssl_read(sock, current_offset, MAX_READ_SIZE, ssl);
 		} else {
 			/* plaintext */
-			ret = proxenet_read(sock, current_offset, STEP);
-			if (ret < 0) {
-				xlog(LOG_ERROR,
-				     "Error while reading PLAINTEXT data: %s\n",
-				     strerror(errno));
-				xfree(data);
-				return -1;	       
-			}
+			ret = proxenet_read(sock, current_offset, MAX_READ_SIZE);
+		}
+		if (ret < 0) {
+			xfree(data);
+			return -1;   
 		}
 		
 		total_bytes_read += ret;
 		
-		if (ret==STEP) {
+		if (ret == MAX_READ_SIZE) {
 			/* may be more data to come */
-			malloced_size += sizeof(char)*STEP;
+			malloced_size += sizeof(char) * MAX_READ_SIZE;
 			data = (char*)xrealloc(data, malloced_size+1);
+#ifdef DEBUG
+			xlog(LOG_DEBUG, "Increasing recv buf size to %d\n", malloced_size+1);
+#endif
 			continue;
 		}
+
+		if (ret > 0) {
+			data[total_bytes_read] = '\0';
+			break;
+		}
 		
-		/* otherwise we've read everything, get out */
-		data[total_bytes_read] = '\0';
-		break;
-		
-	} while (TRUE);
+	} 
 	
-	if (total_bytes_read==0) {
+	if (total_bytes_read == 0) {
 #ifdef DEBUG
 		xlog(LOG_DEBUG, "%s\n", "No data read from socket");
 #endif
 		xfree(data);
-		return -1;
+		return 0;
 	}
 	
 	*ptr = data;

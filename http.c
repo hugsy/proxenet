@@ -30,9 +30,13 @@ boolean get_url_information(char* request, http_request_t* http)
 	
 	/* find method */
 	start_pos = index(request, ' ');
-	end_pos = index(start_pos+1, ' ');
+	if (start_pos == NULL) {
+		xlog(LOG_ERROR, "%s\n", "Malformed HTTP Header");
+		return FALSE;
+	}
 	
-	if (start_pos==NULL || end_pos==NULL) {
+	end_pos = index(start_pos+1, ' ');
+	if (end_pos==NULL) {
 		xlog(LOG_ERROR, "%s\n", "Malformed HTTP Header");
 		return FALSE;
 	}
@@ -45,20 +49,22 @@ boolean get_url_information(char* request, http_request_t* http)
 	++start_pos;
 	
 	/* get proto */
-	if (!strncmp(start_pos,"http://",7)) {
+	if (!strncmp(start_pos,"http://", 7)) {
 		http->proto = "http";
 		http->port = 80;
 		start_pos += 7;
 		
-	} else if (!strncmp(start_pos,"https://",8)) {
+	} else if (!strncmp(start_pos,"https://", 8)) {
 		http->proto = "https";
 		http->port = 443;
 		http->is_ssl = TRUE;
 		start_pos += 8;
-	} else if (!strcmp(http->method,"CONNECT")) {
+		
+	} else if (!strcmp(http->method, "CONNECT")) {
 		http->proto = "https";
 		http->port = 443;
 		http->is_ssl = TRUE;
+		
 	} else {
 		xlog(LOG_ERROR, "%s\n", "Malformed HTTP/HTTPS URL, unknown proto");
 		xlog(LOG_DEBUG, "%s\n", request);
@@ -124,7 +130,7 @@ int format_http_request(char* request)
 		if (old_ptr) {
 			new_ptr = old_ptr + 8;
 		} else {
-			xlog(LOG_ERROR, "%s\n", "Cannot find protocol");
+			xlog(LOG_ERROR, "Cannot find protocol (http|https) in request:\n%s\n", request);
 			return -1;
 		}
 	}
@@ -143,14 +149,14 @@ int format_http_request(char* request)
 /**
  *
  */
-sock_t create_http_socket(char* http_request, sock_t srv_sock, ssl_context_t* ssl_ctx) 
+int create_http_socket(char* http_request, sock_t* server_sock, sock_t* client_sock, ssl_context_t* ssl_ctx) 
 {
-	sock_t http_socket;
 	http_request_t http_infos;
 	int retcode;
 	char* err;
 	char sport[6];
-	
+
+	err = NULL;
 	xzero(sport, 6);
 	xzero(&http_infos, sizeof(http_request_t));
 	http_infos.method = NULL;
@@ -165,17 +171,17 @@ sock_t create_http_socket(char* http_request, sock_t srv_sock, ssl_context_t* ss
 	
 	snprintf(sport, 5, "%d", http_infos.port);
 	
-	http_socket = create_connect_socket(http_infos.hostname, sport, &err);
-	if (http_socket < 0) {
+	retcode = create_connect_socket(http_infos.hostname, sport, &err);
+	if (retcode < 0) {
 		if (err)
-			generic_http_error_page(srv_sock, err);
+			generic_http_error_page(*server_sock, err);
 		else
-			generic_http_error_page(srv_sock, "Unknown error in <i>create_connect_socket</i>");
+			generic_http_error_page(*server_sock, "Unknown error in <i>create_connect_socket</i>");
 		
 		retcode = -1;
 		
 	} else {
-		retcode = http_socket;
+		*client_sock = retcode;
 		
 		/* if ssl, set up ssl interception */
 		if (http_infos.is_ssl) {
@@ -183,31 +189,33 @@ sock_t create_http_socket(char* http_request, sock_t srv_sock, ssl_context_t* ss
 			/* 1. set up proxy->server ssl session */ 
 			if(proxenet_ssl_init_client_context(&(ssl_ctx->client)) < 0) {
 				retcode = -1;
-				goto create_http_socket_end;
+				goto http_sock_end;
 			}
-			
-			proxenet_ssl_wrap_socket(ssl_ctx->client.context, http_socket);
-			if (proxenet_ssl_handshake(ssl_ctx->client.context) < 0) {
+
+			proxenet_ssl_wrap_socket(&(ssl_ctx->client.context), client_sock);
+			if (proxenet_ssl_handshake(&(ssl_ctx->client.context)) < 0) {
 				xlog(LOG_ERROR, "%s\n", "proxy->server: handshake");
 				retcode = -1;
-				goto create_http_socket_end;
+				goto http_sock_end;
 			}
 #ifdef DEBUG
 			xlog(LOG_DEBUG, "%s\n", "SSL Handshake with server done");
 #endif
-			proxenet_write(srv_sock, "HTTP/1.1 200 OK\r\n\r\n", 19);
+			proxenet_write(*server_sock,
+				       "HTTP/1.0 200 Connection established\r\n\r\n",
+				       39);
 			
-			/* 2. respond to client with our own ssl materials */
+			/* 2.set up proxy->browser ssl session  */
 			if(proxenet_ssl_init_server_context(&(ssl_ctx->server)) < 0) {
 				retcode = -1;
-				goto create_http_socket_end;		 
+				goto http_sock_end;
 			}
-			
-			proxenet_ssl_wrap_socket(ssl_ctx->server.context, srv_sock);
-			if (proxenet_ssl_handshake(ssl_ctx->server.context) < 0) {
+
+			proxenet_ssl_wrap_socket(&(ssl_ctx->server.context), server_sock);
+			if (proxenet_ssl_handshake(&(ssl_ctx->server.context)) < 0) {
 				xlog(LOG_ERROR, "%s\n", "proxy->client: handshake");
 				retcode = -1;
-				goto create_http_socket_end;
+				goto http_sock_end;
 			}
 			
 #ifdef DEBUG
@@ -216,7 +224,7 @@ sock_t create_http_socket(char* http_request, sock_t srv_sock, ssl_context_t* ss
 		}
 	}
 	
-create_http_socket_end:
+http_sock_end:
 	xfree(http_infos.method);
 	xfree(http_infos.hostname);
 	xfree(http_infos.request_uri);

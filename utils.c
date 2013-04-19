@@ -53,11 +53,11 @@ void _xlog(int type, const char* fmt, ...)
 
 	if (cfg->use_color) fprintf(cfg->logfile_fd, NORMAL);
 
-/*	
+
 #ifdef DEBUG
 	fprintf(cfg->logfile_fd, "tid-%ld ", pthread_self());
 #endif
-*/	
+
 	va_start(ap, fmt);
 	vfprintf(cfg->logfile_fd, fmt, ap);
 	fflush(cfg->logfile_fd);

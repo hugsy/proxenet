@@ -188,17 +188,18 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 	/* wait for any event on sockets */
 	for(;;) {
 		
-		http_request = NULL;
+		http_request  = NULL;
 		http_response = NULL;
 		
-		tv.tv_sec = 1;
+		tv.tv_sec  = 1;
 		tv.tv_usec = 0;
-		
+
 		FD_ZERO(&rfds);
 		FD_SET(server_socket, &rfds);
 		FD_SET(client_socket, &rfds);
 		
-		retcode = select(MAX(client_socket, server_socket)+1, &rfds, NULL, NULL, &tv);
+		retcode = select( MAX(client_socket, server_socket)+1,
+				  &rfds, NULL, NULL, &tv );
 		if (retcode < 0) {
 			xlog(LOG_CRITICAL, "select: %s\n", strerror(errno));
 			break;
@@ -215,17 +216,18 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 		/* is there data from web browser to proxy ? */
 		if( FD_ISSET(server_socket, &rfds ) ) {
 			int n = -1;
-						
+			
 			if(is_ssl) {
-				n = proxenet_read_all(server_socket, &http_request, &(ssl_context.server.context));
+				n = proxenet_read_all(server_socket,
+						      &http_request,
+						      &(ssl_context.server.context));
 			} else {
-				n = proxenet_read(server_socket, &http_request, NULL);
+				n = proxenet_read_all(server_socket, &http_request, NULL);
 			}
 			
-			if (n < 0) {
-				xfree(http_request);
+			if (n <= 0) 
 				goto init_end;
-			}
+
 			
 #ifdef DEBUG
 			xlog(LOG_DEBUG, "Received %d bytes from client (%s)\n", n, (is_ssl)?"SSL":"PLAIN");
@@ -233,8 +235,8 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 			
 			/* is connection to server already established ? */
 			if (client_socket < 0) {
-				client_socket = create_http_socket(http_request, server_socket, &ssl_context);
-				if (client_socket < 0) {
+				retcode = create_http_socket(http_request, &server_socket, &client_socket, &ssl_context);
+				if (retcode < 0) {
 					xlog(LOG_ERROR, "%s\n", "Failed to create proxy->server socket");
 					xfree(http_request);
 					goto thread_end;
@@ -242,50 +244,52 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 				
 				if (ssl_context.server.is_valid && ssl_context.client.is_valid) {
 #ifdef DEBUG
-					xlog(LOG_DEBUG, "%s\n", "SSL interception established");
-#endif	      
+					xlog(LOG_DEBUG, "\n", "SSL interception established");
+#endif
 					xfree(http_request);
 					continue;
 				}
-				
 			}
 
 			/* check if request is valid  */
-			if (format_http_request(http_request) < 0) {
-				xfree(http_request);
-				goto init_end;
-			}
-			
+			if (!is_ssl)
+				if (format_http_request(http_request) < 0) {
+					xfree(http_request);
+					goto init_end;
+				}
 			
 			/* hook request with all plugins in plugins_l  */
 			http_request = proxenet_apply_plugins(http_request, CFG_REQUEST_PLUGIN_FUNCTION);
-			if (strlen(http_request)<2) {
+			if (strlen(http_request) < 2) {
 				xlog(LOG_ERROR, "%s\n", "Invalid plugins results, ignore request");
 				xfree(http_request);
 				break;
 			}
 			
 #ifdef DEBUG
-			xlog(LOG_DEBUG, "Sending (%s):\n%s\n",(is_ssl)?"SSL":"PLAIN",http_request);
+			xlog(LOG_DEBUG, "Sending %d bytes (%s):\n",strlen(http_request),(is_ssl)?"SSL":"PLAIN");
 #endif
 			/* send modified data */
 			if (is_ssl) {
-				retcode = proxenet_ssl_write(client_socket, http_request, strlen(http_request), &ssl_context.client);
+				retcode = proxenet_ssl_write(client_socket,
+							     http_request,
+							     strlen(http_request),
+							     &(ssl_context.client.context));
 			} else {
 				retcode = proxenet_write(client_socket, http_request, strlen(http_request));
 			}
-			
-			if (retcode < 0) {
-				xlog(LOG_ERROR, "Failed to send data: %s\n", strerror(errno));
-			}
-			
+					
 			xfree(http_request);
+
+			if (retcode < 0) 
+				break;
 			
 			continue;
+			
 		} /* end FD_ISSET(data_from_browser) */
 		
 		
-		/* is there data from remote web server to proxy ? */
+		/* is there data from remote server to proxy ? */
 		if( FD_ISSET(client_socket, &rfds ) ) {
 			int n = -1;
 			
@@ -294,21 +298,17 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 			else
 				n = proxenet_read_all(client_socket, &http_response, NULL);
 			
-			if (n < 0)
-				goto init_end;
+			if (n <= 0)
+				break;
 			
 #ifdef DEBUG
 			xlog(LOG_DEBUG, "Received %d bytes from server\n", n);
 #endif
 
-			if (strlen(http_response)==0){
-				xfree(http_response);
-				continue;
-			}
 			
 			/* execute response hooks */
 			http_response = proxenet_apply_plugins(http_response, CFG_RESPONSE_PLUGIN_FUNCTION);
-			if (strlen(http_response)==0) {
+			if (strlen(http_response) < 2) {
 				xlog(LOG_ERROR, "%s\n", "Invalid plugins results, ignore response");
 				xfree(http_response);
 				goto init_end;
@@ -321,7 +321,7 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 				retcode = proxenet_write(server_socket, http_response, n);
 			
 			if (retcode < 0) {
-				xlog(LOG_DEBUG, "proxy->client: write failed: %s\n", strerror(errno));
+				xlog(LOG_ERROR, "%s\n", "proxy->client: write failed");
 			}
 			
 			xfree(http_response);
@@ -329,14 +329,13 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 		}  /*  end FD_ISSET(data_from_server) */
 		
 	}  /* end for(;;) { select() } */
-	
-	
+
+
 	/* close client socket */
 init_end:
 	if (ssl_context.client.is_valid) {
-		/* if (ssl_context.client.cert) */
-		proxenet_ssl_free_certificate(ssl_context.client.cert);
-		
+		/* proxenet_ssl_bye(&ssl_context.client.context); todo : pkoi ca deconne ?*/
+		proxenet_ssl_free_certificate(&ssl_context.client.cert);
 		close_socket_ssl(client_socket, &ssl_context.client.context);
 		
 	} else {
@@ -347,10 +346,9 @@ init_end:
 	/* close local socket */  
 thread_end:
 	if (ssl_context.server.is_valid) {
-		/* if (ssl_context.server.cert) */
-		proxenet_ssl_free_certificate(ssl_context.server.cert);
-		
-		close_socket_ssl(server_socket, &ssl_context.server);
+		proxenet_ssl_bye(&ssl_context.server.context);
+		proxenet_ssl_free_certificate(&ssl_context.server.cert);
+		close_socket_ssl(server_socket, &ssl_context.server.context);
 		
 	} else {
 		close_socket(server_socket);
