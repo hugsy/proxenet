@@ -33,8 +33,8 @@ LDFLAGS			+=	-Lpolarssl/library -lpolarssl
 
 
 # PLUGINS 
-WITH_C_PLUGIN		=	0
-WITH_PYTHON_PLUGIN	=	0
+WITH_C_PLUGIN		=	1
+WITH_PYTHON_PLUGIN	=	1
 
 ifeq ($(WITH_C_PLUGIN), 1)
 DEFINES			+=	-D_C_PLUGIN 
@@ -51,7 +51,7 @@ endif
 TEST_ARGS		= -4 -vvvv --nb-threads=10
 
 # Compile rules
-.PHONY : all check-syntax clean keys tags purge
+.PHONY : all check-syntax clean keys tags purge ssl
 
 .c.o :
 	@echo "CC $< -> $@"
@@ -59,21 +59,23 @@ TEST_ARGS		= -4 -vvvv --nb-threads=10
 
 all : $(BIN)
 
-$(BIN): $(OBJECTS) polarssl/library/libpolarssl.a
+$(BIN): $(OBJECTS) ssl
 	@echo "LINK $(BIN)"
-	@$(CC) $(CFLAGS) -o $@ $(OBJECTS) $(LDFLAGS)
+	$(CC) $(CFLAGS) -o $@ $(OBJECTS) $(LDFLAGS)
 
 purge:
 	@echo "RM objects"
 	@rm -fr $(OBJECTS) ./core-$(BIN)-*
 
 clean: purge
-	@make -C polarssl clean
+	# @make -C polarssl clean
 	@echo "RM $(BIN)"
 	@rm -fr $(BIN)
 
 keys:
 	@make -C keys all
+
+ssl:	polarssl/library/libpolarssl.a
 
 polarssl/library/libpolarssl.a:
 	@make -C polarssl lib

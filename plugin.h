@@ -4,26 +4,26 @@
 #include "utils.h"
 
 
-enum supported_plugins {
+typedef enum __supported_plugins_t {
 #ifdef _PYTHON_PLUGIN
-     PYTHON,
+	PYTHON,
 #endif
   
 #ifdef _C_PLUGIN
-     C,
+	C,
 #endif
     
   END_VALUE
-};
+} supported_plugins_t;
 
 
 const static UNUSED char* supported_plugins_str[] = {
 #ifdef _PYTHON_PLUGIN
-     "Python",
+	"Python",
 #endif
 
 #ifdef _C_PLUGIN
-     "C",
+	"C",
 #endif
  
   NULL
@@ -32,13 +32,12 @@ const static UNUSED char* supported_plugins_str[] = {
 
 const static UNUSED char* plugins_extensions_str[] = {
 #ifdef _PYTHON_PLUGIN  
-     ".py",
+	".py",
 #endif
   
 #ifdef _C_PLUGIN      
-     ".so",
+	".so",
 #endif 
-
   
   NULL
 };
@@ -46,19 +45,23 @@ const static UNUSED char* plugins_extensions_str[] = {
 
 typedef struct _plugin_type 
 {
-	unsigned int id;
-	char* name;
-	unsigned short type;
-	unsigned short priority;
-	void* interpreter;
-	struct _plugin_type* next;
-	unsigned char state;
+		unsigned short id;
+		char* filename;
+		char* name;
+		supported_plugins_t type;
+		unsigned short priority;
+		void* interpreter;
+		struct _plugin_type* next;
+		unsigned char state;
 } plugin_t;
 
 
-int proxenet_create_list_plugins(char*);
-int proxenet_plugin_list_size();
-void proxenet_delete_list_plugins();
-void proxenet_print_plugins_list();
+int	proxenet_create_list_plugins(char*);
+int 	proxenet_plugin_list_size();
+void 	proxenet_delete_list_plugins();
+void 	proxenet_print_plugins_list();
+int	count_plugins_by_type(int);
+char*	get_plugin_path(char*);
+int	count_initialized_plugins_by_type(int);
 
 #endif /* _PLUGINS_H */

@@ -1,6 +1,3 @@
-#ifdef _PYTHON_PLUGIN
-#  include <Python.h>
-#endif
 #include <stdarg.h>
 #include <time.h>
 #include <stdio.h>
@@ -9,6 +6,7 @@
 #include <string.h>
 #include <pthread.h>
 #include <semaphore.h>
+
 #include "core.h"
 #include "utils.h"
 

@@ -1,4 +1,5 @@
 #ifdef _C_PLUGIN
+
 /*******************************************************************************
  *
  * C plugin 
@@ -6,8 +7,11 @@
  */
 
 #include <dlfcn.h>
+#include <string.h>
+#include <alloca.h>
 
 #include "plugin.h"
+#include "utils.h"
 
 /**
  *
@@ -18,13 +22,13 @@ void proxenet_c_initialize_vm(plugin_t* plugin)
 	
 	pathname = get_plugin_path(plugin->name);
 	if (!pathname) {
-		xlog(LOG_CRITICAL,"proxenet_c_plugin:get_plugin_path\n");
+		xlog(LOG_CRITICAL,"%s\n", "Failed to get path");
 		goto proxenet_c_initialize_vm_end;
 	}
 	
 	plugin->interpreter = dlopen(pathname, RTLD_NOW);
 	if (plugin->interpreter == NULL) {
-		xlog(LOG_CRITICAL,"proxenet_c_plugin:dlopen: %s\n", dlerror());
+		xlog(LOG_CRITICAL,"%s\n", dlerror());
 		goto proxenet_c_initialize_vm_end;
 	}
 	
@@ -44,7 +48,7 @@ void proxenet_c_destroy_vm(plugin_t* plugin)
 		plugin->interpreter = NULL;
 		
 	} else {
-		xlog(LOG_ERROR, "Trying to destroy uninitialized interpreter\n");
+		xlog(LOG_ERROR, "%s\n", "Cannot destroy uninitialized interpreter");
 	}
 	
 }
@@ -77,7 +81,6 @@ char* proxenet_c_plugin(plugin_t* plugin, char* request, const char* function_na
 	buflen = strlen(ret) + 1;
 	bufres = xmalloc(buflen+1);
 	memcpy(bufres, ret, buflen);
-	printf("bufres: %s\n", bufres);
 	
 #ifdef DEBUG
 	xlog(LOG_DEBUG, "[%s] end %s\n", plugin->name, function_name);

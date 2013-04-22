@@ -18,14 +18,30 @@
 /**
  *
  */
-void proxenet_add_plugin(char* name, short type, short priority)
+char* get_plugin_basename(char* filename, supported_plugins_t type){
+	char* name;
+	size_t len = -1;
+
+	len = strlen(filename) - 1 - strlen(plugins_extensions_str[type]);
+	name = (char*)xmalloc(len + 1);
+	
+	memcpy(name, filename+1, len);
+	return name;
+}
+
+
+/**
+ *
+ */
+void proxenet_add_plugin(char* name, supported_plugins_t type, short priority)
 {
 	plugin_t *cur_ptr, *old_ptr;
 	plugin_t *plugin;
 	
 	plugin 			= (plugin_t*)xmalloc(sizeof(plugin_t));
 	plugin->id 		= proxenet_plugin_list_size(plugins_list) + 1;
-	plugin->name	 	= name;
+	plugin->filename 	= strdup(name);
+	plugin->name		= get_plugin_basename(name, type);
 	plugin->type		= type;
 	plugin->priority	= priority;
 	plugin->interpreter 	= NULL;
@@ -70,7 +86,7 @@ void proxenet_add_plugin(char* name, short type, short priority)
 	}
 	
 	if (cfg->verbose > 1)
-		xlog(LOG_INFO, "Adding %s plugin '%s'\n", supported_plugins_str[type], name);
+		xlog(LOG_INFO, "Adding %s plugin '%s'\n", supported_plugins_str[type], plugin->name);
 }
 
 
@@ -100,6 +116,7 @@ void proxenet_delete_list_plugins()
 	while (p != NULL) {
 		next = p->next; 
 		xfree(p->name);
+		xfree(p->filename);
 		xfree(p);
 		p = next;
 	}
@@ -116,7 +133,7 @@ void proxenet_print_plugins_list()
 	sem_wait(&tty_semaphore);
 	
 	printf("Plugins list:\n");
-	for (p=plugins_list; p!=NULL; p=p->next) 
+	for (p = plugins_list; p!=NULL; p=p->next) 
 		fprintf(cfg->logfile_fd,
 			"|_ priority=%d id=%d type=%s[0x%x] name=%s (%sACTIVE)\n",
 			p->priority,
@@ -127,7 +144,7 @@ void proxenet_print_plugins_list()
 			(p->state==ACTIVE?"":"IN")
 		       );
 	
-	fflush(NULL);
+	fflush(cfg->logfile_fd);
 	sem_post(&tty_semaphore);
 }
 
@@ -157,9 +174,9 @@ int proxenet_get_plugin_type(char* filename)
 
 
 /**
- * plugin name structure is
- * PLUGIN_DIR/<priority><name>.<ext>
- * 0 < priority < 10
+ * Plugin name structure *MUST* be  `PLUGIN_DIR/<priority><name>.<ext>`
+ * with priority in [0, 10[
+ * If a file does not match this, it is not added as plugin
  */
 int proxenet_create_list_plugins(char* plugin_path)
 { 
@@ -184,16 +201,15 @@ int proxenet_create_list_plugins(char* plugin_path)
 		/* plugin name  */ 
 		d_name_len = strlen(dir_ptr->d_name);
 		if (d_name_len > 510) continue;
-		plugin_name = (char*)xmalloc(d_name_len+1);
-		memcpy(plugin_name, dir_ptr->d_name, d_name_len);
+		plugin_name = dir_ptr->d_name;
 		
 		/* plugin type */
 		plugin_type = proxenet_get_plugin_type(plugin_name);
 		if (plugin_type < 0) continue;
 		
 		/* plugin priority */
-		plugin_priority = (unsigned short)atoi(&plugin_name[0]);
-		if (plugin_priority>9 || plugin_priority==1)
+		plugin_priority = (unsigned short)atoi(plugin_name);
+		if (plugin_priority>9 || plugin_priority < 1)
 			plugin_priority = 9;
 		
 		/* add plugin in correct place (1: high priority, 9: low priority) */
@@ -220,8 +236,7 @@ char* get_plugin_path(char* plugin_name)
 	
 	/* path must be free-ed */
 	retcode = snprintf(pathname, pathlen+1, "%s/%s", cfg->plugins_path, plugin_name);
-	if (retcode < 0)
-	{
+	if (retcode < 0) {
 		xlog(LOG_ERROR, "%s\n", "Failed to set path name");
 		return NULL;
 	}
