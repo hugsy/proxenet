@@ -11,6 +11,7 @@
 
 #include <string.h>
 #include <alloca.h>
+#include <pthread.h>
 
 #include "main.h"
 #include "plugin.h"
@@ -18,41 +19,31 @@
 #include "plugin-python.h"
 
 
-static PyThreadState *proxenet_main_interpreter;
+/* static PyThreadState *proxenet_main_interpreter; */
 
 /**
  *
  */
 void proxenet_python_initialize_vm(plugin_t* plugin) 
 {
-	/* PyThreadState* pOldCtx = NULL; */
+	interpreter_t *interpreter = plugin->interpreter;
 	
-	if(count_initialized_plugins_by_type(PYTHON) == 0){
+	/* is vm initialized ? */
+	if (interpreter->ready)
+		return;
+	
 #ifdef DEBUG
-		xlog(LOG_DEBUG, "%s\n", "Initializing Python VM");
+	xlog(LOG_DEBUG, "%s\n", "Initializing Python VM");
 #endif
-		Py_Initialize();
-		if (Py_IsInitialized() == FALSE) {
-			xlog(LOG_CRITICAL, "%s\n", "Failed to initialize Python engine");
-			plugin->interpreter = NULL;
-			return;
-		}
 		
-		proxenet_main_interpreter = PyThreadState_Get();
-		
-		PyEval_InitThreads();
+	Py_Initialize();
+	if (Py_IsInitialized() == FALSE) {
+		xlog(LOG_CRITICAL, "%s\n", "Failed to initialize Python engine");
+		plugin->interpreter->vm = NULL;
+		return;
 	}
-	
-	/* a new interpreter does not have argv (required by many modules), we need to add one */
-	wchar_t *PyArgv = "proxenet_python_plugin_engine";
-	
-	plugin->interpreter = (void*)Py_NewInterpreter();
-	if (plugin->interpreter == NULL) {
-		xlog(LOG_CRITICAL, "%s\n", "Failed to create new python sub-interpreter");
-		abort();
-	}
-	PySys_SetArgv(1, &PyArgv);
 
+	interpreter->ready = TRUE;
 }
 
 
@@ -61,68 +52,85 @@ void proxenet_python_initialize_vm(plugin_t* plugin)
  */
 void proxenet_python_destroy_vm(plugin_t* plugin)
 {
-	if (!Py_IsInitialized() || !PyEval_ThreadsInitialized())
-		return;
-	
-	PyThreadState_Swap((PyThreadState *)plugin->interpreter);
-	Py_EndInterpreter((PyThreadState *)plugin->interpreter);
-	
-	PyThreadState_Swap(proxenet_main_interpreter);
-	
-	plugin->interpreter = NULL;
+	if (! Py_IsInitialized()) {
+		xlog(LOG_CRITICAL, "%s\n", "Python VM should not be uninitialized here");
+		abort();
+	}
 	
 	if(count_plugins_by_type(PYTHON) == 0) {
 		Py_Finalize();
 	}
-	
+
+	plugin->interpreter->ready = TRUE;
 	return;
 }
+
 
 
 /**
  *
  */
-PyObject* proxenet_python_load_function(plugin_t* plugin, const char* function_name) 
-{     
+int proxenet_python_initialize_function(plugin_t* plugin, char type) 
+{
+	char*	module_name;
+	size_t 	module_name_len;
 	PyObject *pModStr, *pMod, *pFunc;
 
-#ifdef DEBUG
-	xlog(LOG_DEBUG, "Loading %s.%s\n", plugin->name, function_name);
-#endif
+	boolean is_request = (type==REQUEST) ? TRUE : FALSE;
 
 	/* import module */
 	if (!plugin->name) {
 		xlog(LOG_ERROR, "%s\n", "null plugin name");
-		return NULL;
+		return -1;
 	}
+
+	module_name_len = strlen(plugin->name) + 2; 
+	module_name = alloca(module_name_len);
+	xzero(module_name, module_name_len);
+	snprintf(module_name, module_name_len, "%d%s", plugin->id, plugin->name);
 	
-	pModStr = PyString_FromString(plugin->name);
+	pModStr = PyString_FromString(module_name);
 	if (!pModStr) {
 		PyErr_Print();
-		return NULL;
+		return -1;
 	}
 
-	pMod 	= PyImport_Import(pModStr);
-	Py_DECREF(pModStr);
+#ifdef DEBUG
+	xlog(LOG_DEBUG, "Importing module %s\n", module_name);
+#endif
+	
+	pMod = PyImport_Import(pModStr);
 	if(!pMod) {
 		PyErr_Print(); 
-		xlog(LOG_INFO, "Is '%s' in PYTHONPATH ?\n", cfg->plugins_path);
-		return NULL;
+		xlog(LOG_WARNING, "Is '%s' in PYTHONPATH ?\n", cfg->plugins_path);
+		Py_DECREF(pModStr);
+		return -1;
 	}
+
+	Py_DECREF(pModStr);
+
 
 	/* find reference to function in module */
-	pFunc = PyObject_GetAttrString(pMod, function_name);
+	if (is_request)
+		pFunc = PyObject_GetAttrString(pMod, CFG_REQUEST_PLUGIN_FUNCTION);
+	else
+		pFunc = PyObject_GetAttrString(pMod, CFG_RESPONSE_PLUGIN_FUNCTION);
 	if (!pFunc) {
 		PyErr_Print(); 
-		return NULL;
+		return -1;
 	}
 
-	if (PyCallable_Check(pFunc)) {
-		xlog(LOG_ERROR, "Object '%s' in %s is not callable\n", function_name, plugin->name);
-		return NULL;
+	if (!PyCallable_Check(pFunc)) {
+		xlog(LOG_ERROR, "Object in %s is not callable\n", module_name);
+		return -1;
 	}
 
-	return pFunc;
+	if (is_request)
+		plugin->pre_function = pFunc;
+	else 
+		plugin->post_function = pFunc;
+
+	return 0;
 }
 
 
@@ -151,46 +159,58 @@ char* proxenet_python_execute_function(PyObject* pFuncRef, char* http_request)
 
 
 /**
- * loads lib, get func ref, execute func, memcpy result
+ *
  */
-char* proxenet_python_plugin(plugin_t* plugin, char* request, const char* function_name)
+void proxenet_python_lock_vm(plugin_t *plugin)
 {
-#ifdef DEBUG
-	xlog(LOG_DEBUG, "Init %s:%s\n", plugin->name, function_name);
-#endif
-	
+	pthread_mutex_lock(&plugin->interpreter->mutex);
+
+}
+
+
+/**
+ *
+ */
+void proxenet_python_unlock_vm(plugin_t *plugin)
+{
+	pthread_mutex_unlock(&plugin->interpreter->mutex);
+}
+
+
+/**
+ * 
+ */
+char* proxenet_python_plugin(plugin_t* plugin, char* request, char type)
+{	
 	char *dst_buf = NULL;
 	PyObject *pFunc = NULL;
+	boolean is_request = (type==REQUEST) ? TRUE : FALSE;
+
 	
-	if (!plugin->interpreter)
+	if (!plugin->interpreter->ready)
 		return request;
+
+	proxenet_python_lock_vm(plugin);
 	
-	PyThreadState_Swap(plugin->interpreter);
-	
-	pFunc  = proxenet_python_load_function(plugin, function_name);
-#ifdef DEBUG
-	xlog(LOG_DEBUG, "Func '%s' -> %p\n", function_name, pFunc);
-#endif
-	if (!pFunc) {
-		xlog(LOG_ERROR, "Loading %s:%s failed\n", plugin->name, function_name);
-		return request;
-	}
-	
+	if (is_request)
+		pFunc = (PyObject*) plugin->pre_function;
+	else
+		pFunc = (PyObject*) plugin->post_function;
+
 	dst_buf = proxenet_python_execute_function(pFunc, request);
 	if (!dst_buf) {
-		xlog(LOG_ERROR,"[%s] Error while executing '%s'\n", plugin->name, dst_buf);
+		xlog(LOG_ERROR,
+		     "[%s] Error while executing plugin on %s\n",
+		     plugin->name,
+		     is_request ? "Request" : "Reponse");
 		return request;
 	}
 	
-#ifdef DEBUG
-	xlog(LOG_DEBUG, "End %s:%s\n", plugin->name, function_name);
-#endif
-
 	Py_DECREF(pFunc);
 
-	PyThreadState_Swap(proxenet_main_interpreter);
-
+	proxenet_python_unlock_vm(plugin);
+	
 	return dst_buf;
 }
 
-#endif
+#endif /* _PYTHON_PLUGIN */

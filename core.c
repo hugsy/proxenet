@@ -26,7 +26,7 @@
 /**
  *
  */
-void proxenet_initialize_plugins_vm()
+void proxenet_initialize_plugins()
 {
 	plugin_t *p;
 	
@@ -36,6 +36,16 @@ void proxenet_initialize_plugins_vm()
 #ifdef _PYTHON_PLUGIN      
 			case PYTHON:
 				proxenet_python_initialize_vm(p);
+				if (proxenet_python_initialize_function(p, REQUEST) < 0) {
+					p->state = INACTIVE;
+					xlog(LOG_ERROR, "Failed to init %s in %s\n", CFG_REQUEST_PLUGIN_FUNCTION, p->name);
+					continue;
+				}
+				if (proxenet_python_initialize_function(p, RESPONSE) < 0) {
+					p->state = INACTIVE;
+					xlog(LOG_ERROR, "Failed to init %s in %s\n", CFG_RESPONSE_PLUGIN_FUNCTION, p->name);
+					continue;
+				}
 				break;
 #endif
 				
@@ -119,11 +129,11 @@ void proxenet_switch_plugin(int plugin_id)
 /**
  *
  */
-char* proxenet_apply_plugins(char* data, const char* function_name)
+char* proxenet_apply_plugins(char* data, char type)
 {
 	plugin_t *p;
 	char *new_data, *old_data;
-	char* (*plugin_function)(plugin_t*, char*, const char*) = NULL;
+	char* (*plugin_function)(plugin_t*, char*, char) = NULL;
 	boolean ok;
 	
 	if (proxenet_plugin_list_size()==0) {
@@ -161,7 +171,7 @@ char* proxenet_apply_plugins(char* data, const char* function_name)
 		if (!ok) continue;
 		
 		old_data = new_data;
-		new_data = (*plugin_function)(p, old_data, function_name);
+		new_data = (*plugin_function)(p, old_data, type);
 		if (old_data!=new_data)
 			xfree(old_data);
 	}
@@ -205,9 +215,6 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 			break;
 			
 		} else if (retcode == 0) {
-#ifdef DEBUG
-			xlog(LOG_DEBUG, "%s\n", "No data to read/write, closing pending socket");
-#endif
 			break;
 		}
 
@@ -259,7 +266,7 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 				}
 			
 			/* hook request with all plugins in plugins_l  */
-			http_request = proxenet_apply_plugins(http_request, CFG_REQUEST_PLUGIN_FUNCTION);
+			http_request = proxenet_apply_plugins(http_request, REQUEST);
 			if (strlen(http_request) < 2) {
 				xlog(LOG_ERROR, "%s\n", "Invalid plugins results, ignore request");
 				xfree(http_request);
@@ -307,7 +314,7 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 
 			
 			/* execute response hooks */
-			http_response = proxenet_apply_plugins(http_response, CFG_RESPONSE_PLUGIN_FUNCTION);
+			http_response = proxenet_apply_plugins(http_response, RESPONSE);
 			if (strlen(http_response) < 2) {
 				xlog(LOG_ERROR, "%s\n", "Invalid plugins results, ignore response");
 				xfree(http_response);
@@ -334,7 +341,7 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 	/* close client socket */
 init_end:
 	if (ssl_context.client.is_valid) {
-		/* proxenet_ssl_bye(&ssl_context.client.context); todo : pkoi ca deconne ?*/
+		proxenet_ssl_bye(&ssl_context.client.context); 
 		proxenet_ssl_free_certificate(&ssl_context.client.cert);
 		close_socket_ssl(client_socket, &ssl_context.client.context);
 		
@@ -391,7 +398,8 @@ int proxenet_start_new_thread(sock_t conn, int tnum, pthread_t* thread,
 		xlog (LOG_ERROR, "%s\n", "No more thread available, request dropped");
 		return (-1);
 	}
-	
+
+	/* check if mutex still usefull */
 	tinfo_t* tinfo = (tinfo_t*)xmalloc(sizeof(tinfo_t));
 	void* tfunc = &process_thread_job;
 	
@@ -496,6 +504,7 @@ void kill_zombies(pthread_t* threads)
  */
 int proxenet_init_plugins() 
 {
+		
 	if(proxenet_create_list_plugins(cfg->plugins_path) < 0) {
 		xlog(LOG_ERROR, "%s\n", "Failed to build plugins list, leaving");
 		return -1;
@@ -661,25 +670,28 @@ void xloop(sock_t sock)
 					
 				case 'r':
 					if (get_active_threads_size()>0) {
-						xlog(LOG_ERROR, "%s\n", "Threads still active, cannot reload");
+						xlog(LOG_ERROR, "%s\n",
+						     "Threads still active, cannot reload");
 						break;
 					}
 					
 					proxenet_state = SLEEPING; 
 					if( proxenet_init_plugins() < 0) {
 						if (cfg->verbose)
-							xlog(LOG_ERROR, "%s\n", "Failed to reinitilize plugins");
+							xlog(LOG_ERROR, "%s\n",
+							     "Failed to reinitilize plugins");
 						proxenet_state = INACTIVE;
 						break;
 					}
 					
 					proxenet_destroy_plugins_vm();
-					proxenet_initialize_plugins_vm();
+					proxenet_initialize_plugins();
 					
 					proxenet_state = ACTIVE;
 					
 					xlog(LOG_INFO, "%s\n", "Plugins list successfully reloaded");
-					if (cfg->verbose) proxenet_print_plugins_list();
+					if (cfg->verbose)
+						proxenet_print_plugins_list();
 					
 					break;
 					
@@ -721,6 +733,7 @@ void xloop(sock_t sock)
 	
 	for (i=0; i < cfg->nb_threads; i++)
 		pthread_mutex_destroy(&threads_mutex[i]);
+	
 	
 	return;
 }
@@ -791,11 +804,11 @@ int proxenet_start()
 		xlog(LOG_CRITICAL, "%s\n", "Failed to initialize global SSL context");
 		return retcode;
 	}
-	
+
 	/* set up plugins */
 	if( proxenet_init_plugins() < 0 ) return -1;
 	
-	proxenet_initialize_plugins_vm(); // call *MUST* succeed or abort()
+	proxenet_initialize_plugins(); // call *MUST* succeed or abort()
 	
 	
 	/* prepare threads and start looping */

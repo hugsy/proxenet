@@ -44,10 +44,13 @@ void proxenet_add_plugin(char* name, supported_plugins_t type, short priority)
 	plugin->name		= get_plugin_basename(name, type);
 	plugin->type		= type;
 	plugin->priority	= priority;
-	plugin->interpreter 	= NULL;
 	plugin->next 		= NULL;
 	plugin->state		= ACTIVE;
-	
+
+	plugin->interpreter 	= &vms[type];
+	plugin->pre_function	= NULL;
+	plugin->post_function	= NULL;
+
 	
 	/* if first plugin */
 	if (!plugins_list) {

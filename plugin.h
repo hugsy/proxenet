@@ -42,17 +42,37 @@ const static UNUSED char* plugins_extensions_str[] = {
   NULL
 };
 
+enum {
+	REQUEST	 = 0,
+	RESPONSE = 1
+};
 
-typedef struct _plugin_type 
-{
+typedef struct _interpreter_type {
+		unsigned short id;
+		supported_plugins_t type;
+		pthread_mutex_t mutex;
+		void *vm;
+		boolean ready;
+} interpreter_t;
+
+#define MAX_VMS 2
+interpreter_t vms[MAX_VMS];
+
+
+
+typedef struct _plugin_type {
 		unsigned short id;
 		char* filename;
 		char* name;
 		supported_plugins_t type;
 		unsigned short priority;
-		void* interpreter;
 		struct _plugin_type* next;
 		unsigned char state;
+
+		interpreter_t *interpreter;
+		void *pre_function;
+		void *post_function;
+		
 } plugin_t;
 
 

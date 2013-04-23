@@ -33,7 +33,7 @@ LDFLAGS			+=	-Lpolarssl/library -lpolarssl
 
 
 # PLUGINS 
-WITH_C_PLUGIN		=	1
+WITH_C_PLUGIN		=	0
 WITH_PYTHON_PLUGIN	=	1
 
 ifeq ($(WITH_C_PLUGIN), 1)
@@ -48,7 +48,7 @@ INC			+=	-I/usr/include/python2.7
 endif
 
 # TEST
-TEST_ARGS		= -4 -vvvv --nb-threads=10
+TEST_ARGS		= -4 -vvvv --nb-threads=1
 
 # Compile rules
 .PHONY : all check-syntax clean keys tags purge ssl
