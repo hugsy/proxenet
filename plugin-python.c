@@ -20,7 +20,23 @@
 #include "plugin-python.h"
 
 
-/* static PyThreadState *proxenet_main_interpreter; */
+/**
+ *
+ */
+void proxenet_python_append_path(interpreter)
+{
+	PyObject *pPath, *pAddPath;
+
+	pPath = PySys_GetObject("path");
+	pAddPath = PyString_FromString(cfg->plugins_path);
+	
+	if (pAddPath) {
+		PyList_Insert(pPath, 0, pAddPath);
+		Py_DECREF(pAddPath);
+	}
+
+}
+
 
 /**
  *
@@ -44,6 +60,8 @@ void proxenet_python_initialize_vm(plugin_t* plugin)
 		return;
 	}
 
+	proxenet_python_append_path(interpreter);
+	
 	interpreter->ready = TRUE;
 }
 
@@ -151,17 +169,17 @@ int proxenet_python_initialize_function(plugin_t* plugin, char type)
 /**
  *
  */
-char* proxenet_python_execute_function(PyObject* pFuncRef, char* http_request)
+char* proxenet_python_execute_function(PyObject* pFuncRef, long rid, char* request_str)
 {
 	PyObject *pArgs, *pResult;
 	char *buffer, *result;
 	int ret;
-	size_t len;
+	Py_ssize_t len;
 
 	result = buffer = NULL;
 	len = -1;
 	
-	pArgs = Py_BuildValue("(s)", http_request);
+	pArgs = Py_BuildValue("is", rid, request_str);
 	if (!pArgs) {
 		xlog(LOG_ERROR, "%s\n", "Failed to build args");
 		PyErr_Print();
@@ -182,9 +200,10 @@ char* proxenet_python_execute_function(PyObject* pFuncRef, char* http_request)
 			PyErr_Print();
 			
 		} else {
-			result = (char*) xmalloc(len);
+			fprintf(stderr, "%s", buffer);
+
+			result = (char*) xmalloc(len+1);
 			result = memcpy(result, buffer, len);
-			xlog(LOG_DEBUG, "Res (%d) %s", len, result);
 		}
 		
 	} else {
@@ -220,7 +239,7 @@ void proxenet_python_unlock_vm(plugin_t *plugin)
 /**
  * 
  */
-char* proxenet_python_plugin(plugin_t* plugin, char* request, char type)
+char* proxenet_python_plugin(plugin_t* plugin, long rid, char* request, char type)
 {	
 	char *dst_buf = NULL;
 	PyObject *pFunc = NULL;
@@ -245,7 +264,7 @@ char* proxenet_python_plugin(plugin_t* plugin, char* request, char type)
 	else
 		pFunc = (PyObject*) plugin->post_function;
 
-	dst_buf = proxenet_python_execute_function(pFunc, request);
+	dst_buf = proxenet_python_execute_function(pFunc, rid, request);
 	if (!dst_buf) {
 		xlog(LOG_ERROR,
 		     "[%s] Error while executing plugin on %s\n",

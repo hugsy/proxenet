@@ -1,6 +1,7 @@
 #ifndef _CORE_H
 #define _CORE_H
 
+#include <pthread.h>
 #include <semaphore.h>
 
 #include "main.h"
@@ -24,12 +25,13 @@ enum proxenet_states {
 	ACTIVE,			/* rock'n roll */
 };
 
+long		request_id;
+pthread_mutex_t request_id_mutex;
+unsigned short 	proxenet_state;
+unsigned long 	active_threads_bitmask;
+sem_t 		tty_semaphore;
+plugin_t 	*plugins_list;  /* points to first plugin */
 
-unsigned short proxenet_state;
-unsigned long long active_threads_bitmask;
-sem_t tty_semaphore;
-plugin_t *plugins_list;  /* points to first plugin */
-
-int proxenet_start(); 
+int 		proxenet_start(); 
 
 #endif /* _CORE_H */

@@ -27,6 +27,23 @@
 #include "plugin-c.h"
 #endif
 
+
+/**
+ *
+ */
+int get_new_request_id()
+{
+	int rid;
+	
+	pthread_mutex_lock(&request_id_mutex);
+	rid = request_id;
+	request_id++;
+	pthread_mutex_unlock(&request_id_mutex);
+
+	return rid;
+}
+
+
 /**
  *
  */
@@ -132,11 +149,11 @@ void proxenet_switch_plugin(int plugin_id)
 /**
  *
  */
-char* proxenet_apply_plugins(char* data, char type)
+char* proxenet_apply_plugins(long id, char* data, char type)
 {
 	plugin_t *p;
 	char *new_data, *old_data;
-	char* (*plugin_function)(plugin_t*, char*, char) = NULL;
+	char* (*plugin_function)(plugin_t*, long, char*, char) = NULL;
 	boolean ok;
 	
 	if (proxenet_plugin_list_size()==0) {
@@ -174,7 +191,7 @@ char* proxenet_apply_plugins(char* data, char type)
 		if (!ok) continue;
 		
 		old_data = new_data;
-		new_data = (*plugin_function)(p, old_data, type);
+		new_data = (*plugin_function)(p, id, old_data, type);
 		if (old_data!=new_data)
 			xfree(old_data);
 	}
@@ -194,8 +211,9 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 	fd_set rfds;
 	struct timeval tv;
 	ssl_context_t ssl_context;
+	int rid;
 	
-	client_socket = retcode =-1;
+	client_socket = rid = retcode =-1;
 	xzero(&ssl_context, sizeof(ssl_context_t));
 	
 	/* wait for any event on sockets */
@@ -267,9 +285,13 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 					xfree(http_request);
 					goto init_end;
 				}
+
+			/* got a request, get a request id */
+			if (request_id < 0) 
+				rid = get_new_request_id();
 			
 			/* hook request with all plugins in plugins_l  */
-			http_request = proxenet_apply_plugins(http_request, REQUEST);
+			http_request = proxenet_apply_plugins(rid, http_request, REQUEST);
 			if (strlen(http_request) < 2) {
 				xlog(LOG_ERROR, "%s\n", "Invalid plugins results, ignore request");
 				xfree(http_request);
@@ -317,7 +339,7 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 
 			
 			/* execute response hooks */
-			http_response = proxenet_apply_plugins(http_response, RESPONSE);
+			http_response = proxenet_apply_plugins(rid, http_response, RESPONSE);
 			if (strlen(http_response) < 2) {
 				xlog(LOG_ERROR, "%s\n", "Invalid plugins results, ignore response");
 				xfree(http_response);
@@ -335,6 +357,9 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 			}
 			
 			xfree(http_response);
+
+			if (rid > 0)
+				rid = -1;
 			
 		}  /*  end FD_ISSET(data_from_server) */
 		
@@ -791,7 +816,8 @@ int proxenet_start()
 	
 	proxenet_initialize_plugins(); // call *MUST* succeed or abort()
 	
-	
+
+	request_id = 0;
 	/* prepare threads and start looping */
 	xloop(listening_socket);
 	
