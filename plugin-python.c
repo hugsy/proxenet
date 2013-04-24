@@ -4,7 +4,8 @@
  *
  * Python plugin implementation
  *
- * https://mdavey.wordpress.com/2006/02/09/python-rule-for-py_newinterpreter/
+ * tested on CPython2.6, CPython2.7
+ *
  */
 
 #include <Python.h>
@@ -61,7 +62,7 @@ void proxenet_python_destroy_vm(plugin_t* plugin)
 		Py_Finalize();
 	}
 
-	plugin->interpreter->ready = TRUE;
+	plugin->interpreter->ready = FALSE;
 	return;
 }
 
@@ -75,15 +76,28 @@ int proxenet_python_initialize_function(plugin_t* plugin, char type)
 	char*	module_name;
 	size_t 	module_name_len;
 	PyObject *pModStr, *pMod, *pFunc;
-
+	const char* function_name;
 	boolean is_request = (type==REQUEST) ? TRUE : FALSE;
-
-	/* import module */
+	
+	/* checks  */
 	if (!plugin->name) {
 		xlog(LOG_ERROR, "%s\n", "null plugin name");
 		return -1;
 	}
 
+	if (plugin->pre_function && type == REQUEST) {
+		xlog(LOG_WARNING, "Pre-hook function already defined for '%s'\n", plugin->name);
+		return 0;
+	}
+
+	if (plugin->post_function && type == RESPONSE) {
+		xlog(LOG_WARNING, "Post-hook function already defined for '%s'\n", plugin->name);
+		return 0;
+	}
+
+	function_name = is_request ? CFG_REQUEST_PLUGIN_FUNCTION : CFG_RESPONSE_PLUGIN_FUNCTION;
+	
+	/* import module */
 	module_name_len = strlen(plugin->name) + 2; 
 	module_name = alloca(module_name_len);
 	xzero(module_name, module_name_len);
@@ -96,7 +110,7 @@ int proxenet_python_initialize_function(plugin_t* plugin, char type)
 	}
 
 #ifdef DEBUG
-	xlog(LOG_DEBUG, "Importing module %s\n", module_name);
+	xlog(LOG_DEBUG, "Importing '%s'\n", module_name);
 #endif
 	
 	pMod = PyImport_Import(pModStr);
@@ -109,12 +123,12 @@ int proxenet_python_initialize_function(plugin_t* plugin, char type)
 
 	Py_DECREF(pModStr);
 
+#ifdef DEBUG
+	xlog(LOG_DEBUG, "Fetching '%s:%s'\n", module_name, function_name);
+#endif	
 
 	/* find reference to function in module */
-	if (is_request)
-		pFunc = PyObject_GetAttrString(pMod, CFG_REQUEST_PLUGIN_FUNCTION);
-	else
-		pFunc = PyObject_GetAttrString(pMod, CFG_RESPONSE_PLUGIN_FUNCTION);
+	pFunc = PyObject_GetAttrString(pMod, function_name);
 	if (!pFunc) {
 		PyErr_Print(); 
 		return -1;
@@ -139,13 +153,39 @@ int proxenet_python_initialize_function(plugin_t* plugin, char type)
  */
 char* proxenet_python_execute_function(PyObject* pFuncRef, char* http_request)
 {
-	PyObject *pResult;
-	char *result;
+	PyObject *pArgs, *pResult;
+	char *buffer, *result;
+	int ret;
+	size_t len;
 
-	pResult = PyObject_CallFunction(pFuncRef, "s", http_request);
+	result = buffer = NULL;
+	len = -1;
 	
-	if (PyBytes_Check(pResult)){
-		result = strdup(PyString_AsString(pResult));
+	pArgs = Py_BuildValue("(s)", http_request);
+	if (!pArgs) {
+		xlog(LOG_ERROR, "%s\n", "Failed to build args");
+		PyErr_Print();
+		return result;
+	}
+
+	pResult = PyObject_CallObject(pFuncRef, pArgs);
+	if (!pResult) {
+		xlog(LOG_ERROR, "%s\n", "Failed during func call");
+		PyErr_Print();
+		return result;
+	}
+	
+	/* if (PyString_Check(pResult)){  // supprime dans python2.7 ?? */
+	if (PyBytes_Check(pResult)) {
+		ret = PyString_AsStringAndSize(pResult, &buffer, &len);
+		if (ret < 0) {
+			PyErr_Print();
+			
+		} else {
+			result = (char*) xmalloc(len);
+			result = memcpy(result, buffer, len);
+			xlog(LOG_DEBUG, "Res (%d) %s", len, result);
+		}
 		
 	} else {
 		xlog(LOG_ERROR, "%s\n", "Incorrect return type (not string)");
@@ -190,8 +230,16 @@ char* proxenet_python_plugin(plugin_t* plugin, char* request, char type)
 	if (!plugin->interpreter->ready)
 		return request;
 
+#ifdef DEBUG
+	xlog(LOG_DEBUG, "%s\n", "Trying to lock PyVM");
+#endif	
+
 	proxenet_python_lock_vm(plugin);
-	
+
+#ifdef DEBUG
+	xlog(LOG_DEBUG, "%s\n", "PyVM locked");
+#endif
+       
 	if (is_request)
 		pFunc = (PyObject*) plugin->pre_function;
 	else
@@ -203,11 +251,15 @@ char* proxenet_python_plugin(plugin_t* plugin, char* request, char type)
 		     "[%s] Error while executing plugin on %s\n",
 		     plugin->name,
 		     is_request ? "Request" : "Reponse");
-		return request;
+		
+		dst_buf = request;
 	}
 	
-	Py_DECREF(pFunc);
+	/* Py_DECREF(pFunc); */
 
+#ifdef DEBUG
+	xlog(LOG_DEBUG, "%s\n", "Unlocking PyVM");
+#endif	
 	proxenet_python_unlock_vm(plugin);
 	
 	return dst_buf;

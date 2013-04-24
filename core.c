@@ -19,9 +19,13 @@
 #include "ssl.h"
 #include "tty.h"
 
+#ifdef _PYTHON_PLUGIN
 #include "plugin-python.h"
-#include "plugin-c.h"
+#endif
 
+#ifdef _C_PLUGIN
+#include "plugin-c.h"
+#endif
 
 /**
  *
@@ -60,7 +64,6 @@ void proxenet_initialize_plugins()
 		}
 		
 	}
-	
 }
 
 
@@ -375,10 +378,6 @@ static void* process_thread_job(void* arg)
 	
 	active_threads_bitmask |= 1<<tinfo->thread_num;
 	
-#ifdef DEBUG  
-	xlog(LOG_DEBUG, "Thread-%d: running with mutex %#.8x\n", tinfo->thread_num, tinfo->mutex); 
-#endif
-	
 	proxenet_process_http_request(tinfo->sock, tinfo->plugin_list);
 	
 	tinfo->plugin_list = NULL;
@@ -390,22 +389,19 @@ static void* process_thread_job(void* arg)
 /**
  *
  */
-int proxenet_start_new_thread(sock_t conn, int tnum, pthread_t* thread, 
-			      pthread_mutex_t* tmutex, pthread_attr_t* tattr )
+int proxenet_start_new_thread(sock_t conn, int tnum, pthread_t* thread, pthread_attr_t* tattr)
 {
 	
-	if (active_threads_bitmask == 0xffffffffffffffff) {
+	if (active_threads_bitmask >= 0xffffffff) {
 		xlog (LOG_ERROR, "%s\n", "No more thread available, request dropped");
-		return (-1);
+		return -1;
 	}
 
-	/* check if mutex still usefull */
 	tinfo_t* tinfo = (tinfo_t*)xmalloc(sizeof(tinfo_t));
 	void* tfunc = &process_thread_job;
 	
 	tinfo->thread_num = tnum;
 	tinfo->sock = conn;
-	tinfo->mutex = tmutex;
 	
 	return pthread_create(thread, tattr, tfunc, (void*)tinfo);
 }
@@ -530,17 +526,12 @@ void xloop(sock_t sock)
 {
 	fd_set sock_set;
 	struct timeval tv;
-	int retcode, i;
+	int retcode;
 	pthread_attr_t pattr;
 	pthread_t threads[MAX_THREADS];
-	pthread_mutex_t threads_mutex[MAX_THREADS]; 
 	
 	
 	xzero(threads, sizeof(pthread_t)*MAX_THREADS);
-	
-	/* mutex init */
-	for (i=0; i<cfg->nb_threads; i++)
-		pthread_mutex_init(&threads_mutex[i], NULL);
 	
 	if (pthread_attr_init(&pattr)) {
 		xlog(LOG_ERROR, "%s\n", "Failed to pthread_attr_init");
@@ -594,11 +585,7 @@ void xloop(sock_t sock)
 			
 			/* find next free slot */
 			for(tnum=0; active_threads_bitmask & (1<<tnum); tnum++);
-			retcode = proxenet_start_new_thread(conn,
-							    tnum,
-							    &threads[tnum],
-							    &threads_mutex[tnum],
-							    &pattr);
+			retcode = proxenet_start_new_thread(conn,tnum,&threads[tnum],&pattr);
 			if (retcode < 0) {
 				xlog(LOG_ERROR, "%s\n", "Error while spawn new thread");
 				continue;
@@ -726,14 +713,8 @@ void xloop(sock_t sock)
 	
 	
 	kill_zombies(threads);
-	
 	proxenet_destroy_plugins_vm();
-	
 	pthread_attr_destroy(&pattr);
-	
-	for (i=0; i < cfg->nb_threads; i++)
-		pthread_mutex_destroy(&threads_mutex[i]);
-	
 	
 	return;
 }

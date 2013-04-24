@@ -1,6 +1,5 @@
 def pre_request_hook(req):
     r = req.replace("\r\n\r\n", "\r\nX-Intercepted-By: proxenet\r\n\r\n")
-    print r
     return r
 
     

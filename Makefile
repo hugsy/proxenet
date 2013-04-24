@@ -18,6 +18,7 @@ SRC		=	$(wildcard *.c)
 OBJECTS         =       $(patsubst %.c, %.o, $(SRC))
 INC             =       -I/usr/include
 CFLAGS          =       -O2 -Wall $(DEFINES) $(INC) 
+LIB		= 	-L/lib
 
 
 # DEBUG
@@ -29,7 +30,8 @@ endif
 
 # SSL 
 INC			+=	-Ipolarssl/include
-LDFLAGS			+=	-Lpolarssl/library -lpolarssl
+LIB			+= 	-Lpolarssl/library
+LDFLAGS			+=	-lpolarssl
 
 
 # PLUGINS 
@@ -47,11 +49,13 @@ LDFLAGS			+=	-lpython2.7
 INC			+=	-I/usr/include/python2.7
 endif
 
+
 # TEST
-TEST_ARGS		= -4 -vvvv --nb-threads=1
+TEST_ARGS		= 	-4 -vvvv --nb-threads=10
+
 
 # Compile rules
-.PHONY : all check-syntax clean keys tags purge ssl
+.PHONY : all check-syntax clean keys tags purge ssl test
 
 .c.o :
 	@echo "CC $< -> $@"
@@ -60,15 +64,14 @@ TEST_ARGS		= -4 -vvvv --nb-threads=1
 all : $(BIN)
 
 $(BIN): $(OBJECTS) ssl
-	@echo "LINK $(BIN)"
-	$(CC) $(CFLAGS) -o $@ $(OBJECTS) $(LDFLAGS)
+	@echo "LINK with $(LDFLAGS)"
+	@$(CC) $(CFLAGS) -o $@ $(OBJECTS) $(LIB) $(LDFLAGS)
 
 purge:
 	@echo "RM objects"
 	@rm -fr $(OBJECTS) ./core-$(BIN)-*
 
 clean: purge
-	# @make -C polarssl clean
 	@echo "RM $(BIN)"
 	@rm -fr $(BIN)
 
@@ -78,7 +81,11 @@ keys:
 ssl:	polarssl/library/libpolarssl.a
 
 polarssl/library/libpolarssl.a:
+	@echo "Building PolarSSL library"
 	@make -C polarssl lib
+
+sslclean: clean
+	@make -C polarssl clean
 
 # Packaging
 snapshot: clean
