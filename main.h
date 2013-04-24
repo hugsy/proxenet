@@ -20,8 +20,8 @@
 #define CFG_DEFAULT_SSL_KEYFILE           "./keys/proxenet.key"
 #define CFG_DEFAULT_SSL_CERTFILE          "./keys/proxenet.crt"
 #define CFG_DEFAULT_IP_VERSION             AF_UNSPEC
-#define CFG_REQUEST_PLUGIN_FUNCTION       "pre_request_hook"
-#define CFG_RESPONSE_PLUGIN_FUNCTION      "post_request_hook"
+#define CFG_REQUEST_PLUGIN_FUNCTION       "proxenet_request_hook"
+#define CFG_RESPONSE_PLUGIN_FUNCTION      "proxenet_response_hook"
 
 
 typedef struct __proxenet_config {

@@ -30,26 +30,12 @@
  * SSL context setup
  */
 
-/**
- * 
- */
-int proxenet_ssl_init_global_context(ssl_context_t* ctx) 
-{
-	return 0;
-}
 
+#ifdef DEBUG_SSL
 
-/**
- *
- */
-int proxenet_ssl_free_global_context()
-{
-	return 0;
-}
-
-
-#ifdef DEBUG
 static char buf[2048] = {0, };
+
+
 /**
  *
  */
@@ -65,7 +51,9 @@ void proxenet_ssl_debug(void *who, int level, const char *str )
 		xzero(buf, 2048);
 	}
 }
+
 #endif
+
 
 /**
  *
@@ -114,8 +102,8 @@ int proxenet_ssl_init_server_context(ssl_atom_t *server)
 	ssl_set_ca_chain(context, server->cert.next, NULL, NULL );
 	ssl_set_own_cert(context, &(server->cert), &(server->rsa));
 
-#ifdef DEBUG
-	/* ssl_set_dbg(context, proxenet_ssl_debug, "SERVER"); */
+#ifdef DEBUG_SSL
+	ssl_set_dbg(context, proxenet_ssl_debug, "SERVER");
 #endif
 	server->is_valid = TRUE;
 	
@@ -150,8 +138,8 @@ int proxenet_ssl_init_client_context(ssl_atom_t* client)
 	ssl_set_rng(context, ctr_drbg_random, &(client->ctr_drbg) );
 	ssl_set_ca_chain(context, &(client->cert), NULL, NULL);
 
-#ifdef DEBUG
-	/* ssl_set_dbg(context, proxenet_ssl_debug, "CLIENT"); */
+#ifdef DEBUG_SSL
+	ssl_set_dbg(context, proxenet_ssl_debug, "CLIENT");
 #endif
 	
 	client->is_valid = TRUE;

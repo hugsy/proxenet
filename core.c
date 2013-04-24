@@ -804,13 +804,6 @@ int proxenet_start()
 	proxenet_state = INACTIVE;
 	active_threads_bitmask = 0;
 	
-	/* set up ssl/tls global environnement */
-	retcode = proxenet_ssl_init_global_context();
-	if (retcode < 0) {
-		xlog(LOG_CRITICAL, "%s\n", "Failed to initialize global SSL context");
-		return retcode;
-	}
-
 	/* set up plugins */
 	if( proxenet_init_plugins() < 0 ) return -1;
 	
@@ -826,7 +819,6 @@ int proxenet_start()
 	
 	proxenet_delete_list_plugins();
 	
-	proxenet_ssl_free_global_context();
 	
 	return close_socket(listening_socket);
 }

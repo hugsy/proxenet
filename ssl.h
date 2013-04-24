@@ -27,8 +27,6 @@ typedef struct __ssl_context_t {
 } ssl_context_t;
 
 
-int proxenet_ssl_init_global_context();
-int proxenet_ssl_free_global_context();
 
 void proxenet_ssl_free_certificate(proxenet_ssl_cert_t* ssl_cert);
 	

@@ -32,7 +32,7 @@ endif
 INC			+=	-Ipolarssl/include
 LIB			+= 	-Lpolarssl/library
 LDFLAGS			+=	-lpolarssl
-
+# CFLAGS			+=	-DDEBUG_SSL
 
 # PLUGINS 
 WITH_C_PLUGIN		=	0

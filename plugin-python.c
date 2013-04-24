@@ -200,8 +200,6 @@ char* proxenet_python_execute_function(PyObject* pFuncRef, long rid, char* reque
 			PyErr_Print();
 			
 		} else {
-			fprintf(stderr, "%s", buffer);
-
 			result = (char*) xmalloc(len+1);
 			result = memcpy(result, buffer, len);
 		}
