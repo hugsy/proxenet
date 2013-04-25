@@ -49,22 +49,23 @@ int get_new_request_id()
  */
 void proxenet_initialize_plugins()
 {
-	plugin_t *p;
+	plugin_t *plugin;
 	
-	for (p=plugins_list; p!=NULL; p=p->next) {
+	for (plugin=plugins_list; plugin; plugin=plugin->next) {
 		
-		switch (p->type) {
-#ifdef _PYTHON_PLUGIN      
+		switch (plugin->type) {
+#ifdef _PYTHON_PLUGIN
 			case PYTHON:
-				proxenet_python_initialize_vm(p);
-				if (proxenet_python_initialize_function(p, REQUEST) < 0) {
-					p->state = INACTIVE;
-					xlog(LOG_ERROR, "Failed to init %s in %s\n", CFG_REQUEST_PLUGIN_FUNCTION, p->name);
+				proxenet_python_initialize_vm(plugin);
+				if (proxenet_python_initialize_function(plugin, REQUEST) < 0) {
+					plugin->state = INACTIVE;
+					xlog(LOG_ERROR, "Failed to init %s in %s\n", CFG_REQUEST_PLUGIN_FUNCTION, plugin->name);
 					continue;
 				}
-				if (proxenet_python_initialize_function(p, RESPONSE) < 0) {
-					p->state = INACTIVE;
-					xlog(LOG_ERROR, "Failed to init %s in %s\n", CFG_RESPONSE_PLUGIN_FUNCTION, p->name);
+				
+				if (proxenet_python_initialize_function(plugin, RESPONSE) < 0) {
+					plugin->state = INACTIVE;
+					xlog(LOG_ERROR, "Failed to init %s in %s\n", CFG_RESPONSE_PLUGIN_FUNCTION, plugin->name);
 					continue;
 				}
 				break;
@@ -72,7 +73,23 @@ void proxenet_initialize_plugins()
 				
 #ifdef _C_PLUGIN
 			case C:
-				proxenet_c_initialize_vm(p);
+				if (proxenet_c_initialize_vm(plugin) < 0) {
+					plugin->state = INACTIVE;
+					xlog(LOG_ERROR, "%s\n", "Failed to init C VM");
+					continue;
+				}
+				
+				if (proxenet_c_initialize_function(plugin, REQUEST) < 0) {
+					plugin->state = INACTIVE;
+					xlog(LOG_ERROR, "Failed to init %s in %s\n", CFG_REQUEST_PLUGIN_FUNCTION, plugin->name);
+					continue;
+				}
+				
+				if (proxenet_c_initialize_function(plugin, RESPONSE) < 0) {
+					plugin->state = INACTIVE;
+					xlog(LOG_ERROR, "Failed to init %s in %s\n", CFG_RESPONSE_PLUGIN_FUNCTION, plugin->name);
+					continue;
+				}
 				break;
 #endif
 				
@@ -153,7 +170,7 @@ char* proxenet_apply_plugins(long id, char* data, char type)
 {
 	plugin_t *p;
 	char *new_data, *old_data;
-	char* (*plugin_function)(plugin_t*, long, char*, char) = NULL;
+	char* (*plugin_function)(plugin_t*, long, char*, int) = NULL;
 	boolean ok;
 	
 	if (proxenet_plugin_list_size()==0) {

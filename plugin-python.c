@@ -236,7 +236,7 @@ void proxenet_python_unlock_vm(plugin_t *plugin)
 /**
  * 
  */
-char* proxenet_python_plugin(plugin_t* plugin, long rid, char* request, char type)
+char* proxenet_python_plugin(plugin_t* plugin, long rid, char* request, int type)
 {	
 	char *dst_buf = NULL;
 	PyObject *pFunc = NULL;

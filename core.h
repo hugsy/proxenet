@@ -8,7 +8,7 @@
 #include "socket.h"
 #include "plugin.h"
 
-#define HTTP_TIMEOUT_SOCK 10    /* in seconds, used for select() call in thread */
+#define HTTP_TIMEOUT_SOCK 5    /* in seconds, used for select() call in thread */
 #define MAX_VERBOSE_LEVEL 4
 
 typedef struct thread_info {

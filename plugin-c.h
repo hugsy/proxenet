@@ -2,8 +2,9 @@
 
 #include "plugin.h"
 
-void proxenet_c_initialize_vm(plugin_t*);
-char* proxenet_c_plugin(plugin_t*, char*, const char*);
-void proxenet_c_destroy_vm(plugin_t*);
+int 	proxenet_c_initialize_vm(plugin_t*);
+int 	proxenet_c_destroy_vm(plugin_t*);
+int 	proxenet_c_initialize_function(plugin_t*, int);
+char* 	proxenet_c_plugin(plugin_t*, long, char*, int);
 
 #endif

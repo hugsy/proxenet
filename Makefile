@@ -35,7 +35,7 @@ LDFLAGS			+=	-lpolarssl
 # CFLAGS			+=	-DDEBUG_SSL
 
 # PLUGINS 
-WITH_C_PLUGIN		=	0
+WITH_C_PLUGIN		=	1
 WITH_PYTHON_PLUGIN	=	1
 
 ifeq ($(WITH_C_PLUGIN), 1)

@@ -229,28 +229,6 @@ int proxenet_create_list_plugins(char* plugin_path)
 /**
  *
  */
-char* get_plugin_path(char* plugin_name) 
-{
-	int pathlen, retcode;
-	char* pathname;
-	
-	pathlen = strlen(cfg->plugins_path)+strlen(plugin_name) + 1;
-	pathname = (char*) xmalloc(pathlen+1);
-	
-	/* path must be free-ed */
-	retcode = snprintf(pathname, pathlen+1, "%s/%s", cfg->plugins_path, plugin_name);
-	if (retcode < 0) {
-		xlog(LOG_ERROR, "%s\n", "Failed to set path name");
-		return NULL;
-	}
-	
-	return pathname;
-}
-
-
-/**
- *
- */
 int count_plugins_by_type(int type)
 {
 	int i=0;
