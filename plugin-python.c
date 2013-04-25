@@ -23,7 +23,7 @@
 /**
  *
  */
-void proxenet_python_append_path(interpreter)
+void proxenet_python_append_path(interpreter_t *interpreter)
 {
 	PyObject *pPath, *pAddPath;
 

@@ -212,9 +212,11 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 	struct timeval tv;
 	ssl_context_t ssl_context;
 	int rid;
-	
-	client_socket = rid = retcode =-1;
+
+	rid = 0;
+	client_socket = retcode =-1;
 	xzero(&ssl_context, sizeof(ssl_context_t));
+
 	
 	/* wait for any event on sockets */
 	for(;;) {
@@ -287,7 +289,7 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 				}
 
 			/* got a request, get a request id */
-			if (!request_id) 
+			if (!rid) 
 				rid = get_new_request_id();
 			
 			/* hook request with all plugins in plugins_l  */
@@ -358,7 +360,8 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 			
 			xfree(http_response);
 
-			if (rid > 0)
+			/* reset request id for this thread */
+			if (rid)
 				rid = 0;
 			
 		}  /*  end FD_ISSET(data_from_server) */
