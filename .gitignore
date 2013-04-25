@@ -1,10 +1,11 @@
+TAGS
+todo
 *.o
 plugins/*.so
 plugins/*.pyc
 keys/*.key
 keys/*.pem
-TAGS
 proxenet
 proxenet.1
 polarssl
-TODO
+

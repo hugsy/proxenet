@@ -1,7 +1,6 @@
 import pimp
-import sys
+import os
 from PyQt4 import QtGui
-
 
 class InterceptWindow(QtGui.QWidget):
     
@@ -9,61 +8,66 @@ class InterceptWindow(QtGui.QWidget):
         super(InterceptWindow, self).__init__()
         self.title = title
         self.data = data
-        
         self.setWindowProperty()
         self.setWindowLayout()
         self.setConnections()
-        
         self.show()
 
-        
     def setWindowProperty(self):
-        self.setGeometry(300, 300, 290, 150)
+        self.setGeometry(1500, 500, 500, 248)
         self.setWindowTitle(self.title)
-
         
-    def setWindowLayout(self):      
+    def setWindowLayout(self):
         self.bounceButton = QtGui.QPushButton("Bounce")
         self.saveButton   = QtGui.QPushButton("Save")
         self.cancelButton = QtGui.QPushButton("Cancel")
-        self.editField = QtGui.QTextEdit(self.data)
-        
+        self.editField = QtGui.QTextEdit()
+        self.editField.insertPlainText(self.data)
         hbox = QtGui.QHBoxLayout()
         hbox.addStretch(1)
-        hbox.addWidget(self.bounceButton)
+        hbox.addWidget(self.saveButton)
         hbox.addWidget(self.cancelButton)
-
+        hbox.addWidget(self.bounceButton)
         vbox = QtGui.QVBoxLayout()
         vbox.addStretch(1)
         vbox.addWidget(self.editField)
         vbox.addLayout(hbox)
-        
         self.setLayout(vbox)
         
-        
     def setConnections(self):
-        # self.cancelButton.clicked.connect(self.quit)
-        self.saveButton.clicked.connect(self.write_in_file)
-
+        self.bounceButton.clicked.connect(self.updateText)
+        self.cancelButton.clicked.connect(QtGui.QApplication.quit)
+        self.saveButton.clicked.connect(self.writeFile)
     
-    def write_in_file(self):
-        fd = QtGui.QFileDialog(self)
-        filename = fd.getOpenFileName()
+    def writeFile(self):
+        filename = QtGui.QFileDialog().getOpenFileName(self,"Save As",os.getenv("HOME"))
+        if len(filename) == 0:
+            return
         with open(filename, "w") as f:
             f.write(self.data)
             
-    
-def proxenet_request_hook(id, request):
-    return request
+    def updateText(self):
+        self.data = self.editField.toPlainText()
+        QtGui.QApplication.quit()
 
-def proxenet_response_hook(id, response):
-    return reponse
+def intercept(rid, text):
+    app = QtGui.QApplication([""])
+    win = InterceptWindow("Intercepting request %d" % rid, text)
+    app.exec_()
+    return str(win.data)
+    
+def proxenet_request_hook(request_id, request):
+    data = intercept(request_id, request.replace(pimp.CRLF, "\x0a"))
+    data = data.replace("\x0a", pimp.CRLF)
+    return data
+
+def proxenet_response_hook(response_id, response):
+    return response
 
     
 if __name__ == "__main__":
-    req = "GET   /   HTTP/1.1\r\nHost: foo\r\nX-Header: Powered by proxenet\r\n\r\n"
-    app = QtGui.QApplication(sys.argv)
-    win = InterceptWindow("Intercepting request %d" % 10, req)
-    sys.exit(app.exec_())
+    req = "GET / HTTP/1.1\r\nHost: foo\r\nX-Header: Powered by proxenet\r\n\r\n"
+    rid = 10
     
+    print proxenet_request_hook(rid, req)
 

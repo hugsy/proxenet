@@ -287,7 +287,7 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 				}
 
 			/* got a request, get a request id */
-			if (request_id < 0) 
+			if (!request_id) 
 				rid = get_new_request_id();
 			
 			/* hook request with all plugins in plugins_l  */
@@ -359,7 +359,7 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 			xfree(http_response);
 
 			if (rid > 0)
-				rid = -1;
+				rid = 0;
 			
 		}  /*  end FD_ISSET(data_from_server) */
 		
@@ -788,12 +788,10 @@ int proxenet_start()
 {
 	sock_t listening_socket;
 	char *err;
-	int retcode;
-	
 	
 	/* create listening socket */
 	listening_socket = create_bind_socket(cfg->iface, cfg->port, &err);
-	if (listening_socket < 0){
+	if (listening_socket < 0) {
 		xlog(LOG_CRITICAL, "%s\n", "Cannot create bind socket, leaving");
 		return -1;
 	}
@@ -808,17 +806,15 @@ int proxenet_start()
 	if( proxenet_init_plugins() < 0 ) return -1;
 	
 	proxenet_initialize_plugins(); // call *MUST* succeed or abort()
-	
 
+	/* setting request counter  */
 	request_id = 0;
+	
 	/* prepare threads and start looping */
 	xloop(listening_socket);
 	
-	
 	/* clean context */
-	
 	proxenet_delete_list_plugins();
-	
 	
 	return close_socket(listening_socket);
 }

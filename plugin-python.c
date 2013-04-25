@@ -119,7 +119,7 @@ int proxenet_python_initialize_function(plugin_t* plugin, char type)
 	module_name_len = strlen(plugin->name) + 2; 
 	module_name = alloca(module_name_len);
 	xzero(module_name, module_name_len);
-	snprintf(module_name, module_name_len, "%d%s", plugin->id, plugin->name);
+	snprintf(module_name, module_name_len, "%d%s", plugin->priority, plugin->name);
 	
 	pModStr = PyString_FromString(module_name);
 	if (!pModStr) {
@@ -134,7 +134,6 @@ int proxenet_python_initialize_function(plugin_t* plugin, char type)
 	pMod = PyImport_Import(pModStr);
 	if(!pMod) {
 		PyErr_Print(); 
-		xlog(LOG_WARNING, "Is '%s' in PYTHONPATH ?\n", cfg->plugins_path);
 		Py_DECREF(pModStr);
 		return -1;
 	}
@@ -247,15 +246,7 @@ char* proxenet_python_plugin(plugin_t* plugin, long rid, char* request, char typ
 	if (!plugin->interpreter->ready)
 		return request;
 
-#ifdef DEBUG
-	xlog(LOG_DEBUG, "%s\n", "Trying to lock PyVM");
-#endif	
-
 	proxenet_python_lock_vm(plugin);
-
-#ifdef DEBUG
-	xlog(LOG_DEBUG, "%s\n", "PyVM locked");
-#endif
        
 	if (is_request)
 		pFunc = (PyObject*) plugin->pre_function;
@@ -267,19 +258,17 @@ char* proxenet_python_plugin(plugin_t* plugin, long rid, char* request, char typ
 		xlog(LOG_ERROR,
 		     "[%s] Error while executing plugin on %s\n",
 		     plugin->name,
-		     is_request ? "Request" : "Reponse");
+		     is_request ? "request" : "response");
 		
 		dst_buf = request;
 	}
 	
 	/* Py_DECREF(pFunc); */
 
-#ifdef DEBUG
-	xlog(LOG_DEBUG, "%s\n", "Unlocking PyVM");
-#endif	
 	proxenet_python_unlock_vm(plugin);
 	
 	return dst_buf;
 }
 
 #endif /* _PYTHON_PLUGIN */
+
