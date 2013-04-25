@@ -37,6 +37,7 @@ LDFLAGS			+=	-lpolarssl
 # PLUGINS 
 WITH_C_PLUGIN		=	1
 WITH_PYTHON_PLUGIN	=	1
+WITH_RUBY_PLUGIN	=	1
 
 ifeq ($(WITH_C_PLUGIN), 1)
 DEFINES			+=	-D_C_PLUGIN 
@@ -49,13 +50,18 @@ LDFLAGS			+=	-lpython2.7
 INC			+=	-I/usr/include/python2.7
 endif
 
+ifeq ($(WITH_RUBY_PLUGIN), 1)
+DEFINES			+=	-D_RUBY_PLUGIN
+LDFLAGS			+=	-lruby
+endif
+
 
 # TEST
 TEST_ARGS		= 	-4 -vvvv --nb-threads=10
 
 
 # Compile rules
-.PHONY : all check-syntax clean keys tags purge ssl test
+.PHONY : all check-syntax clean keys tags purge ssl sslclean test 
 
 .c.o :
 	@echo "CC $< -> $@"

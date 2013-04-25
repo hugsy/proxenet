@@ -97,7 +97,7 @@ int proxenet_python_initialize_function(plugin_t* plugin, char type)
 	const char* function_name;
 	boolean is_request = (type==REQUEST) ? TRUE : FALSE;
 	
-	/* checks  */
+	/* checks */
 	if (!plugin->name) {
 		xlog(LOG_ERROR, "%s\n", "null plugin name");
 		return -1;
@@ -217,9 +217,9 @@ char* proxenet_python_execute_function(PyObject* pFuncRef, long rid, char* reque
 /**
  *
  */
-void proxenet_python_lock_vm(plugin_t *plugin)
+void proxenet_python_lock_vm(interpreter_t *interpreter)
 {
-	pthread_mutex_lock(&plugin->interpreter->mutex);
+	pthread_mutex_lock(&interpreter->mutex);
 
 }
 
@@ -227,9 +227,9 @@ void proxenet_python_lock_vm(plugin_t *plugin)
 /**
  *
  */
-void proxenet_python_unlock_vm(plugin_t *plugin)
+void proxenet_python_unlock_vm(interpreter_t *interpreter)
 {
-	pthread_mutex_unlock(&plugin->interpreter->mutex);
+	pthread_mutex_unlock(&interpreter->mutex);
 }
 
 
@@ -241,12 +241,12 @@ char* proxenet_python_plugin(plugin_t* plugin, long rid, char* request, int type
 	char *dst_buf = NULL;
 	PyObject *pFunc = NULL;
 	boolean is_request = (type==REQUEST) ? TRUE : FALSE;
-
+	interpreter_t *interpreter = plugin->interpreter;
 	
-	if (!plugin->interpreter->ready)
+	if (!interpreter->ready)
 		return request;
 
-	proxenet_python_lock_vm(plugin);
+	proxenet_python_lock_vm(interpreter);
        
 	if (is_request)
 		pFunc = (PyObject*) plugin->pre_function;
@@ -265,7 +265,7 @@ char* proxenet_python_plugin(plugin_t* plugin, long rid, char* request, int type
 	
 	/* Py_DECREF(pFunc); */
 
-	proxenet_python_unlock_vm(plugin);
+	proxenet_python_unlock_vm(interpreter);
 	
 	return dst_buf;
 }

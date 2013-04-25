@@ -44,6 +44,8 @@ const static UNUSED char* plugins_extensions_str[] = {
   NULL
 };
 
+#define MAX_VMS 3
+
 enum {
 	REQUEST	 = 0,
 	RESPONSE = 1
@@ -57,7 +59,6 @@ typedef struct _interpreter_type {
 		boolean ready;
 } interpreter_t;
 
-#define MAX_VMS 2
 interpreter_t vms[MAX_VMS];
 
 
