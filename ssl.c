@@ -105,7 +105,7 @@ int proxenet_ssl_init_server_context(ssl_atom_t *server)
 #ifdef DEBUG_SSL
 	ssl_set_dbg(context, proxenet_ssl_debug, "SERVER");
 #endif
-	server->is_valid = TRUE;
+	server->is_valid = true;
 	
 	return 0;
 }
@@ -142,7 +142,7 @@ int proxenet_ssl_init_client_context(ssl_atom_t* client)
 	ssl_set_dbg(context, proxenet_ssl_debug, "CLIENT");
 #endif
 	
-	client->is_valid = TRUE;
+	client->is_valid = true;
 	
 	return 0;
 } 
@@ -243,7 +243,7 @@ ssize_t proxenet_ssl_ioctl(int (*func)(), void *buf, size_t count, proxenet_ssl_
 			return -1;
 		}
 		
-	} while (TRUE);
+	} while (true);
 	
 	return retcode;	
 }

@@ -18,7 +18,7 @@ typedef struct __ssl_atom_t {
 		ctr_drbg_context ctr_drbg;
 		entropy_context entropy;
 		rsa_context rsa;
-		boolean is_valid;
+		bool is_valid;
 } ssl_atom_t;
 
 typedef struct __ssl_context_t {

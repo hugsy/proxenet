@@ -27,6 +27,14 @@
 #include "plugin-c.h"
 #endif
 
+#ifdef _RUBY_PLUGIN
+#include "plugin-ruby.h"
+#endif
+
+#ifdef _PERL_PLUGIN
+#include "plugin-perl.h"
+#endif
+
 
 /**
  *
@@ -54,9 +62,15 @@ void proxenet_initialize_plugins()
 	for (plugin=plugins_list; plugin; plugin=plugin->next) {
 		
 		switch (plugin->type) {
+			
 #ifdef _PYTHON_PLUGIN
-			case PYTHON:
-				proxenet_python_initialize_vm(plugin);
+			case _PYTHON_:
+				if (proxenet_python_initialize_vm(plugin) < 0){
+					plugin->state = INACTIVE;
+					xlog(LOG_ERROR, "%s\n", "Failed to init Python VM");
+					continue;
+				}
+				
 				if (proxenet_python_initialize_function(plugin, REQUEST) < 0) {
 					plugin->state = INACTIVE;
 					xlog(LOG_ERROR, "Failed to init %s in %s\n", CFG_REQUEST_PLUGIN_FUNCTION, plugin->name);
@@ -72,7 +86,7 @@ void proxenet_initialize_plugins()
 #endif
 				
 #ifdef _C_PLUGIN
-			case C:
+			case _C_:
 				if (proxenet_c_initialize_vm(plugin) < 0) {
 					plugin->state = INACTIVE;
 					xlog(LOG_ERROR, "%s\n", "Failed to init C VM");
@@ -92,7 +106,39 @@ void proxenet_initialize_plugins()
 				}
 				break;
 #endif
+
+#ifdef _RUBY_PLUGIN
+			case _RUBY_:
+				if (proxenet_ruby_initialize_vm(plugin) < 0) {
+					plugin->state = INACTIVE;
+					xlog(LOG_ERROR, "%s\n", "Failed to init Ruby VM");
+					continue;
+				}
+				if (proxenet_ruby_initialize_function(plugin, REQUEST) < 0) {
+					plugin->state = INACTIVE;
+					xlog(LOG_ERROR, "Failed to init %s in %s\n", CFG_REQUEST_PLUGIN_FUNCTION, plugin->name);
+					continue;
+				}
 				
+				if (proxenet_ruby_initialize_function(plugin, RESPONSE) < 0) {
+					plugin->state = INACTIVE;
+					xlog(LOG_ERROR, "Failed to init %s in %s\n", CFG_RESPONSE_PLUGIN_FUNCTION, plugin->name);
+					continue;
+				}
+				
+				break;
+#endif
+
+#ifdef _PERL_PLUGIN
+			case _PERL_:
+				if (proxenet_perl_initialize_vm(plugin) < 0) {
+					plugin->state = INACTIVE;
+					xlog(LOG_ERROR, "Failed to init %s in %s\n", CFG_RESPONSE_PLUGIN_FUNCTION, plugin->name);
+					continue;
+				}
+				break;
+#endif				
+			       
 			default:
 				break;
 		}
@@ -112,16 +158,28 @@ void proxenet_destroy_plugins_vm()
 		
 		switch (p->type) {
 #ifdef _PYTHON_PLUGIN      
-			case PYTHON: 
+			case _PYTHON_: 
 				proxenet_python_destroy_vm(p);
 				break;
 #endif
 				
 #ifdef _C_PLUGIN
-			case C:
+			case _C_:
 				proxenet_c_destroy_vm(p);
 				break;
 #endif
+
+#ifdef _RUBY_PLUGIN
+			case _RUBY_:
+				proxenet_ruby_destroy_vm(p);
+				break;
+#endif
+
+#ifdef _PERL_PLUGIN
+			case _PERL_:
+				proxenet_perl_destroy_vm(p);
+				break;
+#endif				
 				
 			default:
 				break;
@@ -171,7 +229,7 @@ char* proxenet_apply_plugins(long id, char* data, char type)
 	plugin_t *p;
 	char *new_data, *old_data;
 	char* (*plugin_function)(plugin_t*, long, char*, int) = NULL;
-	boolean ok;
+	bool ok;
 	
 	if (proxenet_plugin_list_size()==0) {
 		return data;
@@ -181,26 +239,38 @@ char* proxenet_apply_plugins(long id, char* data, char type)
 	new_data = data;     
 	
 	for (p=plugins_list; p!=NULL; p=p->next) {  
-		ok = TRUE;
+		ok = true;
 		if (p->state == INACTIVE)
 			continue;
 		
 		switch (p->type) {
 			
 #ifdef _PYTHON_PLUGIN 
-			case PYTHON:
+			case _PYTHON_:
 				plugin_function = proxenet_python_plugin;
 				break;
 #endif
 				
 #ifdef _C_PLUGIN
-			case C:
+			case _C_:
 				plugin_function = proxenet_c_plugin;
+				break;
+#endif	  
+
+#ifdef _RUBY_PLUGIN
+			case _RUBY_:
+				plugin_function = proxenet_ruby_plugin;
+				break;
+#endif	  
+
+#ifdef _PERL_PLUGIN
+			case _PERL_:
+				plugin_function = proxenet_perl_plugin;
 				break;
 #endif	  
 				
 			default:
-				ok = FALSE;
+				ok = false;
 				xlog(LOG_CRITICAL, "Type %d not supported (yet)\n", p->type);
 				break;
 		}
@@ -210,7 +280,7 @@ char* proxenet_apply_plugins(long id, char* data, char type)
 		old_data = new_data;
 		new_data = (*plugin_function)(p, id, old_data, type);
 		if (old_data!=new_data)
-			xfree(old_data);
+			proxenet_xfree(old_data);
 	}
 	
 	return new_data;
@@ -258,7 +328,7 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 			break;
 		}
 
-		boolean is_ssl = ssl_context.server.is_valid;
+		bool is_ssl = ssl_context.server.is_valid;
 		
 		/* is there data from web browser to proxy ? */
 		if( FD_ISSET(server_socket, &rfds ) ) {
@@ -285,7 +355,7 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 				retcode = create_http_socket(http_request, &server_socket, &client_socket, &ssl_context);
 				if (retcode < 0) {
 					xlog(LOG_ERROR, "%s\n", "Failed to create proxy->server socket");
-					xfree(http_request);
+					proxenet_xfree(http_request);
 					goto thread_end;
 				}
 				
@@ -293,7 +363,7 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 #ifdef DEBUG
 					xlog(LOG_DEBUG, "\n", "SSL interception established");
 #endif
-					xfree(http_request);
+					proxenet_xfree(http_request);
 					continue;
 				}
 			}
@@ -301,7 +371,7 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 			/* check if request is valid  */
 			if (!is_ssl)
 				if (format_http_request(http_request) < 0) {
-					xfree(http_request);
+					proxenet_xfree(http_request);
 					goto init_end;
 				}
 
@@ -313,7 +383,7 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 			http_request = proxenet_apply_plugins(rid, http_request, REQUEST);
 			if (strlen(http_request) < 2) {
 				xlog(LOG_ERROR, "%s\n", "Invalid plugins results, ignore request");
-				xfree(http_request);
+				proxenet_xfree(http_request);
 				break;
 			}
 			
@@ -330,7 +400,7 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 				retcode = proxenet_write(client_socket, http_request, strlen(http_request));
 			}
 					
-			xfree(http_request);
+			proxenet_xfree(http_request);
 
 			if (retcode < 0) 
 				break;
@@ -361,7 +431,7 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 			http_response = proxenet_apply_plugins(rid, http_response, RESPONSE);
 			if (strlen(http_response) < 2) {
 				xlog(LOG_ERROR, "%s\n", "Invalid plugins results, ignore response");
-				xfree(http_response);
+				proxenet_xfree(http_response);
 				goto init_end;
 			}
 			
@@ -375,7 +445,7 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 				xlog(LOG_ERROR, "%s\n", "proxy->client: write failed");
 			}
 			
-			xfree(http_response);
+			proxenet_xfree(http_response);
 
 			/* reset request id for this thread */
 			if (rid)
@@ -426,7 +496,7 @@ static void* process_thread_job(void* arg)
 	proxenet_process_http_request(tinfo->sock, tinfo->plugin_list);
 	
 	tinfo->plugin_list = NULL;
-	xfree(arg);
+	proxenet_xfree(arg);
 	pthread_exit(NULL);
 }
 
@@ -442,7 +512,7 @@ int proxenet_start_new_thread(sock_t conn, int tnum, pthread_t* thread, pthread_
 		return -1;
 	}
 
-	tinfo_t* tinfo = (tinfo_t*)xmalloc(sizeof(tinfo_t));
+	tinfo_t* tinfo = (tinfo_t*)proxenet_xmalloc(sizeof(tinfo_t));
 	void* tfunc = &process_thread_job;
 	
 	tinfo->thread_num = tnum;
@@ -455,7 +525,7 @@ int proxenet_start_new_thread(sock_t conn, int tnum, pthread_t* thread, pthread_
 /**
  *
  */
-boolean is_thread_index_active(int idx)
+bool is_thread_index_active(int idx)
 {
 	return active_threads_bitmask & (1<<idx); 
 }

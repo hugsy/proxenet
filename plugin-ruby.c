@@ -18,6 +18,32 @@
 #include "main.h"
 
 
+
+/**
+ *
+ */
+int proxenet_ruby_load_file(char* filename)
+{
+	char* pathname;
+	size_t pathname_len;
+
+	/* load script */
+	pathname_len = strlen(cfg->plugins_path) + 1 + strlen(filename) + 1;
+	pathname = alloca(pathname_len + 1);
+	xzero(pathname, pathname_len + 1);
+	snprintf(pathname, pathname_len, "%s/%s", cfg->plugins_path, filename);
+	
+#ifdef DEBUG
+	xlog(LOG_DEBUG, "Loading '%s'\n", pathname);
+#endif
+	
+	if (rb_require(pathname) == Qfalse)
+		return -1;
+
+	return 0;
+}
+
+
 /**
  *
  */
@@ -30,15 +56,27 @@ int proxenet_ruby_initialize_vm(plugin_t* plugin)
 	/* checks */
 	if (interpreter->ready)
 		return 0;
+
+#ifdef DEBUG
+	xlog(LOG_DEBUG, "%s\n", "Initializing Ruby VM");
+#endif
 	
 	/* init vm */
 	ruby_init();
-		
-	interpreter->vm = rb_vm_top_self();
-	if (!interpreter->vm) 
-		return -1;
+#ifdef _RUBY_VERSION_1_9
+#ifdef DEBUG
+	xlog(LOG_DEBUG, "%s\n", "Using Ruby 1.9 API");
+#endif
+	interpreter->vm = (void*) rb_vm_top_self();
+#else
+#ifdef DEBUG
+	xlog(LOG_DEBUG, "%s\n", "Using Ruby 1.8 API");
+#endif
+	interpreter->vm = (void*) ruby_top_self;
+#endif
 
-	interpreter->is_ready = TRUE;
+	interpreter->ready = true;
+	
 	return 0;
 }
 
@@ -48,7 +86,6 @@ int proxenet_ruby_initialize_vm(plugin_t* plugin)
  */
 int proxenet_ruby_destroy_vm(plugin_t* plugin)
 {
-	
 	return 0;
 }
 
@@ -58,8 +95,6 @@ int proxenet_ruby_destroy_vm(plugin_t* plugin)
  */
 int proxenet_ruby_initialize_function(plugin_t* plugin, int type)
 {
-	char* pathname;
-	size_t pathname_len;
 	
 	/* checks */
 	if (!plugin->name) {
@@ -77,16 +112,11 @@ int proxenet_ruby_initialize_function(plugin_t* plugin, int type)
 		return 0;
 	}
 	
-	/* load script */
-	pathname_len = strlen(cfg->plugins_path) + 1 + strlen(plugin->name);
-	pathname = alloca(pathname_len + 1);
-	xzero(pathname, pathname_len + 1);
-	snprintf(pathname, pathname_len, "%s/%s", cfg->plugins_path, plugin->name);
-
-	if (rb_load_file(pathname) == QFalse) {
+	if (proxenet_ruby_load_file(plugin->filename) < 0) {
+		xlog(LOG_ERROR, "Failed to load %s\n", plugin->filename);
 		return -1;
 	}
-	
+
 	/* get function pointers */
 	if (type==REQUEST) {
 		plugin->pre_function  = (void*) rb_intern(CFG_REQUEST_PLUGIN_FUNCTION);
@@ -106,48 +136,46 @@ int proxenet_ruby_initialize_function(plugin_t* plugin, int type)
 /**
  *
  */
-char* proxenet_ruby_execute_function(plugin_t* plugin, long rid, char* request_str, int type)
+char* proxenet_ruby_execute_function(interpreter_t* interpreter, ID rFunc, long rid, char* request_str)
 {
-	char *buf;
+	char *buf, *data;
 	int buflen;
-	interpreter_t *interpreter;
-	ID rFunc;
-	VALUE rArgs[2];
-	VALUE rReqStr;
-	VALUE rRet;
+	VALUE rArgs, rReqId, rReqStr, rRet, rVM;
 
-	interpreter = plugin->interpreter;
+	rVM = (VALUE) interpreter->vm;
 	
 	/* build args */
+	rArgs   = rb_ary_new();
 	rReqId  = INT2FIX(rid);
 	rReqStr = rb_str_new2(request_str);
 
-	rArgs[0] = rReqId;
-	rArgs[1] = rReqStr;
+	rb_ary_push(rArgs, rReqId);
+	rb_ary_push(rArgs, rReqStr);
 
+	
 	/* function call */
-	if (type == REQUEST)
-		rFunc = (ID) plugin->pre_function;
-	else 
-		rFunc = (ID) plugin->post_function;
-
-	
-	rRet = rb_funcall(interpreter->vm, rFunc, 2, args);
-	
+	rRet = rb_funcall(
+#ifdef _RUBY_VERSION_1_9
+		
+#else
+		ruby_top_self,
+#endif		
+		rFunc, 2, rArgs); 
 	if (!rRet) {
 		xlog(LOG_ERROR, "%s\n", "Function call failed");
 		return NULL;
 	}
-	if (!Check_Type(rRet, T_STRING)) {
-		xlog(LOG_ERROR, "%s\n", "Invalid return type");
-		return NULL;
-	}
+
+	
+	/* todo catch TypeError except */
+	Check_Type(rRet, T_STRING);
+	
 
 	/* copy result to exploitable buffer */
 	buf = RSTRING_PTR(rRet);
 	buflen = RSTRING_LEN(rRet);
 	
-	data = xmalloc(buflen + 1);
+	data = proxenet_xmalloc(buflen + 1);
 	memcpy(data, buf, buflen);
 	
 	return data;
@@ -179,9 +207,15 @@ char* proxenet_ruby_plugin(plugin_t* plugin, long rid, char* request, int type)
 {
 	char* buf = NULL;
 	interpreter_t *interpreter = plugin->interpreter;
+	ID rFunc;
 	
+	if (type == REQUEST)
+		rFunc = (ID) plugin->pre_function;
+	else 
+		rFunc = (ID) plugin->post_function;
+
 	proxenet_ruby_lock_vm(interpreter);
-	buf = proxenet_ruby_execute_function(plugin, rid, request, type);
+		buf = proxenet_ruby_execute_function(interpreter, rFunc, rid, request);
 	proxenet_ruby_unlock_vm(interpreter);
 	
 	return buf;

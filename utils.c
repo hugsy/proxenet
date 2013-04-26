@@ -49,7 +49,7 @@ void _xlog(int type, const char* fmt, ...)
 			break;
 	}
 
-	if (cfg->use_color) fprintf(cfg->logfile_fd, NORMAL);
+	if (cfg->use_color) fprintf(cfg->logfile_fd, NOCOLOR);
 
 
 #ifdef DEBUG
@@ -73,18 +73,18 @@ void _xlog(int type, const char* fmt, ...)
  * @param size: buffer size to allocate on heap
  * @return ptr: allocated zero-filled buffer pointer
  */
-void* xmalloc(size_t size)
+void* proxenet_xmalloc(size_t size)
 {
 	void *ptr;
 	
 	if (size > SIZE_MAX / sizeof(size_t)) {
-		xlog(LOG_CRITICAL, "xmalloc: try to allocate incorrect size (%d byte)\n", size); 
+		xlog(LOG_CRITICAL, "proxenet_xmalloc: try to allocate incorrect size (%d byte)\n", size); 
 		abort();
 	}
 	
 	ptr = malloc(size);
 	if ( ptr == NULL ) {
-		xlog(LOG_CRITICAL, "%s\n", "xmalloc: fail to allocate space");
+		xlog(LOG_CRITICAL, "%s\n", "proxenet_xmalloc: fail to allocate space");
 		abort();
 	}
 	
@@ -98,7 +98,7 @@ void* xmalloc(size_t size)
  *
  * @param ptr: pointer to zone to free
  */
-void xfree(void* ptr)
+void proxenet_xfree(void* ptr)
 {
 	if(ptr == NULL) {
 		xlog(LOG_ERROR, "Trying to free null pointer at %p\n", ptr);
@@ -117,18 +117,18 @@ void xfree(void* ptr)
  * @param new_size: new size to allocate
  * @return a pointer to resized pointer
  */
-void* xrealloc(void* oldptr, size_t new_size)
+void* proxenet_xrealloc(void* oldptr, size_t new_size)
 {
 	void *newptr;
 	
 	if (new_size > (SIZE_MAX / sizeof(size_t))) {
-		xlog(LOG_CRITICAL, "xrealloc: try to allocate incorrect size (%d byte)\n", new_size); 
+		xlog(LOG_CRITICAL, "proxenet_xrealloc: try to allocate incorrect size (%d byte)\n", new_size); 
 		abort();
 	}
 	
 	newptr = realloc(oldptr, new_size);
 	if (newptr == NULL) {
-		xlog(LOG_CRITICAL, "%s\n", "xrealloc: fail to allocate space");
+		xlog(LOG_CRITICAL, "%s\n", "proxenet_xrealloc: fail to allocate space");
 		abort();
 	}
 	

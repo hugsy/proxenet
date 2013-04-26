@@ -44,7 +44,7 @@ sock_t create_bind_socket(char *host, char* port, char** errcode)
 		if (sock == -1) continue;
 		
 		/* enable address reuse */
-		reuseaddr_on = TRUE;
+		reuseaddr_on = true;
 		retcode = setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &reuseaddr_on, sizeof(reuseaddr_on));
 		
 		/* and bind */
@@ -195,9 +195,9 @@ int proxenet_read_all(sock_t sock, char** ptr, proxenet_ssl_context_t* ssl)
 		
 	total_bytes_read = 0;
 	current_offset = NULL;	
-	data = (char*)xmalloc(malloced_size+1);
+	data = (char*)proxenet_xmalloc(malloced_size+1);
 	
-	while (TRUE) {
+	while (true) {
 		ret = -1;
 		current_offset = data + total_bytes_read;
 		
@@ -209,7 +209,7 @@ int proxenet_read_all(sock_t sock, char** ptr, proxenet_ssl_context_t* ssl)
 			ret = proxenet_read(sock, current_offset, MAX_READ_SIZE);
 		}
 		if (ret < 0) {
-			xfree(data);
+			proxenet_xfree(data);
 			return -1;   
 		}
 		
@@ -218,7 +218,7 @@ int proxenet_read_all(sock_t sock, char** ptr, proxenet_ssl_context_t* ssl)
 		if (ret == MAX_READ_SIZE) {
 			/* may be more data to come */
 			malloced_size += sizeof(char) * MAX_READ_SIZE;
-			data = (char*)xrealloc(data, malloced_size+1);
+			data = (char*)proxenet_xrealloc(data, malloced_size+1);
 #ifdef DEBUG
 			xlog(LOG_DEBUG, "Increasing recv buf size to %d\n", malloced_size+1);
 #endif
@@ -236,7 +236,7 @@ int proxenet_read_all(sock_t sock, char** ptr, proxenet_ssl_context_t* ssl)
 #ifdef DEBUG
 		xlog(LOG_DEBUG, "%s\n", "No data read from socket");
 #endif
-		xfree(data);
+		proxenet_xfree(data);
 		return 0;
 	}
 	

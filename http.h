@@ -12,15 +12,15 @@ typedef struct _http_request_fields
 {
 	  char* method;
 	  char* proto;
-	  boolean is_ssl;
+	  bool is_ssl;
 	  char* hostname;
 	  unsigned short port;
 	  char* request_uri;
 } http_request_t ;
 
 
-boolean get_url_information(char*, http_request_t*); 
-boolean is_http_header(char*, int);
+bool get_url_information(char*, http_request_t*); 
+bool is_http_header(char*, int);
 void generic_http_error_page(sock_t, char*);
 int create_http_socket(char*, sock_t*, sock_t*, ssl_context_t*); 
 int format_http_request(char*);

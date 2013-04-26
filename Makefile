@@ -16,7 +16,7 @@ DEFINES         =       -DVERSION=$(VERSION)
 LDFLAGS         =       $(HARDEN) -lpthread 
 SRC		=	$(wildcard *.c)
 OBJECTS         =       $(patsubst %.c, %.o, $(SRC))
-INC             =       -I/usr/include
+INC             =       -I/usr/include -pthread
 CFLAGS          =       -O2 -Wall $(DEFINES) $(INC) 
 LIB		= 	-L/lib
 
@@ -37,7 +37,9 @@ LDFLAGS			+=	-lpolarssl
 # PLUGINS 
 WITH_C_PLUGIN		=	1
 WITH_PYTHON_PLUGIN	=	1
+WITH_PERL_PLUGIN	=	1
 WITH_RUBY_PLUGIN	=	1
+
 
 ifeq ($(WITH_C_PLUGIN), 1)
 DEFINES			+=	-D_C_PLUGIN 
@@ -50,8 +52,27 @@ LDFLAGS			+=	-lpython2.7
 INC			+=	-I/usr/include/python2.7
 endif
 
+ifeq ($(WITH_PERL_PLUGIN), 1)
+DEFINES			+=	-D_PERL_PLUGIN
+INC			+=	-I/usr/lib/perl5/core_perl/CORE/
+LIB			+=	-L/usr/lib/perl5/core_perl/CORE/
+LDFLAGS			+=	-lperl
+endif
+
 ifeq ($(WITH_RUBY_PLUGIN), 1)
 DEFINES			+=	-D_RUBY_PLUGIN
+
+# Ruby 1.8
+DEFINES			+=	-D_RUBY_VERSION_1_8
+INC			+=	-I/home/hugsy/.rvm/rubies/ruby-1.8.7-p370/lib/ruby/1.8/x86_64-linux/
+LIB			+=	-L/home/hugsy/.rvm/rubies/ruby-1.8.7-p370/lib
+
+# Ruby 1.9
+# DEFINES			+=	-D_RUBY_VERSION_1_9
+# INC			+=	-I/home/hugsy/.rvm/rubies/ruby-1.9.3-p194/include/ruby-1.9.1
+# INC			+=	-I/home/hugsy/.rvm/rubies/ruby-1.9.3-p194/include/ruby-1.9.1/x86_64-linux
+# LIB			+=	-L/home/hugsy/.rvm/rubies/ruby-1.9.3-p194/lib
+
 LDFLAGS			+=	-lruby
 endif
 

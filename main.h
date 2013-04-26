@@ -26,7 +26,7 @@
 
 typedef struct __proxenet_config {
 		unsigned char verbose;
-		boolean use_color;
+		bool use_color;
 		unsigned short nb_threads;
 		char* logfile;
 		FILE* logfile_fd;

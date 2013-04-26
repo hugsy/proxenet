@@ -21,11 +21,11 @@
 /**
  * 
  */
-void version(boolean end)
+void version(bool end)
 {
 	printf("%s v%.2f\n", PROGNAME, VERSION);
 	if (end) {
-		xfree(cfg);
+		proxenet_xfree(cfg);
 		exit(0);
 	}
 }
@@ -66,7 +66,7 @@ void usage(int retcode)
 		CFG_DEFAULT_SSL_KEYFILE,
 		CFG_DEFAULT_SSL_CERTFILE);
 	
-	xfree(cfg);
+	proxenet_xfree(cfg);
 	exit(retcode);
 }
 
@@ -79,7 +79,7 @@ void help(char* argv0)
 	const char* plugin_name;
 	int plugin_idx;
 	
-	version(FALSE);
+	version(false);
 	printf("Written by %s\n"
 	       "Released under: %s\n\n"
 	       "Compiled with support for :\n",
@@ -101,7 +101,7 @@ void help(char* argv0)
 /**
  *
  */
-boolean parse_options (int argc, char** argv)
+bool parse_options (int argc, char** argv)
 {
 	int curopt, curopt_idx;
 	
@@ -127,7 +127,7 @@ boolean parse_options (int argc, char** argv)
 	cfg->plugins_path	= CFG_DEFAULT_PLUGINS_PATH;
 	cfg->keyfile		= CFG_DEFAULT_SSL_KEYFILE;
 	cfg->certfile		= CFG_DEFAULT_SSL_CERTFILE;
-	cfg->use_color		= TRUE;
+	cfg->use_color		= true;
 		
 	while (1) {
 		curopt = -1;
@@ -144,8 +144,8 @@ boolean parse_options (int argc, char** argv)
 			case 'c': cfg->certfile = optarg; break;
 			case 'k': cfg->keyfile = optarg; break;	   
 			case 'h': help(argv[0]); break;
-			case 'V': version(TRUE); break;
-			case 'n': cfg->use_color = FALSE; break;
+			case 'V': version(true); break;
+			case 'n': cfg->use_color = false; break;
 			case '4': cfg->ip_version = AF_INET; break;
 			case '6': cfg->ip_version = AF_INET6; break;
 			case 'x': cfg->plugins_path = optarg; break;
@@ -160,7 +160,7 @@ boolean parse_options (int argc, char** argv)
 		cfg->logfile_fd = fopen(cfg->logfile, "a");
 		if(!cfg->logfile_fd) {
 			fprintf(stderr, "[-] Failed to open '%s': %s\n", cfg->logfile, strerror(errno));
-			return FALSE;
+			return false;
 		}
 	}
 	
@@ -173,7 +173,7 @@ boolean parse_options (int argc, char** argv)
 		cfg->ip_version = CFG_DEFAULT_IP_VERSION;
 	}
 	
-	return TRUE;
+	return true;
 }
 
 
@@ -189,8 +189,8 @@ int main (int argc, char **argv, char** envp)
 	sem_init(&tty_semaphore, 0, 1);
 	
 	/* get configuration */
-	cfg = xmalloc(sizeof(conf_t));
-	if (parse_options(argc, argv) == FALSE) {
+	cfg = proxenet_xmalloc(sizeof(conf_t));
+	if (parse_options(argc, argv) == false) {
 		xlog(LOG_ERROR, "%s\n", "Failed to parse arguments");
 		goto end;
 	}     
@@ -208,7 +208,7 @@ end:
 	if(cfg->logfile_fd)
 		fclose(cfg->logfile_fd);
 	
-	xfree(cfg);
+	proxenet_xfree(cfg);
 	
 	return (retcode == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
 }

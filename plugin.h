@@ -8,13 +8,21 @@
 
 typedef enum __supported_plugins_t {
 #ifdef _PYTHON_PLUGIN
-	PYTHON,
+	_PYTHON_,
 #endif
   
 #ifdef _C_PLUGIN
-	C,
+	_C_,
 #endif
-    
+
+#ifdef _RUBY_PLUGIN
+	_RUBY_,
+#endif
+
+#ifdef _PERL_PLUGIN
+	_PERL_,
+#endif
+	
   END_VALUE
 } supported_plugins_t;
 
@@ -27,7 +35,15 @@ const static UNUSED char* supported_plugins_str[] = {
 #ifdef _C_PLUGIN
 	"C",
 #endif
- 
+	
+#ifdef _RUBY_PLUGIN
+	"Ruby",
+#endif
+
+#ifdef _PERL_PLUGIN
+	"Perl",
+#endif
+	
   NULL
 };
 
@@ -39,24 +55,33 @@ const static UNUSED char* plugins_extensions_str[] = {
   
 #ifdef _C_PLUGIN      
 	".so",
-#endif 
-  
+#endif
+	
+#ifdef _RUBY_PLUGIN
+	".rb",
+#endif
+
+#ifdef _PERL_PLUGIN
+	".pl",
+#endif
+	
   NULL
 };
 
-#define MAX_VMS 3
 
 enum {
 	REQUEST	 = 0,
 	RESPONSE = 1
 };
 
+#define MAX_VMS 4
+	
 typedef struct _interpreter_type {
 		unsigned short id;
 		supported_plugins_t type;
 		pthread_mutex_t mutex;
 		void *vm;
-		boolean ready;
+		bool ready;
 } interpreter_t;
 
 interpreter_t vms[MAX_VMS];

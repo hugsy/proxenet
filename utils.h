@@ -11,13 +11,8 @@
 #define UNUSED
 #endif
 
-#define MAX(x,y) (((x) >= (y))?(x):(y)) 
-#define MIN(x,y) (((x) <= (y))?(x):(y)) 
-
-typedef enum {
-	FALSE = 0,
-	TRUE  = 1,
-} boolean;
+#include <sys/param.h>
+#include <stdbool.h>
 
 typedef enum {
 	LOG_DEBUG = 0,
@@ -33,7 +28,7 @@ typedef enum {
 #define BLUE	"\x1b[34;1m"
 #define GREEN	"\x1b[32;1m"
 #define WHITE	"\x1b[37;1m"
-#define NORMAL	"\x1b[0m"
+#define NOCOLOR	"\x1b[0m"
 
 
 #ifdef DEBUG
@@ -45,10 +40,11 @@ typedef enum {
 #define xlog(t, ...) _xlog(t, __VA_ARGS__)
 #endif
 
-void _xlog(int type, const char* fmt, ...);
-void* xmalloc(size_t size);
-void xfree(void* ptr);
-void xzero(void* buf, size_t buflen);
-void* xrealloc(void* oldptr, size_t new_size);
+void	_xlog(int type, const char* fmt, ...);
+void* 	proxenet_xmalloc(size_t size);
+void 	proxenet_xfree(void* ptr);
+void 	xzero(void* buf, size_t buflen);
+void* 	proxenet_xrealloc(void* oldptr, size_t new_size);
 
 #endif /* _UTILS_H */
+

@@ -23,65 +23,78 @@
 /**
  *
  */
-void proxenet_python_append_path(interpreter_t *interpreter)
+int proxenet_python_append_path(interpreter_t *interpreter)
 {
 	PyObject *pPath, *pAddPath;
 
 	pPath = PySys_GetObject("path");
-	pAddPath = PyString_FromString(cfg->plugins_path);
-	
-	if (pAddPath) {
-		PyList_Insert(pPath, 0, pAddPath);
-		Py_DECREF(pAddPath);
+	if (!pPath) {
+		xlog(LOG_ERROR, "%s\n", "Failed to find `sys.path'");
+		return -1;
 	}
+	
+	pAddPath = PyString_FromString(cfg->plugins_path);
+	if (!pAddPath) {
+		return -1;
+	}
+	
+	PyList_Insert(pPath, 0, pAddPath);
+	Py_DECREF(pAddPath);
 
+	return 0;
 }
 
 
 /**
  *
  */
-void proxenet_python_initialize_vm(plugin_t* plugin) 
+int proxenet_python_initialize_vm(plugin_t* plugin) 
 {
 	interpreter_t *interpreter = plugin->interpreter;
 	
 	/* is vm initialized ? */
 	if (interpreter->ready)
-		return;
+		return 0;
 	
 #ifdef DEBUG
 	xlog(LOG_DEBUG, "%s\n", "Initializing Python VM");
 #endif
 		
 	Py_Initialize();
-	if (Py_IsInitialized() == FALSE) {
+	if (Py_IsInitialized() == false) {
 		xlog(LOG_CRITICAL, "%s\n", "Failed to initialize Python engine");
-		plugin->interpreter->vm = NULL;
-		return;
+		interpreter->vm = NULL;
+		interpreter->ready = false;
+		return -1;
 	}
 
-	proxenet_python_append_path(interpreter);
+	if (proxenet_python_append_path(interpreter) < 0) {
+		interpreter->vm = NULL;
+		interpreter->ready = false;
+		return -1;
+	}
 	
-	interpreter->ready = TRUE;
+	interpreter->ready = true;
+	return 0;
 }
 
 
 /**
  *
  */
-void proxenet_python_destroy_vm(plugin_t* plugin)
+int proxenet_python_destroy_vm(plugin_t* plugin)
 {
 	if (! Py_IsInitialized()) {
 		xlog(LOG_CRITICAL, "%s\n", "Python VM should not be uninitialized here");
-		abort();
+		return -1;
 	}
 	
-	if(count_plugins_by_type(PYTHON) == 0) {
+	if(count_plugins_by_type(_PYTHON_) == 0) {
 		Py_Finalize();
 	}
 
-	plugin->interpreter->ready = FALSE;
-	return;
+	plugin->interpreter->ready = false;
+	return 0;
 }
 
 
@@ -95,7 +108,7 @@ int proxenet_python_initialize_function(plugin_t* plugin, char type)
 	size_t 	module_name_len;
 	PyObject *pModStr, *pMod, *pFunc;
 	const char* function_name;
-	boolean is_request = (type==REQUEST) ? TRUE : FALSE;
+	bool is_request = (type==REQUEST) ? true : false;
 	
 	/* checks */
 	if (!plugin->name) {
@@ -127,10 +140,6 @@ int proxenet_python_initialize_function(plugin_t* plugin, char type)
 		return -1;
 	}
 
-#ifdef DEBUG
-	xlog(LOG_DEBUG, "Importing '%s'\n", module_name);
-#endif
-	
 	pMod = PyImport_Import(pModStr);
 	if(!pMod) {
 		PyErr_Print(); 
@@ -141,7 +150,7 @@ int proxenet_python_initialize_function(plugin_t* plugin, char type)
 	Py_DECREF(pModStr);
 
 #ifdef DEBUG
-	xlog(LOG_DEBUG, "Fetching '%s:%s'\n", module_name, function_name);
+	xlog(LOG_DEBUG, "Importing '%s.%s'\n", module_name, function_name);
 #endif	
 
 	/* find reference to function in module */
@@ -199,7 +208,7 @@ char* proxenet_python_execute_function(PyObject* pFuncRef, long rid, char* reque
 			PyErr_Print();
 			
 		} else {
-			result = (char*) xmalloc(len+1);
+			result = (char*) proxenet_xmalloc(len+1);
 			result = memcpy(result, buffer, len);
 		}
 		
@@ -240,7 +249,7 @@ char* proxenet_python_plugin(plugin_t* plugin, long rid, char* request, int type
 {	
 	char *dst_buf = NULL;
 	PyObject *pFunc = NULL;
-	boolean is_request = (type==REQUEST) ? TRUE : FALSE;
+	bool is_request = (type==REQUEST) ? true : false;
 	interpreter_t *interpreter = plugin->interpreter;
 	
 	if (!interpreter->ready)

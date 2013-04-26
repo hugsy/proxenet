@@ -19,7 +19,7 @@
  * METHOD proto://hostname[:port][/location][?param=value....]\r\n
  * cf. RFC2616
  */
-boolean get_url_information(char* request, http_request_t* http)
+bool get_url_information(char* request, http_request_t* http)
 { 
 	char *start_pos, *cur_pos, *end_pos;
 	unsigned int str_len;
@@ -32,18 +32,18 @@ boolean get_url_information(char* request, http_request_t* http)
 	start_pos = index(request, ' ');
 	if (start_pos == NULL) {
 		xlog(LOG_ERROR, "%s\n", "Malformed HTTP Header");
-		return FALSE;
+		return false;
 	}
 	
 	end_pos = index(start_pos+1, ' ');
 	if (end_pos==NULL) {
 		xlog(LOG_ERROR, "%s\n", "Malformed HTTP Header");
-		return FALSE;
+		return false;
 	}
 	
 	
 	str_len = start_pos-request ; 
-	http->method = (char*)xmalloc(str_len +1);
+	http->method = (char*)proxenet_xmalloc(str_len +1);
 	memcpy(http->method, request, str_len);
 	
 	++start_pos;
@@ -57,19 +57,19 @@ boolean get_url_information(char* request, http_request_t* http)
 	} else if (!strncmp(start_pos,"https://", 8)) {
 		http->proto = "https";
 		http->port = 443;
-		http->is_ssl = TRUE;
+		http->is_ssl = true;
 		start_pos += 8;
 		
 	} else if (!strcmp(http->method, "CONNECT")) {
 		http->proto = "https";
 		http->port = 443;
-		http->is_ssl = TRUE;
+		http->is_ssl = true;
 		
 	} else {
 		xlog(LOG_ERROR, "%s\n", "Malformed HTTP/HTTPS URL, unknown proto");
 		xlog(LOG_DEBUG, "%s\n", request);
-		xfree(http->method);
-		return FALSE;
+		proxenet_xfree(http->method);
+		return false;
 	}
 	
 	cur_pos = start_pos;
@@ -77,7 +77,7 @@ boolean get_url_information(char* request, http_request_t* http)
 	/* get hostname */
 	for(; *cur_pos && *cur_pos!=':' && *cur_pos!='/' && cur_pos<end_pos; cur_pos++);
 	str_len = cur_pos - start_pos;
-	http->hostname = (char*)xmalloc(str_len+1);
+	http->hostname = (char*)proxenet_xmalloc(str_len+1);
 	memcpy(http->hostname, start_pos, str_len);
 	
 	/* get port if set explicitly (i.e ':<port_num>'), otherwise default */
@@ -90,10 +90,10 @@ boolean get_url_information(char* request, http_request_t* http)
 	/* get request_uri (no need to parse) */
 	str_len = end_pos - cur_pos;
 	if (str_len > 0) {
-		http->request_uri = (char*) xmalloc(str_len+1);
+		http->request_uri = (char*) proxenet_xmalloc(str_len+1);
 		memcpy(http->request_uri, cur_pos, str_len);
 	} else {
-		http->request_uri = (char*) xmalloc(2);
+		http->request_uri = (char*) proxenet_xmalloc(2);
 		*(http->request_uri) = '/';
 	}
 	
@@ -107,7 +107,7 @@ boolean get_url_information(char* request, http_request_t* http)
 	     http->request_uri);
 #endif 
 	
-	return TRUE;
+	return true;
 }
 
 
@@ -164,7 +164,7 @@ int create_http_socket(char* http_request, sock_t* server_sock, sock_t* client_s
 	http_infos.request_uri = NULL;
 	
 	/* get target from string and establish client socket to dest */
-	if (get_url_information(http_request, &http_infos) == FALSE) {
+	if (get_url_information(http_request, &http_infos) == false) {
 		xlog(LOG_ERROR, "%s\n", "Failed to extract valid parameters from URL.");
 		return -1;
 	}
@@ -225,9 +225,9 @@ int create_http_socket(char* http_request, sock_t* server_sock, sock_t* client_s
 	}
 	
 http_sock_end:
-	xfree(http_infos.method);
-	xfree(http_infos.hostname);
-	xfree(http_infos.request_uri);
+	proxenet_xfree(http_infos.method);
+	proxenet_xfree(http_infos.hostname);
+	proxenet_xfree(http_infos.request_uri);
 	
 	return retcode;
 }
