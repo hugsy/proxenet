@@ -65,7 +65,7 @@ void proxenet_initialize_plugins()
 			
 #ifdef _PYTHON_PLUGIN
 			case _PYTHON_:
-				if (proxenet_python_initialize_vm(plugin) < 0){
+				if (proxenet_python_initialize_vm(plugin) < 0) {
 					plugin->state = INACTIVE;
 					xlog(LOG_ERROR, "%s\n", "Failed to init Python VM");
 					continue;

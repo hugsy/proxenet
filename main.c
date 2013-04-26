@@ -88,7 +88,7 @@ void help(char* argv0)
 	for(plugin_idx=0, plugin_name=supported_plugins_str[0];
 	    plugin_name!=NULL;
 	    plugin_idx++, plugin_name=supported_plugins_str[plugin_idx]) 
-		printf("\t[+] %#.2x   %-10s (%s)\n",
+		printf("\t[+] 0x%.2x   %-10s (%s)\n",
 		       plugin_idx,
 		       plugin_name,
 		       plugins_extensions_str[ plugin_idx ]);

@@ -22,24 +22,31 @@
 /**
  *
  */
-int proxenet_ruby_load_file(char* filename)
+int proxenet_ruby_load_file(plugin_t* plugin)
 {
+	char* filename;
 	char* pathname;
 	size_t pathname_len;
 
+	filename = plugin->filename;
+	
 	/* load script */
 	pathname_len = strlen(cfg->plugins_path) + 1 + strlen(filename) + 1;
 	pathname = alloca(pathname_len + 1);
 	xzero(pathname, pathname_len + 1);
 	snprintf(pathname, pathname_len, "%s/%s", cfg->plugins_path, filename);
-	
-#ifdef DEBUG
-	xlog(LOG_DEBUG, "Loading '%s'\n", pathname);
-#endif
-	
-	if (rb_require(pathname) == Qfalse)
-		return -1;
 
+	ruby_init_loadpath();
+      
+
+	/* fixme : utiliser rb_load_file avec rb_protect */
+	if (rb_require(pathname) == Qfalse) {
+		/* stupid bug from ruby : importing twice same file fails */
+		if (plugin->pre_function)
+			return 0;
+		
+		return -1;
+	}
 	return 0;
 }
 
@@ -112,20 +119,29 @@ int proxenet_ruby_initialize_function(plugin_t* plugin, int type)
 		return 0;
 	}
 	
-	if (proxenet_ruby_load_file(plugin->filename) < 0) {
+	if (proxenet_ruby_load_file(plugin) < 0) {
 		xlog(LOG_ERROR, "Failed to load %s\n", plugin->filename);
 		return -1;
 	}
 
 	/* get function pointers */
-	if (type==REQUEST) {
+	if (type == REQUEST) {
 		plugin->pre_function  = (void*) rb_intern(CFG_REQUEST_PLUGIN_FUNCTION);
-		if (plugin->pre_function) 
+		if (plugin->pre_function) {
+#ifdef DEBUG
+			xlog(LOG_DEBUG, "Loaded %s:%s\n", plugin->filename, CFG_REQUEST_PLUGIN_FUNCTION);
+#endif
 			return 0;
+		}
+		
 	} else {
 		plugin->post_function = (void*) rb_intern(CFG_RESPONSE_PLUGIN_FUNCTION);
-		if (plugin->post_function) 
+		if (plugin->post_function) {
+#ifdef DEBUG
+			xlog(LOG_DEBUG, "Loaded %s:%s\n", plugin->filename, CFG_RESPONSE_PLUGIN_FUNCTION);
+#endif			
 			return 0;
+		}
 	}
 
 	xlog(LOG_ERROR, "%s\n", "Failed to find function");
@@ -154,13 +170,7 @@ char* proxenet_ruby_execute_function(interpreter_t* interpreter, ID rFunc, long 
 
 	
 	/* function call */
-	rRet = rb_funcall(
-#ifdef _RUBY_VERSION_1_9
-		
-#else
-		ruby_top_self,
-#endif		
-		rFunc, 2, rArgs); 
+	rRet = rb_funcall(rVM, rFunc, 2, rArgs); 
 	if (!rRet) {
 		xlog(LOG_ERROR, "%s\n", "Function call failed");
 		return NULL;
