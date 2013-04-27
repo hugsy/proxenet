@@ -7,7 +7,7 @@
 
 VERSION         =       0.01
 ARCH            =       $(shell uname)
-DEBUG           =       1
+DEBUG           =       0
 
 CC              =       cc
 BIN             =       proxenet
@@ -38,7 +38,7 @@ LDFLAGS			+=	-lpolarssl
 WITH_C_PLUGIN		=	1
 WITH_PYTHON_PLUGIN	=	1
 WITH_PERL_PLUGIN	=	0
-WITH_RUBY_PLUGIN	=	1
+WITH_RUBY_PLUGIN	=	0
 
 
 ifeq ($(WITH_C_PLUGIN), 1)

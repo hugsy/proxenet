@@ -279,8 +279,12 @@ char* proxenet_apply_plugins(long id, char* data, char type)
 		
 		old_data = new_data;
 		new_data = (*plugin_function)(p, id, old_data, type);
-		if (old_data!=new_data)
+		
+		if (strcmp(old_data,new_data)) {
+			/* if new_data is different, request/response was modified, and  */
+			/* another buffer *must* have been allocated, so we can free old one */
 			proxenet_xfree(old_data);
+		}
 	}
 	
 	return new_data;
