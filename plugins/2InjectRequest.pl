@@ -3,7 +3,7 @@ sub proxenet_request_hook {
     $crlf = "\r\n";
     $end = $crlf . $crlf;
     
-    $req =~ s/$end/${crlf}X-Injected-By: perl\/proxenet${end}/;
+    $req =~ s/${end}/${crlf}X-Perl-Injected: proxenet${end}/;
     return $req
 }
 

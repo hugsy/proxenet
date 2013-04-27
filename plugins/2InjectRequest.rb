@@ -1,6 +1,6 @@
 def proxenet_request_hook(request_id, request)
   @CRLF = "\r\n"
-  request.sub(@CRLF*2, @CRLF+"X-Injected-By: ruby/proxenet"+@CRLF*2)
+  request.sub(@CRLF*2, @CRLF+"X-Rbuy-Injected: proxenet"+@CRLF*2)
 end
 
 def proxenet_response_hook(response_id, response)

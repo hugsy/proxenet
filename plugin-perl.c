@@ -122,7 +122,7 @@ char* proxenet_perl_execute_function(plugin_t* plugin, const char* fname, long r
         PUTBACK;
 
 	nb_res = call_pv(fname, G_SCALAR);
-
+	
 	SPAGAIN;
 
 	if (nb_res != 1) {
