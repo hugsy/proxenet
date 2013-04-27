@@ -10,6 +10,7 @@
 #include <EXTERN.h> 
 #include <perl.h>
 #include <string.h>
+#include <alloca.h>
 
 #include "plugin.h"
 #include "plugin-perl.h"
@@ -20,21 +21,45 @@
 static PerlInterpreter *my_perl;
 
 
+int proxenet_perl_load_file(plugin_t* plugin)
+{
+	char *args[2], *pathname;
+	size_t pathlen;
+	
+	pathlen = strlen(cfg->plugins_path) + 1 + strlen(plugin->filename) + 1;
+	pathname = (char*) alloca(pathlen+1);
+	xzero(pathname, pathlen+1);
+	snprintf(pathname, pathlen, "%s/%s", cfg->plugins_path, plugin->filename);
+
+#ifdef DEBUG
+	xlog(LOG_DEBUG, "[Perl] Loading '%s'\n", pathname);
+#endif
+		
+	args[0] = "";	
+	args[1] = pathname;
+	perl_parse(my_perl, NULL, 2, args, NULL);
+
+	return 0;
+}
+
+
 /**
  *
  */
 int proxenet_perl_initialize_vm(plugin_t* plugin)
 {
 	interpreter_t *interpreter;
-
 	interpreter = plugin->interpreter;
 	
 	/* checks */
-	if (interpreter->ready)
-		return 0;
+	if (interpreter->ready){
+		proxenet_perl_load_file(plugin);
+		return 0;		
+	} 
+		
 
 #ifdef DEBUG
-	xlog(LOG_DEBUG, "%s\n", "Initializing Perl VM");
+	xlog(LOG_DEBUG, "[Perl] %s\n", "Initializing VM");
 #endif
 	
 	/* vm init */
@@ -43,10 +68,12 @@ int proxenet_perl_initialize_vm(plugin_t* plugin)
 	PL_exit_flags |= PERL_EXIT_DESTRUCT_END;
 
 	if (!my_perl) {
-		xlog(LOG_ERROR, "%s\n", "failed init-ing perl vm");
+		xlog(LOG_ERROR, "[Perl ]%s\n", "failed init-ing vm");
 		return -1;
 	}
-		
+
+	proxenet_perl_load_file(plugin);
+	
 	interpreter->vm = (void*) my_perl;
 	interpreter->ready = true;
 	
@@ -91,16 +118,15 @@ char* proxenet_perl_execute_function(plugin_t* plugin, const char* fname, long r
 
 	PUSHMARK(SP);
 	XPUSHs(sv_2mortal(newSVuv(rid)));
-        XPUSHs(sv_2mortal(newSVpv(request_str, len)));
+        XPUSHs(sv_2mortal(newSVpv(request_str, 0)));
         PUTBACK;
 
 	nb_res = call_pv(fname, G_SCALAR);
 
 	SPAGAIN;
 
-
 	if (nb_res != 1) {
-		xlog(LOG_ERROR, "Invalid number of response returned (got %d, expected 1)\n", nb_res);
+		xlog(LOG_ERROR, "[Perl] Invalid number of response returned (got %d, expected 1)\n", nb_res);
 		data = NULL;
 		
 	} else {
@@ -109,7 +135,11 @@ char* proxenet_perl_execute_function(plugin_t* plugin, const char* fname, long r
 		data = (char*) proxenet_xmalloc(len+1);
 		memcpy(data, res, len);
 	}
-
+	
+	PUTBACK;
+        FREETMPS;
+        LEAVE;
+	
 	return data;
 }
 
@@ -144,7 +174,7 @@ char* proxenet_perl_plugin(plugin_t* plugin, long rid, char* request, int type)
 	interpreter = plugin->interpreter;
 	if (!interpreter->ready)
 		return NULL;
-	
+
 	if (type == REQUEST)
 		function_name = CFG_REQUEST_PLUGIN_FUNCTION;
 	else 
