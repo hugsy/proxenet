@@ -17,8 +17,8 @@ class HTTPRequest :
         self.__headers	= {}
         self.__body	= ""
 
-        self.parse(r)
-
+        self.valid = self.parse(r)
+        
         
     def parse(self, req):
         i = req.find(CRLF*2)
@@ -73,7 +73,7 @@ class HTTPResponse :
         self.__headers 	= {}
         self.__body 	= ""
 
-        self.parse(r)
+        self.valid = self.parse(r)
 
         
     def parse(self, res):
@@ -81,13 +81,19 @@ class HTTPResponse :
         self.__body = res[i+len(CRLF*2):]
         
         headers = res[:i].split(CRLF)
-        parts = re.findall(r"^(?P<protocol>.+?)\s+(?P<status>.+?)\s+(?P<reason>.*?)$", headers[0])[0]
+        try:
+            parts = re.findall(r"^(?P<protocol>.+?)\s+(?P<status>.+?)\s+(?P<reason>.*?)$", headers[0])[0]
+            
+        except IndexError:
+            return False
+            
         self.__protocol, self.__status, self.__reason = parts
 
         for header in headers[1:]:
             key, value = re.findall(r"^(?P<key>.+?)\s*:\s*(?P<value>.+?)\s*$", header)[0]
             self.add_header(key, value)
-
+            
+        return True
 
     def has_header(self, key):
         return key in self.__headers.keys()

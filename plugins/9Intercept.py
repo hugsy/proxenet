@@ -50,19 +50,22 @@ class InterceptWindow(QtGui.QWidget):
         self.data = self.editField.toPlainText()
         QtGui.QApplication.quit()
 
-def intercept(rid, text):
+def intercept(rid, text, title):
     app = QtGui.QApplication([""])
-    win = InterceptWindow("Intercepting request %d" % rid, text)
+    win = InterceptWindow("%s %d" % (title, rid), text)
     app.exec_()
     return str(win.data)
     
 def proxenet_request_hook(request_id, request):
-    data = intercept(request_id, request.replace(pimp.CRLF, "\x0a"))
+    data = intercept(request_id, request.replace(pimp.CRLF, "\x0a"), "Intercepting request")
     data = data.replace("\x0a", pimp.CRLF)
     return data
 
 def proxenet_response_hook(response_id, response):
-    return response
+    # data = intercept(response_id, response.replace(pimp.CRLF, "\x0a"), "Intercepting response")
+    # data = data.replace("\x0a", pimp.CRLF)
+    data = response
+    return data
 
     
 if __name__ == "__main__":

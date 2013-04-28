@@ -22,6 +22,10 @@ typedef enum __supported_plugins_t {
 #ifdef _PERL_PLUGIN
 	_PERL_,
 #endif
+
+#ifdef _LUA_PLUGIN
+	_LUA_,
+#endif
 	
   END_VALUE
 } supported_plugins_t;
@@ -42,6 +46,10 @@ const static UNUSED char* supported_plugins_str[] = {
 
 #ifdef _PERL_PLUGIN
 	"Perl",
+#endif
+
+#ifdef _LUA_PLUGIN
+	"Lua",
 #endif
 	
   NULL
@@ -64,6 +72,10 @@ const static UNUSED char* plugins_extensions_str[] = {
 #ifdef _PERL_PLUGIN
 	".pl",
 #endif
+
+#ifdef _LUA_PLUGIN
+	".lua",
+#endif
 	
   NULL
 };
@@ -74,7 +86,7 @@ enum {
 	RESPONSE = 1
 };
 
-#define MAX_VMS 4
+#define MAX_VMS 5
 	
 typedef struct _interpreter_type {
 		unsigned short id;
@@ -85,7 +97,6 @@ typedef struct _interpreter_type {
 } interpreter_t;
 
 interpreter_t vms[MAX_VMS];
-
 
 
 typedef struct _plugin_type {

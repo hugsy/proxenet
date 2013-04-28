@@ -163,11 +163,13 @@ PolarSSL (http://polarssl.org/).
 
 Implemented with C API in :
 - Python 2.7
-- Ruby 1.8 (Ruby 1.9 being developed)
-- Perl 5.16 (being developed)
-- Lua 5.2 (being developed)
+- Ruby 1.8 (Ruby 1.9 and 2.0 yet to come)
+- Perl 5.16
+- Lua 5.2
 
 
 ## What's next ?
 
-Many many many other features to come ! 
+There are heaps and heaps of bugs, so we'll be working on fixing that to
+provide more stability.
+Many many many other features to come as well through plugins ! 

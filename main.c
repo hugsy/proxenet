@@ -68,7 +68,6 @@ void usage(int retcode)
 		CFG_DEFAULT_SSL_KEYFILE,
 		CFG_DEFAULT_SSL_CERTFILE);
 	
-	proxenet_free_config(cfg);
 	exit(retcode);
 }
 

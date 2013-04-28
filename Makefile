@@ -37,8 +37,9 @@ LDFLAGS			+=	-lpolarssl
 # PLUGINS 
 WITH_C_PLUGIN		=	0
 WITH_PYTHON_PLUGIN	=	1
-WITH_PERL_PLUGIN	=	1
-WITH_RUBY_PLUGIN	=	1
+WITH_PERL_PLUGIN	=	0
+WITH_RUBY_PLUGIN	=	0
+WITH_LUA_PLUGIN		=	1
 
 
 ifeq ($(WITH_C_PLUGIN), 1)
@@ -74,6 +75,11 @@ LIB			+=	-L/home/hugsy/.rvm/rubies/ruby-1.8.7-p370/lib
 # LIB			+=	-L/home/hugsy/.rvm/rubies/ruby-1.9.3-p194/lib
 
 LDFLAGS			+=	-lruby
+endif
+
+ifeq ($(WITH_LUA_PLUGIN), 1)
+DEFINES			+=	-D_LUA_PLUGIN
+LDFLAGS			+=	-llua
 endif
 
 

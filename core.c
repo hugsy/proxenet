@@ -35,6 +35,10 @@
 #include "plugin-perl.h"
 #endif
 
+#ifdef _LUA_PLUGIN
+#include "plugin-lua.h"
+#endif
+
 
 /**
  *
@@ -133,12 +137,28 @@ void proxenet_initialize_plugins()
 			case _PERL_:
 				if (proxenet_perl_initialize_vm(plugin) < 0) {
 					plugin->state = INACTIVE;
-					xlog(LOG_ERROR, "Failed to init %s in %s\n", CFG_RESPONSE_PLUGIN_FUNCTION, plugin->name);
+					xlog(LOG_ERROR, "%s\n", "Failed to init Perl VM");
 					continue;
 				}
 				break;
 #endif				
-			       
+
+#ifdef _LUA_PLUGIN
+			case _LUA_:
+				if (proxenet_lua_initialize_vm(plugin) < 0) {
+					plugin->state = INACTIVE;
+					xlog(LOG_ERROR, "%s\n", "Failed to init Lua VM");
+					continue;
+				}
+
+				if (proxenet_lua_load_file(plugin) < 0) {
+					plugin->state = INACTIVE;
+					xlog(LOG_ERROR, "Failed to load %s\n", plugin->filename);
+					continue;
+				}
+				
+				break;
+#endif					
 			default:
 				break;
 		}
@@ -178,6 +198,12 @@ void proxenet_destroy_plugins_vm()
 #ifdef _PERL_PLUGIN
 			case _PERL_:
 				proxenet_perl_destroy_vm(p);
+				break;
+#endif				
+
+#ifdef _LUA_PLUGIN
+			case _LUA_:
+				proxenet_lua_destroy_vm(p);
 				break;
 #endif				
 				
@@ -266,6 +292,12 @@ char* proxenet_apply_plugins(long id, char* data, char type)
 #ifdef _PERL_PLUGIN
 			case _PERL_:
 				plugin_function = proxenet_perl_plugin;
+				break;
+#endif	  
+
+#ifdef _LUA_PLUGIN
+			case _LUA_:
+				plugin_function = proxenet_lua_plugin;
 				break;
 #endif	  
 				

@@ -103,7 +103,7 @@ void* proxenet_xmalloc(size_t size)
 void proxenet_xfree(void* ptr)
 {
 	if(ptr == NULL) {
-		xlog(LOG_ERROR, "Trying to free null pointer at %p\n", ptr);
+		xlog(LOG_ERROR, "%s\n", "Trying to free null pointer");
 		abort();
 	}
 	
