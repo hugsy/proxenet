@@ -28,7 +28,7 @@ int proxenet_perl_load_file(plugin_t* plugin)
 	
 	pathlen = strlen(cfg->plugins_path) + 1 + strlen(plugin->filename) + 1;
 	pathname = (char*) alloca(pathlen+1);
-	xzero(pathname, pathlen+1);
+	proxenet_xzero(pathname, pathlen+1);
 	snprintf(pathname, pathlen, "%s/%s", cfg->plugins_path, plugin->filename);
 
 #ifdef DEBUG

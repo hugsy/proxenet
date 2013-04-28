@@ -157,8 +157,8 @@ int create_http_socket(char* http_request, sock_t* server_sock, sock_t* client_s
 	char sport[6];
 
 	err = NULL;
-	xzero(sport, 6);
-	xzero(&http_infos, sizeof(http_request_t));
+	proxenet_xzero(sport, 6);
+	proxenet_xzero(&http_infos, sizeof(http_request_t));
 	http_infos.method = NULL;
 	http_infos.hostname = NULL;
 	http_infos.request_uri = NULL;

@@ -26,7 +26,7 @@ int proxenet_c_initialize_vm(plugin_t* plugin)
 	
 	pathlen = strlen(cfg->plugins_path) + 1 + strlen(plugin->filename) + 1;
 	pathname = alloca(pathlen + 1);
-	xzero(pathname, pathlen+1);
+	proxenet_xzero(pathname, pathlen+1);
 	
 	if (snprintf(pathname, pathlen, "%s/%s", cfg->plugins_path, plugin->filename) < 0) {
 		xlog(LOG_CRITICAL,"%s\n", "Failed to get path");

@@ -10,12 +10,14 @@
 #include <sys/types.h>
 #include <errno.h>
 #include <string.h>
+#include <limits.h>
 
 #include "core.h"
 #include "utils.h"
 #include "main.h"
 #include "socket.h"
 #include "tty.h"
+
 
 
 /**
@@ -40,7 +42,7 @@ void usage(int retcode)
 	fd = (retcode == 0) ? stdout : stderr;
 	
 	fprintf(fd,
-		"\nSYNTAXE :\n"
+		"\nSYNTAX :\n"
 		"\t%s [OPTIONS+]\n"
 		"\nOPTIONS:\n"
 		"\t-t, --nb-threads=N\t\t\tNumber of threads (default: %d)\n"
@@ -66,7 +68,7 @@ void usage(int retcode)
 		CFG_DEFAULT_SSL_KEYFILE,
 		CFG_DEFAULT_SSL_CERTFILE);
 	
-	proxenet_xfree(cfg);
+	proxenet_free_config(cfg);
 	exit(retcode);
 }
 
@@ -104,6 +106,7 @@ void help(char* argv0)
 bool parse_options (int argc, char** argv)
 {
 	int curopt, curopt_idx;
+	char *path, *keyfile, *certfile;
 	
 	const struct option long_opts[] = {
 		{ "help",       0, 0, 'h' },
@@ -124,11 +127,13 @@ bool parse_options (int argc, char** argv)
 	cfg->port		= CFG_DEFAULT_PORT;
 	cfg->logfile_fd		= CFG_DEFAULT_OUTPUT;
 	cfg->nb_threads		= CFG_DEFAULT_NB_THREAD;
-	cfg->plugins_path	= CFG_DEFAULT_PLUGINS_PATH;
-	cfg->keyfile		= CFG_DEFAULT_SSL_KEYFILE;
-	cfg->certfile		= CFG_DEFAULT_SSL_CERTFILE;
 	cfg->use_color		= true;
-		
+	cfg->ip_version		= CFG_DEFAULT_IP_VERSION;
+
+	path			= CFG_DEFAULT_PLUGINS_PATH;
+	keyfile			= CFG_DEFAULT_SSL_KEYFILE;
+	certfile		= CFG_DEFAULT_SSL_CERTFILE;
+	
 	while (1) {
 		curopt = -1;
 		curopt_idx = 0;
@@ -141,14 +146,14 @@ bool parse_options (int argc, char** argv)
 			case 'p': cfg->port = optarg; break;
 			case 'l': cfg->logfile = optarg; break;
 			case 't': cfg->nb_threads = (unsigned short)atoi(optarg); break;
-			case 'c': cfg->certfile = optarg; break;
-			case 'k': cfg->keyfile = optarg; break;	   
+			case 'c': certfile = optarg; break;
+			case 'k': keyfile = optarg; break;	   
 			case 'h': help(argv[0]); break;
 			case 'V': version(true); break;
 			case 'n': cfg->use_color = false; break;
 			case '4': cfg->ip_version = AF_INET; break;
 			case '6': cfg->ip_version = AF_INET6; break;
-			case 'x': cfg->plugins_path = optarg; break;
+			case 'x': path = optarg; break;
 			case '?':
 			default:
 				usage (EXIT_FAILURE);
@@ -156,7 +161,7 @@ bool parse_options (int argc, char** argv)
 		curopt_idx = 0;
 	}
 	
-	if(cfg->logfile) {
+	if(cfg->logfile && is_readable_file(cfg->logfile)) {
 		cfg->logfile_fd = fopen(cfg->logfile, "a");
 		if(!cfg->logfile_fd) {
 			fprintf(stderr, "[-] Failed to open '%s': %s\n", cfg->logfile, strerror(errno));
@@ -169,13 +174,61 @@ bool parse_options (int argc, char** argv)
 		cfg->nb_threads = CFG_DEFAULT_NB_THREAD;
 	}
 	
-	if (cfg->ip_version!=AF_INET && cfg->ip_version!=AF_INET6) {
-		cfg->ip_version = CFG_DEFAULT_IP_VERSION;
+	if (path && is_valid_path(path))
+		cfg->plugins_path = realpath(path, NULL);
+	else {
+		xlog(LOG_CRITICAL, "%s\n", "Invalid plugins path provided");
+		return false;
+	}
+
+	if ( is_readable_file(certfile) )
+		cfg->certfile = realpath(certfile, NULL);
+	else {
+		xlog(LOG_CRITICAL, "Failed to read certificate '%s'\n", cfg->certfile);
+		return false;
+	}
+
+	if ( is_readable_file(keyfile) )
+		cfg->keyfile = realpath(keyfile, NULL);
+	else {
+		xlog(LOG_CRITICAL, "Failed to read private key '%s'\n", cfg->keyfile);
+		return false;
 	}
 	
 	return true;
 }
 
+
+/**
+ *
+ */
+int proxenet_init_config(int argc, char** argv)
+{
+	cfg = &current_config;
+	proxenet_xzero(cfg, sizeof(conf_t));
+	
+	if (parse_options(argc, argv) == false) {
+		xlog(LOG_ERROR, "%s\n", "Failed to parse arguments");
+		return -1;
+	}
+
+	return 0;
+}
+
+
+/**
+ *
+ */
+void proxenet_free_config()
+{
+	proxenet_xfree(cfg->plugins_path);
+	proxenet_xfree(cfg->certfile);
+	proxenet_xfree(cfg->keyfile);
+	
+	if(cfg->logfile_fd)
+		fclose(cfg->logfile_fd);
+	
+}
 
 
 /**
@@ -185,15 +238,13 @@ int main (int argc, char **argv, char** envp)
 {
 	int retcode = -1;
 	
-	/* init tty semaphore */    
+	/* init semaphore for unified display */
 	sem_init(&tty_semaphore, 0, 1);
 	
 	/* get configuration */
-	cfg = proxenet_xmalloc(sizeof(conf_t));
-	if (parse_options(argc, argv) == false) {
-		xlog(LOG_ERROR, "%s\n", "Failed to parse arguments");
+	retcode = proxenet_init_config(argc, argv);
+	if (retcode)		
 		goto end;
-	}     
 	
 	tty_open();
 	
@@ -201,14 +252,11 @@ int main (int argc, char **argv, char** envp)
 	
 	retcode = proxenet_start(); 
 	
-	/* this is the end */
+	/* proxenet ends here */
 end:
 	tty_close();
-	
-	if(cfg->logfile_fd)
-		fclose(cfg->logfile_fd);
-	
-	proxenet_xfree(cfg);
+
+	proxenet_free_config();
 	
 	return (retcode == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
 }

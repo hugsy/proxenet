@@ -131,7 +131,7 @@ int proxenet_python_initialize_function(plugin_t* plugin, char type)
 	/* import module */
 	module_name_len = strlen(plugin->name) + 2; 
 	module_name = alloca(module_name_len);
-	xzero(module_name, module_name_len);
+	proxenet_xzero(module_name, module_name_len);
 	snprintf(module_name, module_name_len, "%d%s", plugin->priority, plugin->name);
 	
 	pModStr = PyString_FromString(module_name);

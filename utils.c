@@ -6,7 +6,9 @@
 #include <string.h>
 #include <pthread.h>
 #include <semaphore.h>
-
+#include <unistd.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include "core.h"
 #include "utils.h"
 
@@ -88,7 +90,7 @@ void* proxenet_xmalloc(size_t size)
 		abort();
 	}
 	
-	xzero(ptr, size);
+	proxenet_xzero(ptr, size);
 	return ptr;
 }
 
@@ -142,9 +144,38 @@ void* proxenet_xrealloc(void* oldptr, size_t new_size)
  * @param buf : buffer to zero-ize
  * @param buflen : buf length
  */
-void xzero(void* buf, size_t buflen)
+void proxenet_xzero(void* buf, size_t buflen)
 {
 	if (buflen)
 		memset(buf, 0, buflen);
 	
+}
+
+
+/**
+ *
+ */
+bool is_valid_path(char* path)
+{
+	struct stat buf;
+	return (stat(path, &buf) || !S_ISDIR(buf.st_mode)) ?  false : true;	
+}
+
+
+/**
+ *
+ */
+bool is_file(char* path)
+{
+	struct stat buf;
+	return (stat(path, &buf) || !S_ISREG(buf.st_mode)) ?  false : true;
+}
+
+
+/**
+ *
+ */
+bool is_readable_file(char* path)
+{
+	return is_file(path) && access(path, R_OK)==0;
 }

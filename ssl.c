@@ -48,7 +48,7 @@ void proxenet_ssl_debug(void *who, int level, const char *str )
 	
 	if (str[l-1] == '\n') {
 		xlog(LOG_DEBUG, "%s - %s", (char*)who, buf);
-		xzero(buf, 2048);
+		proxenet_xzero(buf, 2048);
 	}
 }
 

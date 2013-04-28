@@ -9,7 +9,7 @@
 #define LICENSE 	"BeerWare"
 
 
-#define MAX_THREADS sizeof(long long)*4
+#define MAX_THREADS 	20
 
 /* some configuration variables */
 #define CFG_DEFAULT_BIND_ADDR             "localhost"
@@ -19,7 +19,7 @@
 #define CFG_DEFAULT_PLUGINS_PATH          "./plugins"
 #define CFG_DEFAULT_SSL_KEYFILE           "./keys/proxenet.key"
 #define CFG_DEFAULT_SSL_CERTFILE          "./keys/proxenet.crt"
-#define CFG_DEFAULT_IP_VERSION             AF_UNSPEC
+#define CFG_DEFAULT_IP_VERSION             AF_INET
 #define CFG_REQUEST_PLUGIN_FUNCTION       "proxenet_request_hook"
 #define CFG_RESPONSE_PLUGIN_FUNCTION      "proxenet_response_hook"
 
@@ -38,6 +38,10 @@ typedef struct __proxenet_config {
 		int ip_version;
 } conf_t;
 
+conf_t current_config;
 conf_t* cfg;
 
+int	proxenet_init_config(int, char**);
+void	proxenet_free_config();
+	
 #endif /* _MAIN_H */

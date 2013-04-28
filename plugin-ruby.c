@@ -27,26 +27,24 @@ int proxenet_ruby_load_file(plugin_t* plugin)
 	char* filename;
 	char* pathname;
 	size_t pathname_len;
-
+	int res = 0;
+	
 	filename = plugin->filename;
 	
 	/* load script */
 	pathname_len = strlen(cfg->plugins_path) + 1 + strlen(filename) + 1;
 	pathname = alloca(pathname_len + 1);
-	xzero(pathname, pathname_len + 1);
+	proxenet_xzero(pathname, pathname_len + 1);
 	snprintf(pathname, pathname_len, "%s/%s", cfg->plugins_path, filename);
 
-	ruby_init_loadpath();
-      
-
-	/* fixme : utiliser rb_load_file avec rb_protect */
-	if (rb_require(pathname) == Qfalse) {
-		/* stupid bug from ruby : importing twice same file fails */
-		if (plugin->pre_function)
-			return 0;
-		
+	rb_protect(rb_require, (VALUE) pathname, &res);
+	if (res != 0) {
+		xlog(LOG_ERROR, "[Ruby] Error %d when load file '%s'\n", res, pathname);
 		return -1;
 	}
+
+	xlog(LOG_DEBUG, "%s\n", pathname);
+
 	return 0;
 }
 
@@ -70,18 +68,22 @@ int proxenet_ruby_initialize_vm(plugin_t* plugin)
 	
 	/* init vm */
 	ruby_init();
+	
 #ifdef _RUBY_VERSION_1_9
 #ifdef DEBUG
-	xlog(LOG_DEBUG, "%s\n", "Using Ruby 1.9 API");
+	xlog(LOG_DEBUG, "%s\n", "Using Ruby 1.9 C API");
 #endif
 	interpreter->vm = (void*) rb_vm_top_self();
 #else
+	
 #ifdef DEBUG
-	xlog(LOG_DEBUG, "%s\n", "Using Ruby 1.8 API");
+	xlog(LOG_DEBUG, "%s\n", "Using Ruby 1.8 C API");
 #endif
 	interpreter->vm = (void*) ruby_top_self;
 #endif
 
+	ruby_init_loadpath();
+	
 	interpreter->ready = true;
 	
 	return 0;
@@ -124,7 +126,7 @@ int proxenet_ruby_initialize_function(plugin_t* plugin, int type)
 		return -1;
 	}
 
-	/* get function pointers */
+	/* get function ID */
 	if (type == REQUEST) {
 		plugin->pre_function  = (void*) rb_intern(CFG_REQUEST_PLUGIN_FUNCTION);
 		if (plugin->pre_function) {
@@ -155,31 +157,26 @@ int proxenet_ruby_initialize_function(plugin_t* plugin, int type)
 char* proxenet_ruby_execute_function(interpreter_t* interpreter, ID rFunc, long rid, char* request_str)
 {
 	char *buf, *data;
-	int buflen;
-	VALUE rArgs, rReqId, rReqStr, rRet, rVM;
-
-	rVM = (VALUE) interpreter->vm;
+	int buflen, err;
+	VALUE rArgs[2], rRet, rVM;
 	
 	/* build args */
-	rArgs   = rb_ary_new();
-	rReqId  = INT2FIX(rid);
-	rReqStr = rb_str_new2(request_str);
+	rVM = (VALUE)interpreter->vm;
 
-	rb_ary_push(rArgs, rReqId);
-	rb_ary_push(rArgs, rReqStr);
-
+	rArgs[0] = INT2FIX(rid);
+	rArgs[1] = rb_str_new2(request_str);
 	
 	/* function call */
-	rRet = rb_funcall(rVM, rFunc, 2, rArgs); 
+	rRet = rb_funcall2(rVM, rFunc, 2, rArgs); 
 	if (!rRet) {
 		xlog(LOG_ERROR, "%s\n", "Function call failed");
 		return NULL;
 	}
-
 	
 	/* todo catch TypeError except */
-	Check_Type(rRet, T_STRING);
-	
+	/* rb_ary_push(rArgs, rRet); */
+	/* rb_ary_push(rArgs, T_STRING); */
+	/* rb_protect(rb_check_type, rArgs, &err); */
 
 	/* copy result to exploitable buffer */
 	buf = RSTRING_PTR(rRet);

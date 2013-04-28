@@ -192,7 +192,7 @@ void proxenet_destroy_plugins_vm()
 /**
  *
  */
-void proxenet_switch_plugin(int plugin_id)
+void proxenet_toggle_plugin(int plugin_id)
 {
 	plugin_t *plugin;
 	
@@ -306,7 +306,7 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 
 	rid = 0;
 	client_socket = retcode =-1;
-	xzero(&ssl_context, sizeof(ssl_context_t));
+	proxenet_xzero(&ssl_context, sizeof(ssl_context_t));
 
 	
 	/* wait for any event on sockets */
@@ -650,7 +650,7 @@ void xloop(sock_t sock)
 	pthread_t threads[MAX_THREADS];
 	
 	
-	xzero(threads, sizeof(pthread_t)*MAX_THREADS);
+	proxenet_xzero(threads, sizeof(pthread_t)*MAX_THREADS);
 	
 	if (pthread_attr_init(&pattr)) {
 		xlog(LOG_ERROR, "%s\n", "Failed to pthread_attr_init");
@@ -658,7 +658,7 @@ void xloop(sock_t sock)
 	}
 	pthread_attr_setdetachstate(&pattr, PTHREAD_CREATE_JOINABLE);
 	
-	xzero(&tv, sizeof(struct timeval));
+	proxenet_xzero(&tv, sizeof(struct timeval));
 	tv.tv_sec = HTTP_TIMEOUT_SOCK;
 	tv.tv_usec= 0;
 	
@@ -694,7 +694,7 @@ void xloop(sock_t sock)
 			struct sockaddr addr;
 			socklen_t addrlen = 0;
 			int tnum = -1;
-			xzero(&addr, sizeof(struct sockaddr));
+			proxenet_xzero(&addr, sizeof(struct sockaddr));
 			
 			conn = accept(sock, &addr, &addrlen);    
 			if (conn < 0) {
@@ -736,13 +736,17 @@ void xloop(sock_t sock)
 					     "- Supported IP version: %s\n"
 					     "- Logging to %s\n"
 					     "- Running/Max threads: %d/%d\n"
-					     "- Plugins dir: %s\n", 
+					     "- SSL private key: %s\n"
+					     "- SSL certificate: %s\n"					     
+					     "- Plugins directory: %s\n", 
 					     cfg->iface,
 					     cfg->port,
 					     (cfg->ip_version==AF_INET)? "IPv4": (cfg->ip_version==AF_INET6)?"IPv6": "ANY",
 					     (cfg->logfile)?cfg->logfile:"stdout",
 					     get_active_threads_size(),
-					     cfg->nb_threads,
+					     cfg->nb_threads,					     
+					     cfg->keyfile,
+					     cfg->certfile,
 					     cfg->plugins_path			      
 					    );
 					
@@ -816,7 +820,7 @@ void xloop(sock_t sock)
 					
 				default:
 					if (cmd >= '1' && cmd <= '9') {
-						proxenet_switch_plugin(cmd-0x30);
+						proxenet_toggle_plugin(cmd-0x30);
 						break;
 					}
 					
