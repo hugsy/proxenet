@@ -138,7 +138,7 @@ void proxenet_print_plugins_list()
 	printf("Plugins list:\n");
 	for (p = plugins_list; p!=NULL; p=p->next) 
 		fprintf(cfg->logfile_fd,
-			"|_ priority=%d id=%d type=%s[0x%x] name=%s (%sACTIVE)\n",
+			"|_ priority=%-3d id=%-3d type=%-10s[0x%x] name=%-20s (%sACTIVE)\n",
 			p->priority,
 			p->id,
 			supported_plugins_str[p->type],

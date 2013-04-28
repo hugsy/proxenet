@@ -27,7 +27,7 @@ sock_t create_bind_socket(char *host, char* port, char** errcode)
 	hostinfo.ai_family = cfg->ip_version;
 	hostinfo.ai_socktype = SOCK_STREAM;
 	hostinfo.ai_flags = 0;
-	hostinfo.ai_protocol = 0;
+	hostinfo.ai_protocol = IPPROTO_TCP;
 	
 	sock = -1;
 	retcode = getaddrinfo(host, port, &hostinfo, &res);
@@ -45,7 +45,8 @@ sock_t create_bind_socket(char *host, char* port, char** errcode)
 		
 		/* enable address reuse */
 		reuseaddr_on = true;
-		retcode = setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &reuseaddr_on, sizeof(reuseaddr_on));
+		retcode = setsockopt(sock, SOL_SOCKET, SO_REUSEADDR,
+				     &reuseaddr_on, sizeof(reuseaddr_on));
 		
 		/* and bind */
 		if (bind(sock, ll->ai_addr, ll->ai_addrlen) == 0) break;
@@ -80,14 +81,14 @@ sock_t create_connect_socket(char *host, char* port, char** errcode)
 {
 	sock_t sock;
 	struct addrinfo hostinfo, *res, *ll;
-	int retcode = -1;
-	
-	sock = -1;
+	int retcode, keepalive_val;
+
+	retcode = sock = -1;
 	memset(&hostinfo, 0, sizeof(struct addrinfo));
 	hostinfo.ai_family = cfg->ip_version;
 	hostinfo.ai_socktype = SOCK_STREAM;
 	hostinfo.ai_flags = 0;
-	hostinfo.ai_protocol = 0;
+	hostinfo.ai_protocol = IPPROTO_TCP;
 	
 	
 	/* get host info */
@@ -103,6 +104,10 @@ sock_t create_connect_socket(char *host, char* port, char** errcode)
 	for (ll=res; ll; ll=ll->ai_next) {
 		sock = socket(ll->ai_family, ll->ai_socktype, ll->ai_protocol);
 		if (sock == -1) continue;
+
+		keepalive_val = 1;
+		retcode = setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE,
+				     &keepalive_val, sizeof(keepalive_val));
 		
 		if (connect(sock, ll->ai_addr, ll->ai_addrlen) == 0)
 			break;
@@ -136,7 +141,8 @@ sock_t create_connect_socket(char *host, char* port, char** errcode)
  */
 int close_socket(sock_t sock)
 {
-	int ret;	
+	int ret;
+	
 	ret = close(sock);
 	if (ret < 0)
 		xlog(LOG_ERROR, "Error while closing fd %d: %s\n", sock, strerror(errno));
@@ -227,9 +233,9 @@ int proxenet_read_all(sock_t sock, char** ptr, proxenet_ssl_context_t* ssl)
 
 		if (ret > 0) {
 			data[total_bytes_read] = '\0';
-			break;
 		}
-		
+
+		break;
 	} 
 	
 	if (total_bytes_read == 0) {

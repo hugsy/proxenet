@@ -25,8 +25,6 @@ enum proxenet_states {
 	ACTIVE,			/* rock'n roll */
 };
 
-long		request_id;
-pthread_mutex_t request_id_mutex;
 unsigned short 	proxenet_state;
 unsigned long 	active_threads_bitmask;
 sem_t 		tty_semaphore;

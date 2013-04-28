@@ -26,10 +26,15 @@
 int proxenet_python_append_path(interpreter_t *interpreter)
 {
 	PyObject *pPath, *pAddPath;
-
+	int retcode = 0;
+	
 	pPath = PySys_GetObject("path");
 	if (!pPath) {
 		xlog(LOG_ERROR, "%s\n", "Failed to find `sys.path'");
+		return -1;
+	}
+
+	if (!PyList_Check(pPath)) {
 		return -1;
 	}
 	
@@ -38,10 +43,12 @@ int proxenet_python_append_path(interpreter_t *interpreter)
 		return -1;
 	}
 	
-	PyList_Insert(pPath, 0, pAddPath);
+	if (PyList_Insert(pPath, 0, pAddPath) < 0) {
+		retcode = -1;
+	}
 	Py_DECREF(pAddPath);
 
-	return 0;
+	return retcode;
 }
 
 
@@ -69,6 +76,8 @@ int proxenet_python_initialize_vm(plugin_t* plugin)
 	}
 
 	if (proxenet_python_append_path(interpreter) < 0) {
+		xlog(LOG_CRITICAL, "%s\n", "Failed to append plugins directory to sys.path");
+		Py_Finalize();
 		interpreter->vm = NULL;
 		interpreter->ready = false;
 		return -1;

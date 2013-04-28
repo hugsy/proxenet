@@ -22,6 +22,7 @@ typedef struct __ssl_atom_t {
 } ssl_atom_t;
 
 typedef struct __ssl_context_t {
+		bool use_ssl;
 		ssl_atom_t client;
 		ssl_atom_t server;
 } ssl_context_t;

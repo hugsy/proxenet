@@ -168,7 +168,8 @@ int create_http_socket(char* http_request, sock_t* server_sock, sock_t* client_s
 		xlog(LOG_ERROR, "%s\n", "Failed to extract valid parameters from URL.");
 		return -1;
 	}
-	
+
+	ssl_ctx->use_ssl = http_infos.is_ssl;
 	snprintf(sport, 5, "%d", http_infos.port);
 	
 	retcode = create_connect_socket(http_infos.hostname, sport, &err);

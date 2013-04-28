@@ -3,6 +3,7 @@ import pimp
 def proxenet_request_hook(request_id, request):
     r = pimp.HTTPRequest(request)
     r.add_header("X-Python-Injected", "proxenet")
+    r.add_header("Connection", "close")
     return str(r)
 
     

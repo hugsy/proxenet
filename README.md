@@ -17,6 +17,8 @@ supports plugins in the following languages :
 
 ## Enviroment setup
 
+### Compilation
+
 Best way to set up a new `proxenet` environment is as this
 
 ```
@@ -41,9 +43,13 @@ WITH_RUBY_PLUGIN	=	0
 will enable support for Python and Perl plugins.
 You will need to have the correct libraries installed on your system to compile
 and link it properly (see Language Versions part).
+You might also want to disable debug output. This can be done by setting to `0`
+the DEBUG option in the Makefile.
+
+Then, simply type ``` make ```
 
 
-## Usage
+### Usage
 
 Best way to start with `proxenet` is 
 ``` 
@@ -75,6 +81,13 @@ OPTIONS:
         -h, --help                              Show help
         -V, --version                           Show version
 ```
+
+### The best of both world ?
+
+Some people might miss the beautiful interface some other GUI-friendly proxies
+provide. So be it ! Plug `proxenet` as a relay behind your favorite `Burp`,
+`Zap`, `Proxystrike`, `abrupt`, etc. and enjoy the show !
+
 
 ## Do-Your-Own-Plugins
 
