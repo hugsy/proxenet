@@ -171,7 +171,8 @@ and so on)
 We'll create `./plugins/2InsertHeader.py`.
 
 2. Edit `./plugins/2InsertHeader.py` to implement the required functions:
-```python
+
+```
 import pimp
 
 def proxenet_request_hook(request_id, request):
@@ -211,13 +212,12 @@ SSL layer is fully built-in and extremely flexible thanks to the amazing library
 PolarSSL (http://polarssl.org/).
 
 	- Using your own SSL keys can be done easily with command line parameters
-	``` $ ./proxenet --key=/path/to/ssl.key --cert=/path/to/ssl.crt	```
+	`$ ./proxenet --key=/path/to/ssl.key --cert=/path/to/ssl.crt `
 
 	- If you don't trust me (which is a good thing), you can re-generate new
 	SSL keys easily :
-	``` $ make keys ```
+	` $ make keys `
 
-	
 
 ## Languages Versions
 
