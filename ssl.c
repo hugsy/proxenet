@@ -173,7 +173,7 @@ int proxenet_ssl_handshake(proxenet_ssl_context_t* ctx)
 		if(retcode!=POLARSSL_ERR_NET_WANT_READ && retcode!=POLARSSL_ERR_NET_WANT_WRITE) {
 			char ssl_strerror[128] = {0, };
 			error_strerror(retcode, ssl_strerror, 127);
-			xlog(LOG_ERROR, "SSL handshake failed, %#x: %s\n",
+			xlog(LOG_ERROR, "SSL handshake failed (returns %#x): %s\n",
 			     -retcode, ssl_strerror);
 			break;
 		}
@@ -229,14 +229,14 @@ ssize_t proxenet_ssl_ioctl(int (*func)(), void *buf, size_t count, proxenet_ssl_
 	do {
 		retcode = (*func)(ssl, buf, count);
 
-		if (retcode > 0)
+		if (retcode >= 0)
 			break;
 
 		if(retcode == POLARSSL_ERR_NET_WANT_READ ||\
 		   retcode == POLARSSL_ERR_NET_WANT_WRITE )
 			continue;
 
-		if (retcode <= 0) {
+		if (retcode < 0) {
 			char ssl_strerror[128] = {0, };
 			error_strerror(retcode, ssl_strerror, 127);
 			xlog(LOG_ERROR, "SSL I/O got %#x: %s\n", -retcode, ssl_strerror);

@@ -154,10 +154,9 @@ int create_http_socket(char* http_request, sock_t* server_sock, sock_t* client_s
 	http_request_t http_infos;
 	int retcode;
 	char* err;
-	char sport[6];
+	char sport[7] = {0, };
 
 	err = NULL;
-	proxenet_xzero(sport, 6);
 	proxenet_xzero(&http_infos, sizeof(http_request_t));
 	http_infos.method = NULL;
 	http_infos.hostname = NULL;
@@ -170,7 +169,7 @@ int create_http_socket(char* http_request, sock_t* server_sock, sock_t* client_s
 	}
 
 	ssl_ctx->use_ssl = http_infos.is_ssl;
-	snprintf(sport, 5, "%d", http_infos.port);
+	snprintf(sport, 6, "%d", http_infos.port);
 	
 	retcode = create_connect_socket(http_infos.hostname, sport, &err);
 	if (retcode < 0) {
@@ -200,7 +199,7 @@ int create_http_socket(char* http_request, sock_t* server_sock, sock_t* client_s
 				goto http_sock_end;
 			}
 #ifdef DEBUG
-			xlog(LOG_DEBUG, "%s\n", "SSL Handshake with server done");
+			xlog(LOG_DEBUG, "%s\n", "SSL handshake with server done");
 #endif
 			proxenet_write(*server_sock,
 				       "HTTP/1.0 200 Connection established\r\n\r\n",
@@ -214,7 +213,8 @@ int create_http_socket(char* http_request, sock_t* server_sock, sock_t* client_s
 
 			proxenet_ssl_wrap_socket(&(ssl_ctx->server.context), server_sock);
 			if (proxenet_ssl_handshake(&(ssl_ctx->server.context)) < 0) {
-				xlog(LOG_ERROR, "%s\n", "proxy->client: handshake");
+				xlog(LOG_ERROR, "handshake proxy->client '%s:%d' failed\n",
+				     http_infos.hostname, http_infos.port);
 				retcode = -1;
 				goto http_sock_end;
 			}

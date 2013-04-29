@@ -46,7 +46,7 @@ char tty_getc()
 		if (retcode == 1)
 			return c;
 		else
-			xlog(LOG_ERROR, "Failed to read character from tty: %s\n", strerror(errno));
+			xlog(LOG_ERROR, "Failed to read from tty %d: %s\n", tty_fd, strerror(errno));
 	}
 	
 	return -1;

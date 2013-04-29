@@ -15,6 +15,7 @@ typedef struct thread_info {
 		pthread_t thread_id;
 		int thread_num;
 		sock_t sock;
+		pthread_t main_tid;
 		pthread_mutex_t* mutex;
 		plugin_t** plugin_list;
 } tinfo_t;

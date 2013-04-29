@@ -9,9 +9,7 @@ def proxenet_request_hook(request_id, request):
 
     
 def proxenet_response_hook(response_id, response):
-    r = pimp.HTTPResponse(response)
-    r.add_header("Server", "pr0x3n7")
-    return str(r)
+    return response
     
 
 if __name__ == "__main__":

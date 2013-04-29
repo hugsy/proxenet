@@ -40,8 +40,10 @@
 #endif
 
 
-static long request_id;
+static long	 request_id;
 static pthread_mutex_t request_id_mutex;
+static pthread_t threads[MAX_THREADS];
+
 
 /**
  *
@@ -331,38 +333,44 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 	char *http_request, *http_response;
 	int retcode, rid, max_fd;
 	fd_set rfds;
-	struct timeval tv;
+	struct timespec ts;
 	ssl_context_t ssl_context;
 	bool is_ssl;
+	sigset_t emptyset;
 	
 	rid = 0;
 	client_socket = retcode =-1;
 	proxenet_xzero(&ssl_context, sizeof(ssl_context_t));
 
-	
 	/* wait for any event on sockets */
 	for(;;) {
+		
 		if (server_socket < 0) {
 			xlog(LOG_ERROR, "%s\n", "Sock browser->proxy died unexpectedly");
 			break;
 		}
 			
-		
 		http_request  = NULL;
 		http_response = NULL;
 		
-		tv.tv_sec  = 2;
-		tv.tv_usec = 0;
-
+		ts.tv_sec  = 5;
+		ts.tv_nsec = 0;
+		
 		max_fd = MAX(client_socket, server_socket) + 1;
 		
 		FD_ZERO(&rfds);
 		FD_SET(server_socket, &rfds);
 		FD_SET(client_socket, &rfds);
+
+		sigemptyset(&emptyset);
+		retcode = pselect(max_fd, &rfds, NULL, NULL, &ts, &emptyset);
 		
-		retcode = select(max_fd, &rfds, NULL, NULL, &tv);
+		/* if (retcode < 0 && errno == EINTR){ */
+			/* continue; */
+		/* } */
 		if (retcode < 0) {
-			xlog(LOG_CRITICAL, "select: %s\n", strerror(errno));
+			xlog(LOG_CRITICAL, "[thread] pselect returned %d: %s\n",
+			     retcode, strerror(errno));
 			break;
 			
 		} else if (retcode == 0) {
@@ -427,11 +435,7 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 			
 			/* hook request with all plugins in plugins_l  */
 			http_request = proxenet_apply_plugins(rid, http_request, REQUEST);
-			/* if (strlen(http_request) < 2) { */
-				/* xlog(LOG_ERROR, "%s\n", "Invalid plugins results, ignore request"); */
-				/* proxenet_xfree(http_request); */
-				/* break; */
-			/* } */
+
 			
 #ifdef DEBUG
 			xlog(LOG_DEBUG, "[%d] Sending %d bytes (%s)\n",
@@ -470,17 +474,13 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 			xlog(LOG_DEBUG, "[%d] Got %dB from server\n", rid, n);
 #endif
 			
-			if (n <= 0)
+			if (n < 0)
 				break;
 
 			
 			/* execute response hooks */
 			http_response = proxenet_apply_plugins(rid, http_response, RESPONSE);
-			/* if (strlen(http_response) < 2) { */
-				/* xlog(LOG_ERROR, "%s\n", "Invalid plugins results, ignore response"); */
-				/* proxenet_xfree(http_response); */
-				/* goto close_sockets; */
-			/* } */
+
 			
 			/* send modified data to client */
 			if (is_ssl)
@@ -504,26 +504,28 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 
 
 	/* close client socket */
-	if (ssl_context.client.is_valid) {
-		proxenet_ssl_bye(&ssl_context.client.context); 
-		proxenet_ssl_free_certificate(&ssl_context.client.cert);
-		close_socket_ssl(client_socket, &ssl_context.client.context);
+	if (client_socket > 0) {
+		if (ssl_context.client.is_valid) {
+			proxenet_ssl_bye(&ssl_context.client.context); 
+			proxenet_ssl_free_certificate(&ssl_context.client.cert);
+			close_socket_ssl(client_socket, &ssl_context.client.context);
 		
-	} else {
-		
-		close_socket(client_socket);
+		} else {
+			close_socket(client_socket);
+		}
 	}
 	
 	
-	/* close local socket */  
-	if (ssl_context.server.is_valid) {
-		proxenet_ssl_bye(&ssl_context.server.context);
-		proxenet_ssl_free_certificate(&ssl_context.server.cert);
-		close_socket_ssl(server_socket, &ssl_context.server.context);
-		
-	} else {
-		
-		close_socket(server_socket);
+	/* close local socket */
+	if (server_socket > 0) {
+		if (ssl_context.server.is_valid) {
+			proxenet_ssl_bye(&ssl_context.server.context);
+			proxenet_ssl_free_certificate(&ssl_context.server.cert);
+			close_socket_ssl(server_socket, &ssl_context.server.context);
+			
+		} else {
+			close_socket(server_socket);
+		}
 	}
 	
 	/* and that's all folks */
@@ -537,11 +539,23 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 static void* process_thread_job(void* arg) 
 {
 	tinfo_t* tinfo = (tinfo_t*) arg;
+	pthread_t parent_tid;
 	
 	active_threads_bitmask |= 1 << tinfo->thread_num;
+	parent_tid = tinfo->main_tid;
+	
+	/* treat request */
 	proxenet_process_http_request(tinfo->sock, tinfo->plugin_list);
+
+	/* purge thread */
 	tinfo->plugin_list = NULL;
 	proxenet_xfree(arg);
+
+	/* signal main thread (parent) to clean up */
+	if (pthread_kill(parent_tid, SIGCHLD) < 0){
+		xlog(LOG_ERROR, "Sending SIGCHLD failed: %s\n", strerror(errno));
+	}
+	
 	pthread_exit(NULL);
 }
 
@@ -576,17 +590,13 @@ int proxenet_start_new_thread(sock_t conn, int tnum, pthread_t* thread, pthread_
 {
 	tinfo_t* tinfo;
 	void* tfunc;
-	
-	/* if (get_active_threads_size() >= MAX_THREADS) { */
-		/* xlog (LOG_ERROR, "%s\n", "No more thread available, request dropped"); */
-		/* return -1; */
-	/* } */
 
 	tinfo = (tinfo_t*)proxenet_xmalloc(sizeof(tinfo_t));
 	tfunc = &process_thread_job;
 	
 	tinfo->thread_num = tnum;
 	tinfo->sock = conn;
+	tinfo->main_tid = pthread_self();
 	
 	return pthread_create(thread, tattr, tfunc, (void*)tinfo);
 }
@@ -595,7 +605,7 @@ int proxenet_start_new_thread(sock_t conn, int tnum, pthread_t* thread, pthread_
 /**
  *
  */
-void purge_zombies(pthread_t* threads)
+void purge_zombies()
 {
 	/* simple threads heartbeat based on pthread_kill response */
 	int i, retcode;
@@ -624,7 +634,7 @@ void purge_zombies(pthread_t* threads)
 /**
  *
  */
-void kill_zombies(pthread_t* threads) 
+void kill_zombies() 
 {
 	int i, retcode;
 	
@@ -684,14 +694,27 @@ int proxenet_init_plugins()
 /**
  *
  */
+int get_new_thread_id()
+{
+	int tnum;
+	
+	for(tnum=0; is_thread_active(tnum) && tnum<cfg->nb_threads; tnum++);
+	return (tnum >= cfg->nb_threads) ? -1 : tnum;
+}
+
+
+/**
+ *
+ */
 void xloop(sock_t sock)
 {
 	fd_set sock_set;
 	struct timeval tv;
 	int retcode;
 	pthread_attr_t pattr;
-	pthread_t threads[MAX_THREADS];
-	
+	int max_fd, tid;
+	sock_t conn;
+	sigset_t emptyset;
 	
 	proxenet_xzero(threads, sizeof(pthread_t) * MAX_THREADS);
 	
@@ -699,72 +722,77 @@ void xloop(sock_t sock)
 		xlog(LOG_ERROR, "%s\n", "Failed to pthread_attr_init");
 		return;
 	}
+	
 	pthread_attr_setdetachstate(&pattr, PTHREAD_CREATE_JOINABLE);
-	
-	tv.tv_sec = HTTP_TIMEOUT_SOCK;
-	tv.tv_usec= 0;
-	
+
 	/* proxenet is now running :) */
 	proxenet_state = ACTIVE;
 	xlog(LOG_INFO, "%s\n", "Starting interactive mode, press h for help");
+
 	
 	/* big loop  */
 	while (proxenet_state != INACTIVE) {
-		sock_t conn = -1;
-		retcode = -1;
-		
-		tv.tv_sec = HTTP_TIMEOUT_SOCK;
-		tv.tv_usec= 0;
-		
-		purge_zombies(threads);
-		
+		conn = -1;
+		retcode = -1;	
+		max_fd = MAX(sock, tty_fd) + 1;
+
 		FD_ZERO(&sock_set);
 		FD_SET(tty_fd, &sock_set);
 		FD_SET(sock, &sock_set);
+
+		tv.tv_sec = HTTP_TIMEOUT_SOCK;
+		tv.tv_usec= 0;
+		
+		purge_zombies();
 		
 		/* set asynchronous listener */
-		retcode = select(sock+1, &sock_set, NULL, NULL, &tv);
+		sigemptyset(&emptyset);
+		retcode = pselect(max_fd, &sock_set, NULL, NULL, NULL, &emptyset);
 		
-		if (retcode < 0) {
-			xlog(LOG_ERROR, "select: %s\n", strerror(errno));
+		if (retcode < 0 && errno != EINTR) {
+			xlog(LOG_ERROR, "[main] pselect() returned %d: %s\n", retcode, strerror(errno));
 			proxenet_state = INACTIVE;
 			break;
 		}
+
+		if (retcode == 0)
+			continue;
+
 		
 		/* event on the listening socket -> new request */
-		if( FD_ISSET(sock, &sock_set) && proxenet_state!=SLEEPING) {
+		
+		if( FD_ISSET(sock, &sock_set) && proxenet_state != SLEEPING) {
+			tid = get_new_thread_id();
+			if(tid < 0)
+				continue;
+
 			struct sockaddr addr;
 			socklen_t addrlen = 0;
-			int tnum = -1;
-
-			for(tnum=0; is_thread_active(tnum) && tnum<cfg->nb_threads; tnum++);
-			if (tnum == cfg->nb_threads)
-				continue;
-
 			proxenet_xzero(&addr, sizeof(struct sockaddr));
-			
-			conn = accept(sock, &addr, &addrlen);    
-			if (conn < 0) {
-				xlog(LOG_ERROR, "accept failed: %s\n", strerror(errno));
+
+			conn = accept(sock, &addr, &addrlen);
+			if (conn < 0 && errno != EINTR) {
+				xlog(LOG_ERROR, "[main] accept() failed: %s\n", strerror(errno));
 				continue;
 			}
-			
-			/* find next free slot */
-			
-			retcode = proxenet_start_new_thread(conn,tnum,&threads[tnum],&pattr);
+					
+			retcode = proxenet_start_new_thread(conn,tid,&threads[tid],&pattr);
 			if (retcode < 0) {
-				xlog(LOG_ERROR, "%s\n", "Error while spawn new thread");
+				xlog(LOG_ERROR, "[main] %s\n", "Error while spawn new thread");
 				continue;
 			}
 			
-		} /* end if */
+		} /* end if _socket_event */
 		
 		
 		/* even on stdin ? -> menu */
 		if( FD_ISSET(tty_fd, &sock_set) ) {
 			int cmd = tty_getc();
-			unsigned int n;
-			
+			unsigned int n = -1;
+
+			if (cmd < 0)
+				continue;
+
 			switch (cmd) {
 				case 'a':
 					n = get_active_threads_size();
@@ -873,18 +901,18 @@ void xloop(sock_t sock)
 						break;
 					}
 					
-					xlog(LOG_INFO, "Inknown command %#x (h - for help)\n", cmd);
+					xlog(LOG_INFO, "Unknown command %#x (h - for help)\n", cmd);
 					break;
 			}
 			
 			tty_flush();
-		}
-		
+			
+		} /* end if _tty_event*/
 		
 	}  /* endof while(!INACTIVE) */
 	
 	
-	kill_zombies(threads);
+	kill_zombies();
 	proxenet_destroy_plugins_vm();
 	pthread_attr_destroy(&pattr);
 	
@@ -899,13 +927,15 @@ void xloop(sock_t sock)
 void sighandler(int signum)
 {
 	switch(signum) {
+		case SIGTERM: 
 		case SIGINT:
+			/* todo faire un compteur de retry sur les quit attempts */
 			if (proxenet_state != INACTIVE)
 				proxenet_state = INACTIVE;
 			break;
-			
-		default:
-			xlog(LOG_WARNING, "No action for signal code %#x\n", signum);
+
+		case SIGCHLD:
+			purge_zombies();
 			break;
 	}
 }
@@ -919,12 +949,14 @@ void initialize_sigmask()
 	struct sigaction saction;
 	
 	memset(&saction, 0, sizeof(struct sigaction));
+	
 	saction.sa_handler = sighandler;
-	saction.sa_flags = SA_NOCLDSTOP|SA_NOCLDWAIT;
+	saction.sa_flags = SA_RESTART|SA_NOCLDSTOP;
 	sigemptyset(&saction.sa_mask);
 	
 	sigaction(SIGINT, &saction, NULL);
-	sigaction(SIGUSR1, &saction, NULL);
+	sigaction(SIGTERM, &saction, NULL);
+	sigaction(SIGCHLD, &saction, NULL);
 }
 
 
@@ -944,7 +976,7 @@ int proxenet_start()
 	}
 	
 	/* init everything */
-	initialize_sigmask();
+	/* initialize_sigmask(); */
 	plugins_list = NULL;
 	proxenet_state = INACTIVE;
 	active_threads_bitmask = 0;
@@ -956,6 +988,7 @@ int proxenet_start()
 
 	/* setting request counter  */
 	request_id = 0;
+	get_new_request_id();
 	
 	/* prepare threads and start looping */
 	xloop(listening_socket);

@@ -121,10 +121,12 @@ sock_t create_connect_socket(char *host, char* port, char** errcode)
 		sock = -1;
 	}
 	
-#ifdef DEBUG     
 	if (!ll || sock < 0) {
+		*errcode = "Failed to connect to server";
 		xlog(LOG_ERROR, "%s\n", "Failed to create socket");
-	} else {
+	}
+#ifdef DEBUG     
+	else {
 		xlog(LOG_DEBUG, "Connected to %s (%s)\n", host, port);
 	}
 #endif
