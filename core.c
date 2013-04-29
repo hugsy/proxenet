@@ -709,7 +709,6 @@ int get_new_thread_id()
 void xloop(sock_t sock)
 {
 	fd_set sock_set;
-	struct timeval tv;
 	int retcode;
 	pthread_attr_t pattr;
 	int max_fd, tid;
@@ -740,9 +739,6 @@ void xloop(sock_t sock)
 		FD_SET(tty_fd, &sock_set);
 		FD_SET(sock, &sock_set);
 
-		tv.tv_sec = HTTP_TIMEOUT_SOCK;
-		tv.tv_usec= 0;
-		
 		purge_zombies();
 		
 		/* set asynchronous listener */

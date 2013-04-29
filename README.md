@@ -8,9 +8,9 @@ It is still at a very early stage of development (but very active though), and
 supports plugins in the following languages :
 - C
 - Python
-- Ruby
-- Perl
 - Lua
+- Ruby (-ish)
+- Perl (-ish)
 
 (Maybe more to come)
 
@@ -56,7 +56,7 @@ Best way to start with `proxenet` is
 $ ./proxenet --help
 proxenet v0.01
 Written by hugsy < @__hugsy__>
-Released under: BeerWare
+Released under: GPLv2
 
 Compiled with support for :
         [+] 0x00   Python     (.py)
@@ -82,6 +82,49 @@ OPTIONS:
         -V, --version                           Show version
 ```
 
+### Runtime
+
+When started, `proxenet` will start initializing plugins and appending them to
+a list **if** then they are valid (filename convention and syntaxically
+valid). Then it will start looking for events.
+
+``` 
+$ ./proxenet -4 -t 20 -vvv
+INFO: Listening on localhost:8008
+INFO: Adding Python plugin 'DeleteEncoding'
+INFO: Adding Python plugin 'InjectRequest'
+INFO: Adding Lua plugin 'InjectRequest'
+INFO: Adding Python plugin 'Intercept'
+INFO: Plugins loaded
+INFO: 4 plugin(s) found
+Plugins list:
+|_ priority=1   id=1   type=Python    [0x0] name=DeleteEncoding       (ACTIVE)
+|_ priority=2   id=2   type=Python    [0x0] name=InjectRequest        (ACTIVE)
+|_ priority=2   id=3   type=Lua       [0x1] name=InjectRequest        (ACTIVE)
+|_ priority=9   id=4   type=Python    [0x0] name=Intercept            (ACTIVE)
+INFO: Starting interactive mode, press h for help
+```
+
+In this example, 4 plugins were automatically loaded and will be executed **on
+every** request/response. This is important to keep in mind.
+
+Then, `proxenet` allows runtime interaction through a basic menu. You can
+invoke this menu help by hitting `h` key:
+```
+INFO: Menu:
+	a: print number of active threads
+	s: toggle sleep mode (stop treating requests)
+	r: reload plugins list
+	i: show proxenet info
+	v/b: increase/decrease verbosity
+	[1-9]: disable i-th plugin
+	q: try to quit gently
+	h: print this menu
+```
+
+Keys and associated functionalities are explicit enough :)
+
+
 ### The best of both world ?
 
 Some people might miss the beautiful interface some other GUI-friendly proxies
@@ -89,9 +132,13 @@ provide. So be it ! Plug `proxenet` as a relay behind your favorite `Burp`,
 `Zap`, `Proxystrike`, `abrupt`, etc. and enjoy the show !
 
 
-## Do-Your-Own-Plugins
+## Write-Your-Own-Plugins
 
-Core purpose of proxenet
+It is a fact that writing extension for `Burps` is a pain, and other tools only
+provides plugins (when they do) in the language they were written in.
+So the basic core idea behind `proxenet` is to allow pentesters to **easily**
+interact with their HTTP requests/responses in their favorite high-level
+language. 
 
 ### HOWTO write my plugin
 
@@ -183,6 +230,6 @@ Implemented with C API in :
 
 ## What's next ?
 
-There are heaps and heaps of bugs, so we'll be working on fixing that to
-provide more stability.
+There are heaps and heaps of bugs, crashes, , so I am working on fixing that to
+provide more stability (please tell me your bugs/patches !)
 Many many many other features to come as well through plugins ! 

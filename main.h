@@ -6,7 +6,7 @@
 
 #define PROGNAME 	"proxenet"
 #define AUTHOR 		"hugsy < @__hugsy__>"
-#define LICENSE 	"BeerWare"
+#define LICENSE 	"GPLv2"
 
 
 #define MAX_THREADS 	20

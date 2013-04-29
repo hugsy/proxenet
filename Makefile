@@ -7,12 +7,12 @@
 
 VERSION         =       0.01
 ARCH            =       $(shell uname)
-DEBUG           =       1
+DEBUG           =       0
 
 CC              =       cc
 BIN             =       proxenet
 DEFINES         =       -DVERSION=$(VERSION)
-# HARDEN		=	-Wl,-z,relro -pie -fstack-protector-all -fPIE
+HARDEN		=	-Wl,-z,relro -fstack-protector-all
 LDFLAGS         =       $(HARDEN) -lpthread 
 SRC		=	$(wildcard *.c)
 OBJECTS         =       $(patsubst %.c, %.o, $(SRC))
@@ -84,11 +84,11 @@ endif
 
 
 # TEST
-TEST_ARGS		= 	-4 -vvvv --nb-threads=10
+TEST_ARGS		= 	-4 -vvvv -t 10
 
 
 # Compile rules
-.PHONY : all check-syntax clean keys tags purge ssl sslclean test 
+.PHONY : all check-syntax clean keys tags purge ssl ssl-clean test 
 
 .c.o :
 	@echo "CC $< -> $@"
@@ -96,7 +96,7 @@ TEST_ARGS		= 	-4 -vvvv --nb-threads=10
 
 all : $(BIN)
 
-$(BIN): $(OBJECTS) ssl
+$(BIN): $(OBJECTS) 
 	@echo "LINK with $(LDFLAGS)"
 	@$(CC) $(CFLAGS) -o $@ $(OBJECTS) $(LIB) $(LDFLAGS)
 
@@ -111,13 +111,18 @@ clean: purge
 keys:
 	@make -C keys all
 
-ssl:	polarssl/library/libpolarssl.a
+# use this rule if you want to embed polarssl
+ssl:	ssl-git polarssl/library/libpolarssl.a
+
+ssl-git:
+	@echo "Downloading PolarSSL library"
+	@git clone https://github.com/polarssl/polarssl.git
 
 polarssl/library/libpolarssl.a:
 	@echo "Building PolarSSL library"
 	@make -C polarssl lib
 
-sslclean: clean
+ssl-clean: clean
 	@make -C polarssl clean
 
 # Packaging
@@ -141,4 +146,4 @@ test: clean $(BIN)
 	./$(BIN) $(TEST_ARGS)
 
 valgrind: $(BIN)
-	valgrind -v --leak-check=full --show-reachable=yes ./$(BIN) $(TEST_ARGS)
+	valgrind -v --track-origins=yes --leak-check=full --show-reachable=yes ./$(BIN) $(TEST_ARGS)
