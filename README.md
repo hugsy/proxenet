@@ -15,7 +15,7 @@ supports plugins in the following languages :
 (Maybe more to come)
 
 
-## Enviroment setup
+## Environment setup
 
 ### Compilation
 
@@ -63,7 +63,7 @@ Compiled with support for :
         [+] 0x01   C          (.so)
         [+] 0x02   Perl       (.pl)
 
-SYNTAXE :
+SYNTAX :
         proxenet [OPTIONS+]
 
 OPTIONS:
@@ -144,7 +144,7 @@ language.
 
 It was purposely made to be extremely easy to write new plugin in your favorite
 language. You just have to implement two functions respectively called (by
-default) `proxenet_request_hook` and `proxenet_request_hook` which have the
+default) `proxenet_response_hook` and `proxenet_request_hook` which have the
 following properties :
 	  - take 2 arguments: an Integer (the request/response id) and a String
 	  (the request/response itself)
@@ -229,6 +229,8 @@ Implemented with C API in :
 
 ## What's next ?
 
-There are heaps and heaps of bugs, crashes, , so I am working on fixing that to
+There are heaps and heaps of bugs, crashes, etc., so I am working on fixing that to
 provide more stability (please tell me your bugs/patches !)
 Many many many other features to come as well through plugins ! 
+
+Want to get more ? Fork it, patch it, push it !!

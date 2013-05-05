@@ -7,7 +7,7 @@
 
 VERSION         =       0.01
 ARCH            =       $(shell uname)
-DEBUG           =       0
+DEBUG           =       1
 
 CC              =       cc
 BIN             =       proxenet
