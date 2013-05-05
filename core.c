@@ -474,7 +474,7 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 			xlog(LOG_DEBUG, "[%d] Got %dB from server\n", rid, n);
 #endif
 			
-			if (n < 0)
+			if (n <= 0)
 				break;
 
 			
