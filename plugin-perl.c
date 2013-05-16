@@ -21,6 +21,9 @@
 static PerlInterpreter *my_perl;
 
 
+/**
+ *
+ */
 int proxenet_perl_load_file(plugin_t* plugin)
 {
 	char *args[2], *pathname;
@@ -52,30 +55,27 @@ int proxenet_perl_initialize_vm(plugin_t* plugin)
 	interpreter = plugin->interpreter;
 	
 	/* checks */
-	if (interpreter->ready){
-		proxenet_perl_load_file(plugin);
-		return 0;		
-	} 
-		
+	if (!interpreter->ready){	
 
 #ifdef DEBUG
-	xlog(LOG_DEBUG, "[Perl] %s\n", "Initializing VM");
+		xlog(LOG_DEBUG, "[Perl] %s\n", "Initializing VM");
 #endif
 	
-	/* vm init */
-        my_perl = perl_alloc();
-        perl_construct(my_perl);
-	PL_exit_flags |= PERL_EXIT_DESTRUCT_END;
+		/* vm init */
+		my_perl = perl_alloc();
+		perl_construct(my_perl);
+		PL_exit_flags |= PERL_EXIT_DESTRUCT_END;
 
-	if (!my_perl) {
-		xlog(LOG_ERROR, "[Perl ]%s\n", "failed init-ing vm");
-		return -1;
+		if (!my_perl) {
+			xlog(LOG_ERROR, "[Perl ]%s\n", "failed init-ing vm");
+			return -1;
+		}
+
+		interpreter->vm = (void*) my_perl;
+		interpreter->ready = true;
 	}
 
 	proxenet_perl_load_file(plugin);
-	
-	interpreter->vm = (void*) my_perl;
-	interpreter->ready = true;
 	
 	return 0;
 }
