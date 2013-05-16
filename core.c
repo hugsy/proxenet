@@ -56,7 +56,7 @@ int get_new_request_id()
 	rid = request_id;
 	request_id++;
 #ifdef DEBUG
-	xlog(LOG_DEBUG, "New request #%d\n", rid);
+	xlog(LOG_DEBUG, "Allocating ID #%d\n", rid);
 #endif	
 	pthread_mutex_unlock(&request_id_mutex);
 
@@ -423,7 +423,7 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 			}
 
 			/* check if request is valid  */
-			if (!is_ssl)
+			if (!is_ssl && !cfg->proxy.host)
 				if (format_http_request(http_request) < 0) {
 					proxenet_xfree(http_request);
 					break;
@@ -808,8 +808,10 @@ void xloop(sock_t sock)
 					     "- Logging to %s\n"
 					     "- Running/Max threads: %d/%d\n"
 					     "- SSL private key: %s\n"
-					     "- SSL certificate: %s\n"					     
-					     "- Plugins directory: %s\n", 
+					     "- SSL certificate: %s\n"
+					     "- Proxy: %s [%s]\n"
+					     "- Plugins directory: %s\n"
+					     , 
 					     cfg->iface,
 					     cfg->port,
 					     (cfg->ip_version==AF_INET)? "IPv4": (cfg->ip_version==AF_INET6)?"IPv6": "ANY",
@@ -818,6 +820,8 @@ void xloop(sock_t sock)
 					     cfg->nb_threads,					     
 					     cfg->keyfile,
 					     cfg->certfile,
+					     cfg->proxy.host ? cfg->proxy.host : "None",
+					     cfg->proxy.host ? cfg->proxy.port : "direct",
 					     cfg->plugins_path			      
 					    );
 					

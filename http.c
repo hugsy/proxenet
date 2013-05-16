@@ -147,21 +147,24 @@ int format_http_request(char* request)
 
 
 /**
- *
+ * Establish a connection from proxenet -> server. If proxy forwarding configured, then process
+ * request to other proxy.
+ * 
  */
 int create_http_socket(char* http_request, sock_t* server_sock, sock_t* client_sock, ssl_context_t* ssl_ctx) 
 {
-	http_request_t http_infos;
 	int retcode;
 	char* err;
-	char sport[7] = {0, };
-
-	err = NULL;
-	proxenet_xzero(&http_infos, sizeof(http_request_t));
-	http_infos.method = NULL;
-	http_infos.hostname = NULL;
-	http_infos.request_uri = NULL;
+	char *host, *port;
+	char sport[6] = {0, };
+	http_request_t http_infos = { .method = NULL,
+				      .proto = NULL,
+				      .is_ssl = false,
+				      .hostname = NULL,
+				      .port = 0,
+				      .request_uri = NULL };
 	
+
 	/* get target from string and establish client socket to dest */
 	if (get_url_information(http_request, &http_infos) == false) {
 		xlog(LOG_ERROR, "%s\n", "Failed to extract valid parameters from URL.");
@@ -169,9 +172,19 @@ int create_http_socket(char* http_request, sock_t* server_sock, sock_t* client_s
 	}
 
 	ssl_ctx->use_ssl = http_infos.is_ssl;
-	snprintf(sport, 6, "%d", http_infos.port);
+	snprintf(sport, 5, "%u", http_infos.port);
+
+	/* do we forward to another proxy ? */
+	if (cfg->proxy.host) {
+		host = cfg->proxy.host;
+		port = cfg->proxy.port;
+		
+	} else {
+		host = http_infos.hostname;
+		port = sport;
+	}
 	
-	retcode = create_connect_socket(http_infos.hostname, sport, &err);
+	retcode = create_connect_socket(host, port, &err);
 	if (retcode < 0) {
 		if (err)
 			generic_http_error_page(*server_sock, err);
