@@ -401,7 +401,7 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 			if (client_socket < 0) {
 				retcode = create_http_socket(http_request, &server_socket, &client_socket, &ssl_context);
 				if (retcode < 0) {
-					xlog(LOG_ERROR, "[%d] Failed to create proxy->server socket\n", rid);
+					xlog(LOG_ERROR, "[%d] Failed to create %s->server socket\n", rid, PROGNAME);
 					proxenet_xfree(http_request);
 					break;
 				}

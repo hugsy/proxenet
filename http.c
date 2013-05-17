@@ -11,6 +11,7 @@
 #include "socket.h"
 #include "http.h"
 #include "ssl.h"
+#include "main.h"
 
 
 /**
@@ -200,13 +201,28 @@ int create_http_socket(char* http_request, sock_t* server_sock, sock_t* client_s
 		if (http_infos.is_ssl) {
 
 			if (use_proxy) {
+				char *connect_buf = NULL;
+				
 				/* 0. set up proxy->proxy ssl session (i.e. forward CONNECT request) */ 
-				proxenet_write(*client_sock, http_request, strlen(http_request) );
-				proxenet_read_all(*client_sock, &buf, NULL);
+				retcode = proxenet_write(*client_sock, http_request, strlen(http_request) );
+				if (retcode < 0) {
+					xlog(LOG_ERROR, "%s failed to CONNECT to proxy\n", PROGNAME);
+					retcode = -1;
+					goto http_sock_end;
+				}
 
-				if ( (strncmp(buf, "HTTP/1.0 200", 12) != 0) 
-				   ||(strncmp(buf, "HTTP/1.1 200", 12) != 0)) {
-					xlog(LOG_ERROR, "%s\n", "proxy->proxy: handshake");
+				/* read response */
+				retcode = proxenet_read_all(*client_sock, &connect_buf, NULL);
+				if (retcode < 0) {
+					xlog(LOG_ERROR, "%s Failed to read from proxy\n", PROGNAME);
+					retcode = -1;
+					goto http_sock_end;
+				}
+
+				/* expect HTTP 200 */
+				if (   (strncmp(connect_buf, "HTTP/1.0 200", 12) != 0) 
+				    && (strncmp(connect_buf, "HTTP/1.1 200", 12) != 0)) {
+					xlog(LOG_ERROR, "%s->proxy: bad response %s\n", PROGNAME, connect_buf);
 					retcode = -1;
 					goto http_sock_end;
 				}
@@ -220,7 +236,7 @@ int create_http_socket(char* http_request, sock_t* server_sock, sock_t* client_s
 			
 			proxenet_ssl_wrap_socket(&(ssl_ctx->client.context), client_sock);
 			if (proxenet_ssl_handshake(&(ssl_ctx->client.context)) < 0) {
-				xlog(LOG_ERROR, "%s\n", "proxy->server: handshake");
+				xlog(LOG_ERROR, "%s->server: handshake\n", PROGNAME);
 				retcode = -1;
 				goto http_sock_end;
 			}
@@ -240,8 +256,8 @@ int create_http_socket(char* http_request, sock_t* server_sock, sock_t* client_s
 
 			proxenet_ssl_wrap_socket(&(ssl_ctx->server.context), server_sock);
 			if (proxenet_ssl_handshake(&(ssl_ctx->server.context)) < 0) {
-				xlog(LOG_ERROR, "handshake proxy->client '%s:%d' failed\n",
-				     http_infos.hostname, http_infos.port);
+				xlog(LOG_ERROR, "handshake %s->client '%s:%d' failed\n",
+				     PROGNAME, http_infos.hostname, http_infos.port);
 				retcode = -1;
 				goto http_sock_end;
 			}
