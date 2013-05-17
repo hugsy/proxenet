@@ -325,7 +325,9 @@ char* proxenet_apply_plugins(long id, char* data, char type)
 
 
 /**
- * 
+ * This function is called by all threads to treat to process the request and response.
+ * It will also apply the plugins.
+ *
  */
 void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 {
@@ -364,10 +366,7 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 
 		sigemptyset(&emptyset);
 		retcode = pselect(max_fd, &rfds, NULL, NULL, &ts, &emptyset);
-		
-		/* if (retcode < 0 && errno == EINTR){ */
-			/* continue; */
-		/* } */
+
 		if (retcode < 0) {
 			xlog(LOG_CRITICAL, "[thread] pselect returned %d: %s\n",
 			     retcode, strerror(errno));
@@ -398,7 +397,7 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 			if (n <= 0) 
 				break;
 			
-			/* is connection to server already established ? */
+			/* is connection to server not established ? */
 			if (client_socket < 0) {
 				retcode = create_http_socket(http_request, &server_socket, &client_socket, &ssl_context);
 				if (retcode < 0) {
@@ -423,12 +422,13 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 			}
 
 			/* check if request is valid  */
-			if (!is_ssl && !cfg->proxy.host)
-				if (format_http_request(http_request) < 0) {
+			if (!is_ssl && !cfg->proxy.host) {
+				if (is_valid_http_request(http_request) == false) {
 					proxenet_xfree(http_request);
 					break;
 				}
-
+			}
+			
 			/* got a request, get a request id */
 			if (!rid) 
 				rid = get_new_request_id();
@@ -498,7 +498,7 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 			if (rid)
 				rid = 0;
 			
-		}  /*  end FD_ISSET(data_from_server) */
+		}  /* end FD_ISSET(data_from_server) */
 		
 	}  /* end for(;;) { select() } */
 

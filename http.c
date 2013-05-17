@@ -114,7 +114,7 @@ bool get_url_information(char* request, http_request_t* http)
 /**
  *
  */
-int format_http_request(char* request) 
+bool is_valid_http_request(char* request) 
 {
 	size_t old_reqlen = -1;
 	size_t new_reqlen = -1;
@@ -131,7 +131,7 @@ int format_http_request(char* request)
 			new_ptr = old_ptr + 8;
 		} else {
 			xlog(LOG_ERROR, "Cannot find protocol (http|https) in request:\n%s\n", request);
-			return -1;
+			return false;
 		}
 	}
 	
@@ -142,7 +142,7 @@ int format_http_request(char* request)
 	for (i=0; i<new_reqlen; i++) *(old_ptr+i) = *(new_ptr+i);
 	for (i=new_reqlen; i<old_reqlen; i++) *(old_ptr+i) = '\0';
 	
-	return 0;
+	return true;
 }
 
 
@@ -163,7 +163,7 @@ int create_http_socket(char* http_request, sock_t* server_sock, sock_t* client_s
 				      .hostname = NULL,
 				      .port = 0,
 				      .request_uri = NULL };
-	
+	bool use_proxy = (cfg->proxy.host != NULL) ;
 
 	/* get target from string and establish client socket to dest */
 	if (get_url_information(http_request, &http_infos) == false) {
@@ -175,7 +175,7 @@ int create_http_socket(char* http_request, sock_t* server_sock, sock_t* client_s
 	snprintf(sport, 5, "%u", http_infos.port);
 
 	/* do we forward to another proxy ? */
-	if (cfg->proxy.host) {
+	if (use_proxy) {
 		host = cfg->proxy.host;
 		port = cfg->proxy.port;
 		
@@ -198,19 +198,33 @@ int create_http_socket(char* http_request, sock_t* server_sock, sock_t* client_s
 		
 		/* if ssl, set up ssl interception */
 		if (http_infos.is_ssl) {
-			
+
+			if (use_proxy) {
+				/* 0. set up proxy->proxy ssl session (i.e. forward CONNECT request) */ 
+				proxenet_write(*client_sock, http_request, strlen(http_request) );
+				proxenet_read_all(*client_sock, &buf, NULL);
+
+				if ( (strncmp(buf, "HTTP/1.0 200", 12) != 0) 
+				   ||(strncmp(buf, "HTTP/1.1 200", 12) != 0)) {
+					xlog(LOG_ERROR, "%s\n", "proxy->proxy: handshake");
+					retcode = -1;
+					goto http_sock_end;
+				}
+			}
+
 			/* 1. set up proxy->server ssl session */ 
 			if(proxenet_ssl_init_client_context(&(ssl_ctx->client)) < 0) {
 				retcode = -1;
 				goto http_sock_end;
 			}
-
+			
 			proxenet_ssl_wrap_socket(&(ssl_ctx->client.context), client_sock);
 			if (proxenet_ssl_handshake(&(ssl_ctx->client.context)) < 0) {
 				xlog(LOG_ERROR, "%s\n", "proxy->server: handshake");
 				retcode = -1;
 				goto http_sock_end;
 			}
+
 #ifdef DEBUG
 			xlog(LOG_DEBUG, "%s\n", "SSL handshake with server done");
 #endif
@@ -218,7 +232,7 @@ int create_http_socket(char* http_request, sock_t* server_sock, sock_t* client_s
 				       "HTTP/1.0 200 Connection established\r\n\r\n",
 				       39);
 			
-			/* 2.set up proxy->browser ssl session  */
+			/* 2. set up proxy->browser ssl session  */
 			if(proxenet_ssl_init_server_context(&(ssl_ctx->server)) < 0) {
 				retcode = -1;
 				goto http_sock_end;
