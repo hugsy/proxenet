@@ -64,15 +64,15 @@ ifeq ($(WITH_RUBY_PLUGIN), 1)
 DEFINES			+=	-D_RUBY_PLUGIN
 
 # Ruby 1.8
-DEFINES			+=	-D_RUBY_VERSION_1_8
-INC			+=	-I/home/hugsy/.rvm/rubies/ruby-1.8.7-p370/lib/ruby/1.8/x86_64-linux/
-LIB			+=	-L/home/hugsy/.rvm/rubies/ruby-1.8.7-p370/lib
+# DEFINES			+=	-D_RUBY_VERSION_1_8
+# INC			+=	-I/home/hugsy/.rvm/rubies/ruby-1.8.7-p370/lib/ruby/1.8/x86_64-linux/
+# LIB			+=	-L/home/hugsy/.rvm/rubies/ruby-1.8.7-p370/lib
 
 # Ruby 1.9
-# DEFINES			+=	-D_RUBY_VERSION_1_9
-# INC			+=	-I/home/hugsy/.rvm/rubies/ruby-1.9.3-p194/include/ruby-1.9.1
-# INC			+=	-I/home/hugsy/.rvm/rubies/ruby-1.9.3-p194/include/ruby-1.9.1/x86_64-linux
-# LIB			+=	-L/home/hugsy/.rvm/rubies/ruby-1.9.3-p194/lib
+DEFINES			+=	-D_RUBY_VERSION_1_9
+INC			+=	-I/home/hugsy/.rvm/rubies/ruby-1.9.3-p194/include/ruby-1.9.1
+INC			+=	-I/home/hugsy/.rvm/rubies/ruby-1.9.3-p194/include/ruby-1.9.1/x86_64-linux
+LIB			+=	-L/home/hugsy/.rvm/rubies/ruby-1.9.3-p194/lib
 
 LDFLAGS			+=	-lruby
 endif

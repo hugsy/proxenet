@@ -217,6 +217,30 @@ PolarSSL (http://polarssl.org/).
 - If you don't trust me (which is a good thing), you can re-generate new SSL keys easily :
 ` $ make keys `
 
+### Proxy forwarding 
+
+`proxenet` has the possibility to be placed as intermediate between 2 proxy and
+inject/modify packets transparently. 
+
+```
+$ ./proxenet -X 192.168.128.1 --proxy-port 3128
+INFO: tid-139759413225216 in `xloop'(core.c:729) Starting interactive mode, press h for help
+INFO: tid-139759413225216 in `xloop'(core.c:826) Infos:
+- Listening interface: localhost/8008
+- Supported IP version: IPv4
+- Logging to stdout
+- Running/Max threads: 0/10
+- SSL private key: /home/hugsy/code/proxenet/keys/proxenet.key
+- SSL certificate: /home/hugsy/code/proxenet/keys/proxenet.crt
+- Proxy: 192.168.128.1 [3128]
+- Plugins directory: /home/hugsy/code/proxenet/plugins
+Plugins list:
+|_ priority=1   id=1   type=Python    [0x0] name=DeleteEncoding       (ACTIVE)
+|_ priority=2   id=2   type=Ruby      [0x1] name=InjectRequest        (ACTIVE)
+|_ priority=2   id=3   type=Python    [0x0] name=InjectRequest        (ACTIVE)
+|_ priority=9   id=4   type=Python    [0x0] name=Intercept            (ACTIVE)
+
+```
 
 ## Languages Versions
 

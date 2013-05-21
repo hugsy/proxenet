@@ -77,8 +77,8 @@ int proxenet_ruby_initialize_vm(plugin_t* plugin)
 #ifdef DEBUG
 	xlog(LOG_DEBUG, "%s\n", "Using Ruby 1.9 C API");
 #endif
-  /* not great, but temporary until I get rb_vm_top_self working */
-  interpreter->vm = rb_cObject;
+	/* luke : not great, but temporary until I get rb_vm_top_self working */
+	interpreter->vm = (void*) rb_cObject;
 #else
 	
 #ifdef DEBUG
@@ -162,7 +162,7 @@ int proxenet_ruby_initialize_function(plugin_t* plugin, int type)
 char* proxenet_ruby_execute_function(interpreter_t* interpreter, ID rFunc, long rid, char* request_str)
 {
 	char *buf, *data;
-	int buflen, err;
+	int buflen;
 	VALUE rArgs[2], rRet, rVM;
 	
 	/* build args */
