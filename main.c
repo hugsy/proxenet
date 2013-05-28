@@ -277,11 +277,20 @@ int main (int argc, char **argv, char** envp)
 	
 	tty_open();
 	
+	
+	/* perform plugin pre-initialisation */
+	proxenet_init_once_plugins(argc, argv, envp);
+	
+	
 	/* proxenet starts here  */
 	
 	retcode = proxenet_start(); 
 	
 	/* proxenet ends here */
+	
+	/* perform plugin post-deletion */
+	proxenet_delete_once_plugins();
+	
 end:
 	tty_close();
 

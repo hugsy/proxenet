@@ -65,6 +65,32 @@ int get_new_request_id()
 
 
 /**
+ * Specific initialisation done only once in proxenet whole process.
+ * 
+ * @note Only useful for Perl's plugins right now.
+ */
+void proxenet_init_once_plugins(int argc, char** argv, char** envp)
+{
+#ifdef _PERL_PLUGIN
+	proxenet_perl_preinitialisation(argc, argv, envp);
+#endif
+}
+
+
+/**
+ * Specific delete/cleanup done only once in proxenet whole process.
+ * 
+ * @note Only useful for Perl's plugins right now.
+ */
+void proxenet_delete_once_plugins()
+{
+#ifdef _PERL_PLUGIN
+	proxenet_perl_postdeletion();
+#endif
+}
+
+
+/**
  *
  */
 void proxenet_initialize_plugins()
@@ -672,7 +698,6 @@ void kill_zombies()
  */
 int proxenet_init_plugins() 
 {
-		
 	if(proxenet_create_list_plugins(cfg->plugins_path) < 0) {
 		xlog(LOG_ERROR, "%s\n", "Failed to build plugins list, leaving");
 		return -1;
@@ -861,6 +886,8 @@ void xloop(sock_t sock)
 					}
 					
 					proxenet_state = SLEEPING;
+					
+					proxenet_destroy_plugins_vm();
 					proxenet_delete_list_plugins();
 					
 					if( proxenet_init_plugins() < 0) {
@@ -871,7 +898,6 @@ void xloop(sock_t sock)
 						break;
 					}
 
-					proxenet_destroy_plugins_vm();
 					proxenet_initialize_plugins();
 					
 					proxenet_state = ACTIVE;
