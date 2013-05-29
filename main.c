@@ -278,8 +278,10 @@ int main (int argc, char **argv, char** envp)
 	tty_open();
 	
 	
-	/* perform plugin pre-initialisation */
+#ifdef _PERL_PLUGIN
+	/* perform plugin pre-initialisation -- currently done only for Perl */
 	proxenet_init_once_plugins(argc, argv, envp);
+#endif
 	
 	
 	/* proxenet starts here  */
@@ -287,9 +289,11 @@ int main (int argc, char **argv, char** envp)
 	retcode = proxenet_start(); 
 	
 	/* proxenet ends here */
-	
+
+#ifdef _PERL_PLUGIN
 	/* perform plugin post-deletion */
 	proxenet_delete_once_plugins();
+#endif
 	
 end:
 	tty_close();

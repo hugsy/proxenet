@@ -71,9 +71,7 @@ int get_new_request_id()
  */
 void proxenet_init_once_plugins(int argc, char** argv, char** envp)
 {
-#ifdef _PERL_PLUGIN
 	proxenet_perl_preinitialisation(argc, argv, envp);
-#endif
 }
 
 
@@ -84,9 +82,7 @@ void proxenet_init_once_plugins(int argc, char** argv, char** envp)
  */
 void proxenet_delete_once_plugins()
 {
-#ifdef _PERL_PLUGIN
 	proxenet_perl_postdeletion();
-#endif
 }
 
 
