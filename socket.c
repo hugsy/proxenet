@@ -1,5 +1,6 @@
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/un.h>
 #include <netdb.h>
 #include <unistd.h>
 
@@ -10,6 +11,41 @@
 #include "main.h"
 
 #include <polarssl/error.h>
+
+
+/**
+ *
+ */
+sock_t create_control_socket(char** err)
+{
+	sock_t control_sock = -1;
+	const char* sock_path = "/tmp/proxenet-control-socket";
+	struct sockaddr_un sun_local;
+
+	proxenet_xzero(&sun_local, sizeof(struct sockaddr_un));
+
+	/* create control socket */
+	control_sock = socket(AF_UNIX, SOCK_STREAM, 0);
+	if (control_sock < 0) {
+		*err = strerror(errno);
+		return -1;
+	}
+
+	sun_local.sun_family = AF_UNIX;
+	strcpy(sun_local.sun_path, sock_path);
+	unlink(sun_local.sun_path);
+
+	/* and bind+listen */
+	if ( (bind(control_sock, (struct sockaddr *)&sun_local, SUN_LEN(&sun_local)) < 0) ||
+	     (listen(control_sock, 1) < 0 ) ) {
+		*err = strerror(errno);
+		close(control_sock);
+		return -1;
+	}
+
+	xlog(LOG_INFO, "Control interface listening on '%s'\n", sock_path);
+	return control_sock;
+}
 
 
 /**
@@ -36,7 +72,6 @@ sock_t create_bind_socket(char *host, char* port, char** errcode)
 		freeaddrinfo(res);
 		return -1;
 	}
-	
 	
 	/* find a good socket to bind to */
 	for (ll=res; ll; ll=ll->ai_next) {

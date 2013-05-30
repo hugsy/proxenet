@@ -275,29 +275,24 @@ int main (int argc, char **argv, char** envp)
 	if (retcode)		
 		goto end;
 	
-	tty_open();
-	
 	
 #ifdef _PERL_PLUGIN
 	/* perform plugin pre-initialisation -- currently done only for Perl */
 	proxenet_init_once_plugins(argc, argv, envp);
 #endif
-	
-	
+		
 	/* proxenet starts here  */
-	
 	retcode = proxenet_start(); 
-	
-	/* proxenet ends here */
+
 
 #ifdef _PERL_PLUGIN
 	/* perform plugin post-deletion */
 	proxenet_delete_once_plugins();
 #endif
-	
-end:
-	tty_close();
 
+end:	
+
+	/* proxenet ends here */
 	proxenet_free_config();
 	
 	return (retcode == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
