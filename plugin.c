@@ -39,7 +39,7 @@ void proxenet_add_plugin(char* name, supported_plugins_t type, short priority)
 	plugin_t *plugin;
 	
 	plugin 			= (plugin_t*)proxenet_xmalloc(sizeof(plugin_t));
-	plugin->id 		= proxenet_plugin_list_size(plugins_list) + 1;
+	plugin->id 		= proxenet_plugin_list_size() + 1;
 	plugin->filename 	= strdup(name);
 	plugin->name		= get_plugin_basename(name, type);
 	plugin->type		= type;
@@ -123,13 +123,16 @@ void proxenet_delete_list_plugins()
 		proxenet_xfree(p);
 		p = next;
 	}
+	
+	plugins_list = NULL;
+	xlog(LOG_DEBUG, "%s\n", "Deleted all plugins");
 }
 
 
 /**
  *
  */
-char* proxenet_build_plugins_list() 
+char* proxenet_build_plugins_list()
 {
 	plugin_t *p;
 	char *list_str, *ptr;
@@ -165,7 +168,7 @@ char* proxenet_build_plugins_list()
 /**
  *
  */
-void proxenet_print_plugins_list() 
+void proxenet_print_plugins_list()
 {
 	char *list_str;
 

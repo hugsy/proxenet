@@ -16,7 +16,7 @@
 /**
  *
  */
-sock_t create_control_socket(char** err) 
+sock_t create_control_socket(char** err)
 {
 	sock_t control_sock = -1;
 	const char* sock_path = "/tmp/proxenet-control-socket";
@@ -27,18 +27,18 @@ sock_t create_control_socket(char** err)
 	/* create control socket */
 	control_sock = socket(AF_UNIX, SOCK_STREAM, 0);
 	if (control_sock < 0) {
-		*err = strerror(errno); 
+		*err = strerror(errno);
 		return -1;
 	}
-	
+
 	sun_local.sun_family = AF_UNIX;
 	strcpy(sun_local.sun_path, sock_path);
 	unlink(sun_local.sun_path);
-	
+
 	/* and bind+listen */
 	if ( (bind(control_sock, (struct sockaddr *)&sun_local, SUN_LEN(&sun_local)) < 0) ||
 	     (listen(control_sock, 1) < 0 ) ) {
-		*err = strerror(errno); 
+		*err = strerror(errno);
 		close(control_sock);
 		return -1;
 	}

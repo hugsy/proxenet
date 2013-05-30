@@ -37,8 +37,8 @@ int proxenet_perl_load_file(plugin_t* plugin)
 #ifdef DEBUG
 	xlog(LOG_DEBUG, "[Perl] Loading '%s'\n", pathname);
 #endif
-		
-	args[0] = "";	
+	
+	args[0] = "";
 	args[1] = pathname;
 	perl_parse(my_perl, NULL, 2, args, NULL);
 
@@ -55,19 +55,19 @@ int proxenet_perl_initialize_vm(plugin_t* plugin)
 	interpreter = plugin->interpreter;
 	
 	/* checks */
-	if (!interpreter->ready){	
+	if (!interpreter->ready){
 
 #ifdef DEBUG
 		xlog(LOG_DEBUG, "[Perl] %s\n", "Initializing VM");
 #endif
-	
+		
 		/* vm init */
 		my_perl = perl_alloc();
 		perl_construct(my_perl);
 		PL_exit_flags |= PERL_EXIT_DESTRUCT_END;
 
 		if (!my_perl) {
-			xlog(LOG_ERROR, "[Perl ]%s\n", "failed init-ing vm");
+			xlog(LOG_ERROR, "[Perl] %s\n", "failed init-ing vm");
 			return -1;
 		}
 
@@ -92,7 +92,6 @@ int proxenet_perl_destroy_vm(plugin_t* plugin)
 	
 	perl_destruct(my_perl);
         perl_free(my_perl);
-	PERL_SYS_TERM();
 
 	plugin->interpreter->vm = NULL;
 	plugin->interpreter->ready = false;
@@ -186,5 +185,24 @@ char* proxenet_perl_plugin(plugin_t* plugin, long rid, char* request, int type)
 
 	return buf;
 }
+
+
+/**
+ * 
+ */
+void proxenet_perl_preinitialisation(int argc, char** argv, char** envp)
+{
+	PERL_SYS_INIT3(&argc, &argv, &envp);
+}
+
+
+/**
+ * 
+ */
+void proxenet_perl_postdeletion()
+{
+	PERL_SYS_TERM();
+}
+
 
 #endif /* _PERL_PLUGIN */

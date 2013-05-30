@@ -66,6 +66,30 @@ int get_new_request_id()
 }
 
 
+#ifdef _PERL_PLUGIN
+/**
+ * Specific initialisation done only once in proxenet whole process.
+ * 
+ * @note Only useful for Perl's plugins right now.
+ */
+void proxenet_init_once_plugins(int argc, char** argv, char** envp)
+{
+	proxenet_perl_preinitialisation(argc, argv, envp);
+}
+
+
+/**
+ * Specific delete/cleanup done only once in proxenet whole process.
+ * 
+ * @note Only useful for Perl's plugins right now.
+ */
+void proxenet_delete_once_plugins()
+{
+	proxenet_perl_postdeletion();
+}
+#endif
+
+
 /**
  *
  */
@@ -672,9 +696,8 @@ void kill_zombies()
 /**
  *
  */
-int proxenet_initialize_plugins_list() 
+int proxenet_initialize_plugins_list()
 {
-		
 	if(proxenet_create_list_plugins(cfg->plugins_path) < 0) {
 		xlog(LOG_ERROR, "%s\n", "Failed to build plugins list, leaving");
 		return -1;
@@ -734,13 +757,13 @@ void xloop(sock_t sock, sock_t ctl_sock)
 		conn = -1;
 		retcode = -1;	
 		max_fd = MAX( MAX(sock, tty_fd), ctl_cli_sock) + 1;
-		
+
 		FD_ZERO(&sock_set);
-		
+
 		FD_SET(sock, &sock_set);
 		FD_SET(ctl_sock, &sock_set);
 		FD_SET(ctl_cli_sock, &sock_set);
-		
+
 		purge_zombies();
 		
 		/* set asynchronous listener */
@@ -764,14 +787,14 @@ void xloop(sock_t sock, sock_t ctl_sock)
 #ifdef DEBUG
 			xlog(LOG_DEBUG, "%s\n", "Incoming listening event");
 #endif
-			
+
 			tid = get_new_thread_id();
 			if(tid < 0)
 				continue;
 
 			struct sockaddr addr;
 			socklen_t addrlen = 0;
-			
+
 			proxenet_xzero(&addr, sizeof(struct sockaddr));
 
 			conn = accept(sock, &addr, &addrlen);
@@ -816,7 +839,7 @@ void xloop(sock_t sock, sock_t ctl_sock)
 		if( FD_ISSET(ctl_cli_sock, &sock_set) ) {
 			
 			proxenet_handle_control_event(&ctl_cli_sock);
-			
+
 		} /* end if _control_event */
 		
 	}  /* endof while(!INACTIVE) */
@@ -882,7 +905,7 @@ int proxenet_start()
 
 	control_socket = listening_socket = -1;
 	err = NULL;
-	
+
 	/* create control socket */
 	control_socket = create_control_socket(&err);
 	if (control_socket < 0) {
@@ -899,7 +922,7 @@ int proxenet_start()
 	
 	/* init everything */
 	initialize_sigmask();
-	
+
 	plugins_list = NULL;
 	proxenet_state = INACTIVE;
 	active_threads_bitmask = 0;

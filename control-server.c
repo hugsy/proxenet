@@ -32,10 +32,10 @@ static struct command_t known_commands[] = {
  */
 void quit_cmd(sock_t fd, char *options, unsigned int nb_options)
 {
-	char *msg = "Leaving gracefully\n";	
+	char *msg = "Leaving gracefully\n";
 	proxenet_write(fd, (void*)msg, strlen(msg));
 	proxenet_state = INACTIVE;
-	
+
 	return;
 }
 
@@ -48,10 +48,10 @@ void help_cmd(sock_t fd, char *options, unsigned int nb_options)
 	struct command_t *cmd;
 	char *msg;
 	unsigned int msglen = 20 + 80 + 3;
-	
+
 	msg = "Command list:\n";
 	proxenet_write(fd, (void*)msg, strlen(msg));
-	
+
 	for (cmd=known_commands; cmd && cmd->name; cmd++) {
 		msg = alloca(msglen+1);
 		proxenet_xzero(msg, msglen+1);
@@ -71,12 +71,12 @@ void pause_cmd(sock_t fd, char *options, unsigned int nb_options)
 	char *msg;
 	if (proxenet_state==SLEEPING) {
 		msg = "sleep-mode -> 0\n";
-		proxenet_state = ACTIVE;		
+		proxenet_state = ACTIVE;
 	} else {
 		msg = "sleep-mode -> 1\n";
 		proxenet_state = SLEEPING;
 	}
-	
+
 	xlog(LOG_INFO, "%s", msg);
 	proxenet_write(fd, (void*)msg, strlen(msg));
 	return;
@@ -108,6 +108,7 @@ void info_cmd(sock_t fd, char *options, unsigned int nb_options)
 		 (cfg->logfile)?cfg->logfile:"stdout",
 		 get_active_threads_size(),
 		 cfg->nb_threads,					     
+		 cfg->nb_threads,
 		 cfg->keyfile,
 		 cfg->certfile,
 		 cfg->proxy.host ? cfg->proxy.host : "None",
@@ -121,10 +122,11 @@ void info_cmd(sock_t fd, char *options, unsigned int nb_options)
 		msg2 = proxenet_build_plugins_list();
 		proxenet_write(fd, (void*)msg2, strlen(msg2));
 		proxenet_xfree(msg2);
-		
+
 	} else {
 		proxenet_write(fd, (void*)"No plugin loaded\n", 17);
 	}
+	
 	return;
 }
 
@@ -145,15 +147,15 @@ void verbose_cmd(sock_t fd, char *options, unsigned int nb_options)
 		return;
 	}
 
-	if (strcmp(ptr, "inc") == 0) 
+	if (strcmp(ptr, "inc") == 0)
 		n = snprintf(msg, 1024, "Verbose level is now %d\n", ++cfg->verbose);
 	else if (strcmp(ptr, "dec") == 0)
 		n = snprintf(msg, 1024, "Verbose level is now %d\n", --cfg->verbose);
-	else 
+	else
 		n = snprintf(msg, 1024, "Invalid action\n Syntax\n verbose (inc|dec)\n");
-	
+
 	proxenet_write(fd, (void*)msg, n);
-	
+
 	return;
 }
 
@@ -170,10 +172,10 @@ void reload_cmd(sock_t fd, char *options, unsigned int nb_options)
 		proxenet_write(fd, (void*)msg, strlen(msg));
 		return;
 	}
-	
+
 	proxenet_state = SLEEPING;
 	proxenet_delete_list_plugins();
-					
+
 	if( proxenet_initialize_plugins_list() < 0) {
 		msg = "Failed to reinitilize plugins";
 		proxenet_write(fd, (void*)msg, strlen(msg));
@@ -183,12 +185,12 @@ void reload_cmd(sock_t fd, char *options, unsigned int nb_options)
 
 	proxenet_destroy_plugins_vm();
 	proxenet_initialize_plugins();
-	
+
 	proxenet_state = ACTIVE;
-					
+
 	msg = "Plugins list successfully reloaded\n";
 	proxenet_write(fd, (void*)msg, strlen(msg));
-	
+
 	return;
 }
 
@@ -210,7 +212,7 @@ void threads_cmd(sock_t fd, char *options, unsigned int nb_options)
 
 
 /**
- * 
+ *
  * @return pointer to valid struct command_t if `name` is found as known_commands[]
  * @return NULL otherwise
  */
@@ -222,11 +224,11 @@ struct command_t* get_command(char *name)
 		if (strcmp(name, cmd->name) == 0)
 			return cmd;
 	}
-	
+
 	return NULL;
 }
 
-	
+
 /**
  *
  */
@@ -262,26 +264,3 @@ void proxenet_handle_control_event(sock_t* sock) {
 	return;
 }
 
-			/*
-
-				case 'v':
-					if (cfg->verbose < MAX_VERBOSE_LEVEL)
-					xlog(LOG_INFO, "Verbosity is now %d\n", ++(cfg->verbose));
-					break;
-					
-				case 'b':
-					if (cfg->verbose > 0)
-						xlog(LOG_INFO, "Verbosity is now %d\n", --(cfg->verbose));
-					break;
-					
-
-					
-				default:
-					if (cmd >= '1' && cmd <= '9') {
-						proxenet_toggle_plugin(cmd-0x30);
-						break;
-					}
-					
-			
-
-			*/
