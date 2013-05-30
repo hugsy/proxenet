@@ -250,8 +250,11 @@ void proxenet_destroy_plugins_vm()
 
 /**
  *
+ * @return 0 -> new status inactive 
+ * @return 1 -> new status active
+ * @return -1 -> not found
  */
-void proxenet_toggle_plugin(int plugin_id)
+int proxenet_toggle_plugin(int plugin_id)
 {
 	plugin_t *plugin;
 	
@@ -273,10 +276,13 @@ void proxenet_toggle_plugin(int plugin_id)
 			     plugin->id,
 			     plugin->name,
 			     (plugin->state==INACTIVE ? "IN" : ""));
+
+			return (plugin->state==INACTIVE ? 0 : 1);
 			
-			break;
 		}
 	}
+
+	return -1;
 }
 
 

@@ -4,6 +4,7 @@
 #include <errno.h>
 #include <alloca.h>
 #include <netdb.h>
+#include <stdlib.h>
 
 #include "control-server.h"
 #include "core.h"
@@ -21,7 +22,7 @@ static struct command_t known_commands[] = {
 	{ "verbose", 	 1, &verbose_cmd, "Get/Set verbose level"},
 	{ "reload", 	 0, &reload_cmd, "Reload the plugins" },
 	{ "threads", 	 0, &threads_cmd, "Show info about threads" },
-	/* { "plugin", 	 1, &plugin_cmd, "Get/Set info about plugin"}, */
+	{ "plugin", 	 1, &plugin_cmd, "Get/Set info about plugin"},
 	
 	{ NULL, 0, NULL, NULL}
 };
@@ -203,9 +204,51 @@ void threads_cmd(sock_t fd, char *options, unsigned int nb_options)
 	i = get_active_threads_size();
 	i = snprintf(msg, 128, "%ld active thread%c\n", i, (i>1)?'s':' ');
 	proxenet_write(fd, (void*)msg, i);
+	
 	return;
 }
 
+
+/**
+ *
+ */
+void plugin_cmd(sock_t fd, char *options, unsigned int nb_options)
+{
+	char msg[1024] = {0, };
+	char *ptr, *plist_str;
+	int n, res;
+	
+	ptr = strtok(options, " \n");
+	if (!ptr){
+		n = snprintf(msg, 1024, "Invalid action\nSyntax\n plugin [list]|[toggle <num>]\n");
+		proxenet_write(fd, (void*)msg, n);
+		return;
+	}
+
+	if (strcmp(ptr, "list") == 0) {
+		plist_str = proxenet_build_plugins_list();
+		proxenet_write(fd, (void*)plist_str, strlen(plist_str));
+		proxenet_xfree(plist_str);
+		return;
+		
+	} else if (strcmp(ptr, "toggle") == 0) {
+		ptr = strtok(NULL, " \n");
+		if (!ptr)
+			return;
+
+		n = atoi(ptr);
+		if (0 < n && n <= proxenet_plugin_list_size() ) {
+			res = proxenet_toggle_plugin(n);
+			n = snprintf(msg, 1024, "Plugin %d is now %sACTIVE\n", n, res?"":"IN");
+			proxenet_write(fd, (void*)msg, n);
+			return;
+		}
+	}
+	
+	n = snprintf(msg, 1024, "Invalid action\nSyntax\n plugin [list]|[toggle <num>]\n");
+	proxenet_write(fd, (void*)msg, n);
+	return;
+}
 
 
 /**
@@ -216,10 +259,25 @@ void threads_cmd(sock_t fd, char *options, unsigned int nb_options)
 struct command_t* get_command(char *name)
 {
 	struct command_t *cmd;
+	char *buf = name;
+	char c;
+	do {
+		c = *buf;
+		if (c == '\0')
+			return NULL;
+		if (c=='\n' || c==' ') {
+			*buf = '\0';
+			break;
+		}
+		
+		buf++;
+	} while (1);
 	
 	for (cmd=known_commands; cmd && cmd->name; cmd++) {
-		if (strcmp(name, cmd->name) == 0)
+		if (strcmp(name, cmd->name) == 0) {
+			*buf = c;
 			return cmd;
+		}
 	}
 
 	return NULL;
@@ -241,22 +299,23 @@ void proxenet_handle_control_event(sock_t* sock) {
 		return;
 	}
 
-	ptr = index(read_buf, '\n');
-	if (ptr)
-		*ptr = '\0';
-	
-#ifdef DEBUG
-	xlog(LOG_DEBUG, "Receiving control command: \"%s\"\n", read_buf);
-#endif
-	ptr = strtok(read_buf, " ");
-	if ( (cmd=get_command(ptr)) == NULL ) {
-		proxenet_write(*sock, CONTROL_INVALID, strlen(CONTROL_INVALID));
-		proxenet_write(*sock, CONTROL_PROMPT, strlen(CONTROL_PROMPT));
+	if (retcode == 0) {
 		return;
 	}
 	
-	cmd->func(*sock, strtok(NULL, " "), cmd->nb_opt_max);
+#ifdef DEBUG
+	xlog(LOG_DEBUG, "Receiving control command: \"%s\" (%d)\n", read_buf, strlen(read_buf));
+#endif
+	
+	if ( (cmd=get_command(read_buf)) == NULL ) {
+		proxenet_write(*sock, CONTROL_INVALID, strlen(CONTROL_INVALID));
+		goto cmd_end;
+	}
 
+	ptr = &read_buf[strlen(cmd->name)];
+	cmd->func(*sock, ptr, cmd->nb_opt_max);
+
+cmd_end:	
 	proxenet_write(*sock, CONTROL_PROMPT, strlen(CONTROL_PROMPT));
 	return;
 }

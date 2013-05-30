@@ -145,7 +145,7 @@ char* proxenet_build_plugins_list()
 	
 	for (p = plugins_list; p!=NULL; p=p->next) {
 		n = snprintf(ptr, 128,
-			     "|_ priority=%-3d id=%-3d type=%-10s[0x%16x] name=%-20s (%sACTIVE)\n",
+			     "|_ priority=%-3d id=%-3d type=%-10s[0x%x] name=%-20s (%sACTIVE)\n",
 			     p->priority,
 			     p->id,
 			     supported_plugins_str[p->type],

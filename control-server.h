@@ -25,6 +25,7 @@ void info_cmd(sock_t fd, char *options, unsigned int nb_options);
 void verbose_cmd(sock_t fd, char *options, unsigned int nb_options);
 void reload_cmd(sock_t fd, char *options, unsigned int nb_options);
 void threads_cmd(sock_t fd, char *options, unsigned int nb_options);
+void plugin_cmd(sock_t fd, char *options, unsigned int nb_options);
 
 void proxenet_handle_control_event(sock_t*);
 
