@@ -138,7 +138,7 @@ void verbose_cmd(sock_t fd, char *options, unsigned int nb_options)
 	char *ptr;
 	int n;
 
-	ptr = strtok(options, " ");
+	ptr = strtok(options, " \n");
 	if (!ptr){
 		n = snprintf(msg, 1024, "Verbose level is at %d\n", cfg->verbose);
 		proxenet_write(fd, (void*)msg, n);
@@ -198,12 +198,29 @@ void reload_cmd(sock_t fd, char *options, unsigned int nb_options)
  */
 void threads_cmd(sock_t fd, char *options, unsigned int nb_options)
 {
-	char msg[128] = {0, };
-	long i;
+	char msg[1024] = {0, };
+	char *ptr;
+	int n;
 
-	i = get_active_threads_size();
-	i = snprintf(msg, 128, "%ld active thread%c\n", i, (i>1)?'s':' ');
-	proxenet_write(fd, (void*)msg, i);
+	ptr = strtok(options, " \n");
+	if (!ptr){
+		n = get_active_threads_size();
+		n = snprintf(msg, 128, "%d active thread%c/%d max thread%c\n",
+			     n, (n>1)?'s':' ',
+			     cfg->nb_threads, (cfg->nb_threads>1)?'s':' '
+			    );
+		proxenet_write(fd, (void*)msg, n);
+		return;
+	}
+
+	if (strcmp(ptr, "inc") == 0)
+		n = snprintf(msg, 1024, "Nb threads level is now %d\n", ++cfg->nb_threads);
+	else if (strcmp(ptr, "dec") == 0)
+		n = snprintf(msg, 1024, "Nb threads level is now %d\n", --cfg->nb_threads);
+	else
+		n = snprintf(msg, 1024, "Invalid action\n Syntax\n threads (inc|dec)\n");
+
+	proxenet_write(fd, (void*)msg, n);
 	
 	return;
 }
