@@ -122,5 +122,6 @@ void 	proxenet_print_plugins_list();
 int	count_plugins_by_type(int);
 char*	get_plugin_path(char*);
 int	count_initialized_plugins_by_type(int);
+char*	proxenet_build_plugins_list();
 
 #endif /* _PLUGINS_H */

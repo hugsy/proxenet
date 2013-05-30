@@ -14,6 +14,7 @@ typedef int sock_t;
 
 #include "ssl.h"
 
+sock_t create_control_socket(char**);
 sock_t create_bind_socket(char *host, char* port, char** errcode);
 sock_t create_connect_socket(char *host, char* port, char** errcode);
 int close_socket(sock_t);

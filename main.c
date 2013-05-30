@@ -275,16 +275,13 @@ int main (int argc, char **argv, char** envp)
 	if (retcode)		
 		goto end;
 	
-	tty_open();
-	
 	/* proxenet starts here  */
 	
 	retcode = proxenet_start(); 
 	
-	/* proxenet ends here */
+	
 end:
-	tty_close();
-
+	/* proxenet ends here */
 	proxenet_free_config();
 	
 	return (retcode == 0) ? EXIT_SUCCESS : EXIT_FAILURE;

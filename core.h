@@ -11,6 +11,7 @@
 #define HTTP_TIMEOUT_SOCK 5    /* in seconds, used for select() call in thread */
 #define MAX_VERBOSE_LEVEL 4
 
+
 typedef struct thread_info {
 		pthread_t thread_id;
 		int thread_num;
@@ -20,17 +21,30 @@ typedef struct thread_info {
 		plugin_t** plugin_list;
 } tinfo_t;
 
+
 enum proxenet_states {
 	INACTIVE = 0x00, 	/* first state */
 	SLEEPING,		/* <-- means not to treat new request */
 	ACTIVE,			/* rock'n roll */
 };
 
+
 unsigned short 	proxenet_state;
 unsigned long 	active_threads_bitmask;
 sem_t 		tty_semaphore;
 plugin_t 	*plugins_list;  /* points to first plugin */
 
-int 		proxenet_start(); 
-
+int		get_new_request_id();
+int 		proxenet_start();
+unsigned int	get_active_threads_size();
+bool 		is_thread_active(int);
+char* 		proxenet_apply_plugins(long, char*, char);
+void 		proxenet_destroy_plugins_vm();
+int 		proxenet_initialize_plugins_list();
+void 		proxenet_initialize_plugins();
+int 		proxenet_start_new_thread(sock_t, int, pthread_t*, pthread_attr_t*);
+void 		kill_zombies();
+void 		purge_zombies();
+void 		xloop(sock_t, sock_t);
+	
 #endif /* _CORE_H */

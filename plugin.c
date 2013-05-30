@@ -129,26 +129,52 @@ void proxenet_delete_list_plugins()
 /**
  *
  */
-void proxenet_print_plugins_list() 
+char* proxenet_build_plugins_list() 
 {
 	plugin_t *p;
+	char *list_str, *ptr;
+	int n;
 	
+	list_str = proxenet_xmalloc(2048);
+	ptr = list_str;
+	n = sprintf(ptr, "Plugins list:\n");
+	ptr += n;
+	
+	for (p = plugins_list; p!=NULL; p=p->next) {
+		n = snprintf(ptr, 128,
+			     "|_ priority=%-3d id=%-3d type=%-10s[0x%16x] name=%-20s (%sACTIVE)\n",
+			     p->priority,
+			     p->id,
+			     supported_plugins_str[p->type],
+			     p->type,
+			     p->name,
+			     (p->state==ACTIVE?"":"IN")
+			    );
+		ptr += n;
+		if (n<0)
+			break;
+
+		if ((n+128) < 2048)
+			break;
+	}
+
+	return list_str;
+}
+
+
+/**
+ *
+ */
+void proxenet_print_plugins_list() 
+{
+	char *list_str;
+
+	list_str = proxenet_build_plugins_list();
 	sem_wait(&tty_semaphore);
-	
-	printf("Plugins list:\n");
-	for (p = plugins_list; p!=NULL; p=p->next) 
-		fprintf(cfg->logfile_fd,
-			"|_ priority=%-3d id=%-3d type=%-10s[0x%x] name=%-20s (%sACTIVE)\n",
-			p->priority,
-			p->id,
-			supported_plugins_str[p->type],
-			p->type,
-			p->name,
-			(p->state==ACTIVE?"":"IN")
-		       );
-	
+	fprintf(cfg->logfile_fd, "%s", list_str);
 	fflush(cfg->logfile_fd);
 	sem_post(&tty_semaphore);
+	proxenet_xfree(list_str);
 }
 
 

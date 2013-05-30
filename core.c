@@ -1,5 +1,6 @@
 #include <sys/select.h>
 #include <sys/socket.h>
+#include <sys/un.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <netdb.h>
@@ -18,6 +19,7 @@
 #include "http.h"
 #include "ssl.h"
 #include "tty.h"
+#include "control-server.h"
 
 #ifdef _PYTHON_PLUGIN
 #include "plugin-python.h"
@@ -670,7 +672,7 @@ void kill_zombies()
 /**
  *
  */
-int proxenet_init_plugins() 
+int proxenet_initialize_plugins_list() 
 {
 		
 	if(proxenet_create_list_plugins(cfg->plugins_path) < 0) {
@@ -681,8 +683,7 @@ int proxenet_init_plugins()
 	if(cfg->verbose) {
 		xlog(LOG_INFO, "%s\n", "Plugins loaded");
 		if (cfg->verbose > 1) {
-			xlog(LOG_INFO, "%d plugin(s) found\n",
-			     proxenet_plugin_list_size(&plugins_list));
+			xlog(LOG_INFO, "%d plugin(s) found\n", proxenet_plugin_list_size());
 			proxenet_print_plugins_list();
 		}
 	}
@@ -706,7 +707,7 @@ int get_new_thread_id()
 /**
  *
  */
-void xloop(sock_t sock)
+void xloop(sock_t sock, sock_t ctl_sock)
 {
 	fd_set sock_set;
 	int retcode;
@@ -714,6 +715,7 @@ void xloop(sock_t sock)
 	int max_fd, tid;
 	sock_t conn;
 	sigset_t emptyset;
+	sock_t ctl_cli_sock = -1;
 	
 	proxenet_xzero(threads, sizeof(pthread_t) * MAX_THREADS);
 	
@@ -726,19 +728,19 @@ void xloop(sock_t sock)
 
 	/* proxenet is now running :) */
 	proxenet_state = ACTIVE;
-	xlog(LOG_INFO, "%s\n", "Starting interactive mode, press h for help");
-
 	
 	/* big loop  */
 	while (proxenet_state != INACTIVE) {
 		conn = -1;
 		retcode = -1;	
-		max_fd = MAX(sock, tty_fd) + 1;
-
+		max_fd = MAX( MAX(sock, tty_fd), ctl_cli_sock) + 1;
+		
 		FD_ZERO(&sock_set);
-		FD_SET(tty_fd, &sock_set);
+		
 		FD_SET(sock, &sock_set);
-
+		FD_SET(ctl_sock, &sock_set);
+		FD_SET(ctl_cli_sock, &sock_set);
+		
 		purge_zombies();
 		
 		/* set asynchronous listener */
@@ -754,16 +756,22 @@ void xloop(sock_t sock)
 		if (retcode == 0)
 			continue;
 
+		if (proxenet_state == INACTIVE)
+			break;
 		
 		/* event on the listening socket -> new request */
-		
 		if( FD_ISSET(sock, &sock_set) && proxenet_state != SLEEPING) {
+#ifdef DEBUG
+			xlog(LOG_DEBUG, "%s\n", "Incoming listening event");
+#endif
+			
 			tid = get_new_thread_id();
 			if(tid < 0)
 				continue;
 
 			struct sockaddr addr;
 			socklen_t addrlen = 0;
+			
 			proxenet_xzero(&addr, sizeof(struct sockaddr));
 
 			conn = accept(sock, &addr, &addrlen);
@@ -772,7 +780,7 @@ void xloop(sock_t sock)
 				continue;
 			}
 					
-			retcode = proxenet_start_new_thread(conn,tid,&threads[tid],&pattr);
+			retcode = proxenet_start_new_thread(conn, tid, &threads[tid], &pattr);
 			if (retcode < 0) {
 				xlog(LOG_ERROR, "[main] %s\n", "Error while spawn new thread");
 				continue;
@@ -781,133 +789,35 @@ void xloop(sock_t sock)
 		} /* end if _socket_event */
 		
 		
-		/* even on stdin ? -> menu */
-		if( FD_ISSET(tty_fd, &sock_set) ) {
-			int cmd = tty_getc();
-			unsigned int n = -1;
+		/* event on control listening socket */
+		if( FD_ISSET(ctl_sock, &sock_set) ) {
+#ifdef DEBUG
+			xlog(LOG_DEBUG, "%s\n", "Incoming control event");
+#endif
+			if (ctl_cli_sock < 0) {
+				struct sockaddr_un sun_cli;
+				socklen_t sun_cli_len;
 
-			if (cmd < 0)
-				continue;
+				ctl_cli_sock = accept(ctl_sock, (struct sockaddr *)&sun_cli, &sun_cli_len);
+				if (ctl_cli_sock < 0) {
+					xlog(LOG_ERROR, "[main] control accept() failed: %s\n", strerror(errno));
+					continue;
+				}
 
-			switch (cmd) {
-				case 'a':
-					n = get_active_threads_size();
-					xlog(LOG_INFO, "%ld active thread%c\n", n, (n>1)?'s':' ');
-					break;
-					
-				case 'q':
-					xlog(LOG_INFO, "%s\n", "Leaving gracefully");
-					proxenet_state = INACTIVE;
-					break;
-					
-				case 'i':
-					xlog(LOG_INFO,
-					     "Infos:\n"
-					     "- Listening interface: %s/%s\n"
-					     "- Supported IP version: %s\n"
-					     "- Logging to %s\n"
-					     "- Running/Max threads: %d/%d\n"
-					     "- SSL private key: %s\n"
-					     "- SSL certificate: %s\n"
-					     "- Proxy: %s [%s]\n"
-					     "- Plugins directory: %s\n"
-					     , 
-					     cfg->iface,
-					     cfg->port,
-					     (cfg->ip_version==AF_INET)? "IPv4": (cfg->ip_version==AF_INET6)?"IPv6": "ANY",
-					     (cfg->logfile)?cfg->logfile:"stdout",
-					     get_active_threads_size(),
-					     cfg->nb_threads,					     
-					     cfg->keyfile,
-					     cfg->certfile,
-					     cfg->proxy.host ? cfg->proxy.host : "None",
-					     cfg->proxy.host ? cfg->proxy.port : "direct",
-					     cfg->plugins_path			      
-					    );
-					
-					if (proxenet_plugin_list_size())
-						proxenet_print_plugins_list();
-					else
-						xlog(LOG_INFO, "%s\n", "No plugin loaded");
-					
-					break;
-					
-				case 'v':
-					if (cfg->verbose < MAX_VERBOSE_LEVEL)
-					xlog(LOG_INFO, "Verbosity is now %d\n", ++(cfg->verbose));
-					break;
-					
-				case 'b':
-					if (cfg->verbose > 0)
-						xlog(LOG_INFO, "Verbosity is now %d\n", --(cfg->verbose));
-					break;
-					
-				case 's':
-					if (proxenet_state==SLEEPING) {
-						xlog(LOG_INFO, "%s\n", "Disabling sleep-mode");
-						proxenet_state = ACTIVE;
-					} else {
-						xlog(LOG_INFO, "%s\n", "Enabling sleep-mode");
-						proxenet_state = SLEEPING;
-					}
-					
-					break;
-					
-				case 'r':
-					if (get_active_threads_size()>0) {
-						xlog(LOG_ERROR, "%s\n",
-						     "Threads still active, cannot reload");
-						break;
-					}
-					
-					proxenet_state = SLEEPING;
-					proxenet_delete_list_plugins();
-					
-					if( proxenet_init_plugins() < 0) {
-						if (cfg->verbose)
-							xlog(LOG_ERROR, "%s\n",
-							     "Failed to reinitilize plugins");
-						proxenet_state = INACTIVE;
-						break;
-					}
-
-					proxenet_destroy_plugins_vm();
-					proxenet_initialize_plugins();
-					
-					proxenet_state = ACTIVE;
-					
-					xlog(LOG_INFO, "%s\n", "Plugins list successfully reloaded");
-					if (cfg->verbose)
-						proxenet_print_plugins_list();
-					
-					break;
-					
-				case 'h':
-					xlog(LOG_INFO, "%s",
-					     "Menu:\n"
-					     "\ta: print number of active threads\n"
-					     "\ts: toggle sleep mode (stop treating requests)\n"
-					     "\tr: reload plugins list\n"
-					     "\ti: show proxenet info\n"
-					     "\tv/b: increase/decrease verbosity\n"
-					     "\t[1-9]: disable i-th plugin\n"
-					     "\tq: try to quit gently\n"
-					     "\th: print this menu\n");
-					break;
-					
-				default:
-					if (cmd >= '1' && cmd <= '9') {
-						proxenet_toggle_plugin(cmd-0x30);
-						break;
-					}
-					
-					xlog(LOG_INFO, "Unknown command %#x (h - for help)\n", cmd);
-					break;
+				xlog(LOG_INFO, "%s\n", "New connection on Control socket");
+				proxenet_write(ctl_cli_sock, CONTROL_MOTD, strlen(CONTROL_MOTD));
+				proxenet_write(ctl_cli_sock, CONTROL_PROMPT, strlen(CONTROL_PROMPT));
 			}
 			
-			tty_flush();
+		}/* end if _control_listening_event */
+
+		
+		/* event on control socket */
+		if( FD_ISSET(ctl_cli_sock, &sock_set) ) {
 			
-		} /* end if _tty_event*/
+			proxenet_handle_control_event(&ctl_cli_sock);
+			
+		} /* end if _control_event */
 		
 	}  /* endof while(!INACTIVE) */
 	
@@ -930,8 +840,10 @@ void sighandler(int signum)
 		case SIGTERM: 
 		case SIGINT:
 			/* todo faire un compteur de retry sur les quit attempts */
-			if (proxenet_state != INACTIVE)
+			if (proxenet_state != INACTIVE) {
+				xlog(LOG_INFO, "%s\n", "Trying to leave");
 				proxenet_state = INACTIVE;
+			}
 			break;
 
 		case SIGCHLD:
@@ -965,8 +877,18 @@ void initialize_sigmask()
  */
 int proxenet_start() 
 {
-	sock_t listening_socket;
+	sock_t control_socket, listening_socket;
 	char *err;
+
+	control_socket = listening_socket = -1;
+	err = NULL;
+	
+	/* create control socket */
+	control_socket = create_control_socket(&err);
+	if (control_socket < 0) {
+		xlog(LOG_CRITICAL, "%s\n", "Cannot create control socket: %s\n", *err);
+		return -1;
+	}
 	
 	/* create listening socket */
 	listening_socket = create_bind_socket(cfg->iface, cfg->port, &err);
@@ -976,13 +898,14 @@ int proxenet_start()
 	}
 	
 	/* init everything */
-	/* initialize_sigmask(); */
+	initialize_sigmask();
+	
 	plugins_list = NULL;
 	proxenet_state = INACTIVE;
 	active_threads_bitmask = 0;
 	
 	/* set up plugins */
-	if( proxenet_init_plugins() < 0 ) return -1;
+	if( proxenet_initialize_plugins_list() < 0 ) return -1;
 	
 	proxenet_initialize_plugins(); // call *MUST* succeed or abort()
 
@@ -991,10 +914,10 @@ int proxenet_start()
 	get_new_request_id();
 	
 	/* prepare threads and start looping */
-	xloop(listening_socket);
+	xloop(listening_socket, control_socket);
 	
 	/* clean context */
 	proxenet_delete_list_plugins();
 	
-	return close_socket(listening_socket);
+	return close_socket(listening_socket) || close_socket(control_socket);
 }
