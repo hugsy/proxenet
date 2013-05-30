@@ -261,6 +261,7 @@ struct command_t* get_command(char *name)
 	struct command_t *cmd;
 	char *buf = name;
 	char c;
+	
 	do {
 		c = *buf;
 		if (c == '\0')
@@ -287,7 +288,7 @@ struct command_t* get_command(char *name)
 /**
  *
  */
-void proxenet_handle_control_event(sock_t* sock) {
+int proxenet_handle_control_event(sock_t* sock) {
 	char read_buf[BUFSIZE] = {0, };
 	char *ptr = NULL;
 	int retcode = -1;
@@ -296,15 +297,15 @@ void proxenet_handle_control_event(sock_t* sock) {
 	retcode = proxenet_read(*sock, read_buf, BUFSIZE-1);
 	if (retcode < 0) {
 		xlog(LOG_ERROR, "Failed to read control command: %s\n", strerror(errno));
-		return;
+		return -1;
 	}
 
 	if (retcode == 0) {
-		return;
+		return -1;
 	}
 	
 #ifdef DEBUG
-	xlog(LOG_DEBUG, "Receiving control command: \"%s\" (%d)\n", read_buf, strlen(read_buf));
+	xlog(LOG_DEBUG, "Receiving control command: (%d)\"%s\" \n", strlen(read_buf), read_buf);
 #endif
 	
 	if ( (cmd=get_command(read_buf)) == NULL ) {
@@ -317,6 +318,7 @@ void proxenet_handle_control_event(sock_t* sock) {
 
 cmd_end:	
 	proxenet_write(*sock, CONTROL_PROMPT, strlen(CONTROL_PROMPT));
-	return;
+	
+	return 0;
 }
 

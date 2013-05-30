@@ -128,6 +128,14 @@ threads        	Show info about threads
 
 Keys and associated functionalities are explicit enough :)
 
+Commands can also be triggered using command line (for scripting for example)
+```
+$ echo "plugin toggle 1"| ncat -U /tmp/proxenet-control-socket
+Welcome on proxenet control interface
+Type `help` to list available commands
+>>> Plugin 1 is now ACTIVE
+$
+```
 
 ### The best of both world ?
 

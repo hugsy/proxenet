@@ -843,7 +843,10 @@ void xloop(sock_t sock, sock_t ctl_sock)
 		/* event on control socket */
 		if( FD_ISSET(ctl_cli_sock, &sock_set) ) {
 			
-			proxenet_handle_control_event(&ctl_cli_sock);
+			if (proxenet_handle_control_event(&ctl_cli_sock) < 0) {
+				close_socket(ctl_cli_sock);
+				ctl_cli_sock = -1;
+			}
 
 		} /* end if _control_event */
 		
