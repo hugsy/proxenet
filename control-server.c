@@ -102,18 +102,15 @@ void info_cmd(sock_t fd, char *options, unsigned int nb_options)
 		 "- Proxy: %s [%s]\n"
 		 "- Plugins directory: %s\n"
 		 , 
-		 cfg->iface,
-		 cfg->port,
+		 cfg->iface, cfg->port,
 		 (cfg->ip_version==AF_INET)? "IPv4": (cfg->ip_version==AF_INET6)?"IPv6": "ANY",
 		 (cfg->logfile)?cfg->logfile:"stdout",
-		 get_active_threads_size(),
-		 cfg->nb_threads,					     
-		 cfg->nb_threads,
+		 get_active_threads_size(), cfg->nb_threads,
 		 cfg->keyfile,
 		 cfg->certfile,
 		 cfg->proxy.host ? cfg->proxy.host : "None",
 		 cfg->proxy.host ? cfg->proxy.port : "direct",
-		 cfg->plugins_path		      
+		 cfg->plugins_path  
 		);
 
 	proxenet_write(fd, (void*)msg, strlen(msg));

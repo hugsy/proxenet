@@ -18,7 +18,6 @@
 #include "plugin.h"
 #include "http.h"
 #include "ssl.h"
-#include "tty.h"
 #include "control-server.h"
 
 #ifdef _PYTHON_PLUGIN
@@ -756,7 +755,7 @@ void xloop(sock_t sock, sock_t ctl_sock)
 	while (proxenet_state != INACTIVE) {
 		conn = -1;
 		retcode = -1;	
-		max_fd = MAX( MAX(sock, tty_fd), ctl_cli_sock) + 1;
+		max_fd = MAX( sock, ctl_cli_sock) + 1;
 
 		FD_ZERO(&sock_set);
 
@@ -942,5 +941,9 @@ int proxenet_start()
 	/* clean context */
 	proxenet_delete_list_plugins();
 	
-	return close_socket(listening_socket) || close_socket(control_socket);
+	close_socket(listening_socket);
+	close_socket(control_socket);
+
+	unlink(CONTROL_SOCK_PATH);
+	return 0;
 }

@@ -3,14 +3,14 @@
 #include <sys/un.h>
 #include <netdb.h>
 #include <unistd.h>
+#include <polarssl/error.h>
 
 #include "socket.h"
 #include "utils.h"
 #include "string.h"
 #include "errno.h"
 #include "main.h"
-
-#include <polarssl/error.h>
+#include "control-server.h"
 
 
 /**
@@ -19,7 +19,6 @@
 sock_t create_control_socket(char** err)
 {
 	sock_t control_sock = -1;
-	const char* sock_path = "/tmp/proxenet-control-socket";
 	struct sockaddr_un sun_local;
 
 	proxenet_xzero(&sun_local, sizeof(struct sockaddr_un));
@@ -32,7 +31,7 @@ sock_t create_control_socket(char** err)
 	}
 
 	sun_local.sun_family = AF_UNIX;
-	strcpy(sun_local.sun_path, sock_path);
+	strcpy(sun_local.sun_path, CONTROL_SOCK_PATH);
 	unlink(sun_local.sun_path);
 
 	/* and bind+listen */
@@ -43,7 +42,7 @@ sock_t create_control_socket(char** err)
 		return -1;
 	}
 
-	xlog(LOG_INFO, "Control interface listening on '%s'\n", sock_path);
+	xlog(LOG_INFO, "Control interface listening on '%s'\n", sun_local.sun_path);
 	return control_sock;
 }
 

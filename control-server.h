@@ -5,6 +5,8 @@
 #include "socket.h"
 
 #define MAX_CMD_LEN 1024
+
+#define CONTROL_SOCK_PATH "/tmp/proxenet-control-socket"
 #define CONTROL_MOTD "Welcome on "PROGNAME" control interface\nType `help` to list available commands\n"
 #define CONTROL_PROMPT ">>> "
 #define CONTROL_INVALID "Invalid command\n"
