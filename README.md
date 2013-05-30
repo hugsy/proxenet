@@ -108,18 +108,22 @@ INFO: Starting interactive mode, press h for help
 In this example, 4 plugins were automatically loaded and will be executed **on
 every** request/response. This is important to keep in mind.
 
-Then, `proxenet` allows runtime interaction through a basic menu. You can
-invoke this menu help by hitting `h` key:
+`proxenet` allows you to interact with engine through a Unix socket, by default
+located at `/tmp/proxenet-control-socket`. You can connect using `nc` or `ncat`
+command, and display help menu help with `help` command:
 ```
-INFO: Menu:
-	a: print number of active threads
-	s: toggle sleep mode (stop treating requests)
-	r: reload plugins list
-	i: show proxenet info
-	v/b: increase/decrease verbosity
-	[1-9]: disable i-th plugin
-	q: try to quit gently
-	h: print this menu
+$ ncat -U /tmp/proxenet-control-socket
+Welcome on proxenet control interface
+Type `help` to list available commands
+>>> help
+Command list:
+quit           	Leave kindly
+help           	Show this menu
+pause          	Toggle pause
+info           	Display information about environment
+verbose        	Get/Set verbose level
+reload         	Reload the plugins
+threads        	Show info about threads
 ```
 
 Keys and associated functionalities are explicit enough :)
