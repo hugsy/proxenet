@@ -8,5 +8,7 @@ char* proxenet_perl_execute_function(plugin_t*, const char*, long, char*);
 void proxenet_perl_lock_vm(interpreter_t*);
 void proxenet_perl_unlock_vm(interpreter_t*);
 char* proxenet_perl_plugin(plugin_t*, long, char*, int);
+void proxenet_perl_preinitialisation(int argc, char** argv, char** envp);
+void proxenet_perl_postdeletion();
 
 #endif

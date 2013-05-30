@@ -31,6 +31,9 @@ unsigned long 	active_threads_bitmask;
 sem_t 		tty_semaphore;
 plugin_t 	*plugins_list;  /* points to first plugin */
 
+
+void proxenet_init_once_plugins(int, char**, char**);
+void proxenet_delete_once_plugins();
 int 		proxenet_start(); 
 
 #endif /* _CORE_H */
