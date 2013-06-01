@@ -16,6 +16,7 @@
 #define CFG_DEFAULT_PORT                  "8008"
 #define CFG_DEFAULT_PROXY_PORT	          "8080"
 #define CFG_DEFAULT_NB_THREAD             10
+#define CFG_DEFAULT_TRY_EXIT_MAX          3
 #define CFG_DEFAULT_OUTPUT                stdout
 #define CFG_DEFAULT_PLUGINS_PATH          "./plugins"
 #define CFG_DEFAULT_SSL_KEYFILE           "./keys/proxenet.key"
@@ -42,6 +43,8 @@ typedef struct __proxenet_config {
 				char* port;
 		} proxy;
 
+		unsigned short try_exit;
+		unsigned short try_exit_max;
 } conf_t;
 
 conf_t current_config;

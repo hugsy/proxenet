@@ -333,7 +333,7 @@ int proxenet_handle_control_event(sock_t* sock) {
 	ptr = &read_buf[strlen(cmd->name)];
 	cmd->func(*sock, ptr, cmd->nb_opt_max);
 
-cmd_end:	
+cmd_end:
 	proxenet_write(*sock, CONTROL_PROMPT, strlen(CONTROL_PROMPT));
 	
 	return 0;

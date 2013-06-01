@@ -17,7 +17,7 @@ LDFLAGS         =       $(HARDEN) -lpthread
 SRC		=	$(wildcard *.c)
 OBJECTS         =       $(patsubst %.c, %.o, $(SRC))
 INC             =       -I/usr/include -pthread
-CFLAGS          =       -O2 -Wall $(DEFINES) $(INC) 
+CFLAGS          =       -O2 -Wall $(DEFINES) $(INC) -pthread
 LIB		= 	-L/lib
 
 
@@ -39,7 +39,7 @@ WITH_C_PLUGIN		=	0
 WITH_PYTHON_PLUGIN	=	0
 WITH_PERL_PLUGIN	=	0
 WITH_RUBY_PLUGIN	=	0
-WITH_LUA_PLUGIN		=	1
+WITH_LUA_PLUGIN		=	0
 
 
 ifeq ($(WITH_C_PLUGIN), 1)
