@@ -135,6 +135,8 @@ bool parse_options (int argc, char** argv)
 	cfg->nb_threads		= CFG_DEFAULT_NB_THREAD;
 	cfg->use_color		= true;
 	cfg->ip_version		= CFG_DEFAULT_IP_VERSION;
+	cfg->try_exit		= 0;
+	cfg->try_exit_max	= CFG_DEFAULT_TRY_EXIT_MAX;
 	
 	path			= CFG_DEFAULT_PLUGINS_PATH;
 	keyfile			= CFG_DEFAULT_SSL_KEYFILE;

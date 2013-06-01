@@ -242,12 +242,15 @@ int create_http_socket(char* http_request, sock_t* server_sock, sock_t* client_s
 			}
 
 #ifdef DEBUG
-			xlog(LOG_DEBUG, "%s\n", "SSL handshake with server done");
+			xlog(LOG_DEBUG, "%s %d %d\n", "SSL handshake with server done", *client_sock, *server_sock);
 #endif
-			proxenet_write(*server_sock,
-				       "HTTP/1.0 200 Connection established\r\n\r\n",
-				       39);
-			
+			if (proxenet_write(*server_sock,
+					   "HTTP/1.0 200 Connection established\r\n\r\n",
+					   39) < 0){
+				retcode = -1;
+				goto http_sock_end;
+			}
+
 			/* 2. set up proxy->browser ssl session  */
 			if(proxenet_ssl_init_server_context(&(ssl_ctx->server)) < 0) {
 				retcode = -1;
@@ -261,7 +264,7 @@ int create_http_socket(char* http_request, sock_t* server_sock, sock_t* client_s
 				retcode = -1;
 				goto http_sock_end;
 			}
-			
+
 #ifdef DEBUG
 			xlog(LOG_DEBUG, "%s\n", "SSL Handshake with client done");
 #endif

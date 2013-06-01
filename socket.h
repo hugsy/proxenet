@@ -1,11 +1,7 @@
 #ifndef _SOCKET_H
 #define _SOCKET_H
 
-#ifdef __x86_64
-typedef long sock_t;
-#else
 typedef int sock_t;
-#endif
 
 #define MAX_CONN_SIZE 10
 #define MAX_READ_SIZE 2047
