@@ -389,7 +389,7 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 		http_request  = NULL;
 		http_response = NULL;
 		
-		ts.tv_sec  = 5;
+		ts.tv_sec  = HTTP_TIMEOUT_SOCK;
 		ts.tv_nsec = 0;
 		
 		FD_ZERO(&rfds);
@@ -788,8 +788,10 @@ void xloop(sock_t sock, sock_t ctl_sock)
 		purge_zombies();
 		
 		/* set asynchronous listener */
-		struct timespec timeout = { .tv_sec = 5,
-					    .tv_nsec = 0 };
+		struct timespec timeout = {
+			.tv_sec = 5,
+			.tv_nsec = 0
+		};
 		
 		retcode = pselect(FD_SETSIZE, &sock_set, NULL, NULL, &timeout, &oldmask);
 		
@@ -847,11 +849,14 @@ void xloop(sock_t sock, sock_t ctl_sock)
 #ifdef DEBUG
 			xlog(LOG_DEBUG, "%s\n", "Incoming control event");
 #endif
+			struct sockaddr_un sun_cli;
+			socklen_t sun_cli_len = 0;
+			
+			proxenet_xzero(&sun_cli, sizeof(struct sockaddr_un));
+			
 			if (ctl_cli_sock < 0) {
-				struct sockaddr_un sun_cli;
-				socklen_t sun_cli_len;
 
-				ctl_cli_sock = accept(ctl_sock, (struct sockaddr *)&sun_cli, &sun_cli_len); 
+				ctl_cli_sock = accept(ctl_sock, (struct sockaddr *)&sun_cli, &sun_cli_len);
 				if (ctl_cli_sock < 0) {
 					xlog(LOG_ERROR, "[main] control accept() failed: %s\n", strerror(errno));
 					continue;
@@ -860,6 +865,13 @@ void xloop(sock_t sock, sock_t ctl_sock)
 				xlog(LOG_INFO, "%s\n", "New connection on Control socket");
 				proxenet_write(ctl_cli_sock, CONTROL_MOTD, strlen(CONTROL_MOTD));
 				proxenet_write(ctl_cli_sock, CONTROL_PROMPT, strlen(CONTROL_PROMPT));
+			} else {
+				int denied_ctl = accept(ctl_sock, (struct sockaddr *)&sun_cli, &sun_cli_len);
+				if(denied_ctl > 0) {
+					if(close_socket(denied_ctl) >= 0) {
+						xlog(LOG_INFO, "%s\n", "Denied control connection: already established");
+					}
+				}
 			}
 			
 		}/* end if _control_listening_event */
