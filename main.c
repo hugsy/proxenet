@@ -79,6 +79,7 @@ void usage(int retcode)
 void help(char* argv0)
 {
 	const char* plugin_name;
+	const char* plugin_ext;
 	int i;
 	
 	version(false);
@@ -87,14 +88,16 @@ void help(char* argv0)
 	       "Compiled with support for :\n",
 	       AUTHOR, LICENSE);
 
-	plugin_name=supported_plugins_str[0];
+	plugin_name = supported_plugins_str[0];
+	plugin_ext  = plugins_extensions_str[0];
 	
-	for(i=0; plugin_name; i++) {
-		plugin_name=supported_plugins_str[i];
+	for(i=1; plugin_name; i++) {
 		printf("\t[+] 0x%.2x   %-10s (%s)\n",
 		       i,
 		       plugin_name,
-		       plugins_extensions_str[i]);
+		       plugin_ext);
+		plugin_name = supported_plugins_str[i];
+		plugin_ext  = plugins_extensions_str[i];
 	}
 	
 	usage(EXIT_SUCCESS);
