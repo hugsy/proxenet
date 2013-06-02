@@ -13,7 +13,7 @@ extern VALUE ruby_top_self;
 int 	proxenet_ruby_initialize_vm(plugin_t*);
 int	proxenet_ruby_destroy_vm(plugin_t*);
 int 	proxenet_ruby_initialize_function(plugin_t*, int);
-char* 	proxenet_ruby_execute_function(interpreter_t*, ID, long, char*);
-char* 	proxenet_ruby_plugin(plugin_t*, long, char*, int);
+char* 	proxenet_ruby_execute_function(interpreter_t*, ID, long, char*, size_t*);
+char* 	proxenet_ruby_plugin(plugin_t*, long, char*, size_t*, int);
 
 #endif /* _RUBY_PLUGIN */

@@ -102,23 +102,23 @@ int proxenet_perl_destroy_vm(plugin_t* plugin)
 /**
  *
  */
-char* proxenet_perl_execute_function(plugin_t* plugin, const char* fname, long rid, char* request_str)
+char* proxenet_perl_execute_function(plugin_t* plugin, const char* fname, long rid, char* request_str, size_t* request_size)
 {
 	dSP;
 	char *res, *data;
 	int nb_res;
 	size_t len;
+	SV* sv = NULL;
 
 	res = data = NULL;
-	len = strlen(request_str);
 
 	ENTER;
 	SAVETMPS;
 
 	PUSHMARK(SP);
 	XPUSHs(sv_2mortal(newSVuv(rid)));
-        XPUSHs(sv_2mortal(newSVpv(request_str, 0)));
-        PUTBACK;
+	XPUSHs(sv_2mortal(newSVpvn(request_str, *request_size)));
+	PUTBACK;
 
 	nb_res = call_pv(fname, G_SCALAR);
 	
@@ -129,15 +129,17 @@ char* proxenet_perl_execute_function(plugin_t* plugin, const char* fname, long r
 		data = NULL;
 		
 	} else {
-		res = (char*) POPp;
-		len = strlen(res);
+		sv = POPs;
+		len = SvLEN(sv);
+		res = SvPV(sv, len);
 		data = (char*) proxenet_xmalloc(len+1);
 		memcpy(data, res, len);
+		*request_size = len;
 	}
 	
 	PUTBACK;
-        FREETMPS;
-        LEAVE;
+	FREETMPS;
+	LEAVE;
 	
 	return data;
 }
@@ -164,7 +166,7 @@ void proxenet_perl_unlock_vm(interpreter_t *interpreter)
 /**
  * 
  */
-char* proxenet_perl_plugin(plugin_t* plugin, long rid, char* request, int type)
+char* proxenet_perl_plugin(plugin_t* plugin, long rid, char* request, size_t* request_size, int type)
 {
 	interpreter_t *interpreter; 
 	const char *function_name;
@@ -180,7 +182,7 @@ char* proxenet_perl_plugin(plugin_t* plugin, long rid, char* request, int type)
 		function_name = CFG_RESPONSE_PLUGIN_FUNCTION;
 
 	proxenet_perl_lock_vm(interpreter);
-	buf = proxenet_perl_execute_function(plugin, function_name, rid, request);
+	buf = proxenet_perl_execute_function(plugin, function_name, rid, request, request_size);
 	proxenet_perl_unlock_vm(interpreter);
 
 	return buf;

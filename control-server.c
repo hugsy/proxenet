@@ -172,6 +172,8 @@ void reload_cmd(sock_t fd, char *options, unsigned int nb_options)
 	}
 
 	proxenet_state = SLEEPING;
+	
+	proxenet_destroy_plugins_vm();
 	proxenet_delete_list_plugins();
 
 	if( proxenet_initialize_plugins_list() < 0) {
@@ -181,7 +183,6 @@ void reload_cmd(sock_t fd, char *options, unsigned int nb_options)
 		return;
 	}
 
-	proxenet_destroy_plugins_vm();
 	proxenet_initialize_plugins();
 
 	proxenet_state = ACTIVE;

@@ -186,7 +186,7 @@ int proxenet_python_initialize_function(plugin_t* plugin, char type)
 /**
  *
  */
-char* proxenet_python_execute_function(PyObject* pFuncRef, long rid, char* request_str)
+char* proxenet_python_execute_function(PyObject* pFuncRef, long rid, char* request_str, size_t* request_size)
 {
 	PyObject *pArgs, *pResult;
 	char *buffer, *result;
@@ -219,6 +219,7 @@ char* proxenet_python_execute_function(PyObject* pFuncRef, long rid, char* reque
 		} else {
 			result = (char*) proxenet_xmalloc(len+1);
 			result = memcpy(result, buffer, len);
+			*request_size = len;
 		}
 		
 	} else {
@@ -254,7 +255,7 @@ void proxenet_python_unlock_vm(interpreter_t *interpreter)
 /**
  * 
  */
-char* proxenet_python_plugin(plugin_t* plugin, long rid, char* request, int type)
+char* proxenet_python_plugin(plugin_t* plugin, long rid, char* request, size_t* request_size, int type)
 {	
 	char *dst_buf = NULL;
 	PyObject *pFunc = NULL;
@@ -271,7 +272,7 @@ char* proxenet_python_plugin(plugin_t* plugin, long rid, char* request, int type
 	else
 		pFunc = (PyObject*) plugin->post_function;
 
-	dst_buf = proxenet_python_execute_function(pFunc, rid, request);
+	dst_buf = proxenet_python_execute_function(pFunc, rid, request, request_size);
 	if (!dst_buf) {
 		xlog(LOG_ERROR,
 		     "[%s] Error while executing plugin on %s\n",

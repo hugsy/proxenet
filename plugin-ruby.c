@@ -159,7 +159,7 @@ int proxenet_ruby_initialize_function(plugin_t* plugin, int type)
 /**
  *
  */
-char* proxenet_ruby_execute_function(interpreter_t* interpreter, ID rFunc, long rid, char* request_str)
+char* proxenet_ruby_execute_function(interpreter_t* interpreter, ID rFunc, long rid, char* request_str, size_t* request_size)
 {
 	char *buf, *data;
 	int buflen;
@@ -189,6 +189,7 @@ char* proxenet_ruby_execute_function(interpreter_t* interpreter, ID rFunc, long 
 	
 	data = proxenet_xmalloc(buflen + 1);
 	memcpy(data, buf, buflen);
+	*request_size = buflen;
 	
 	return data;
 }
@@ -215,7 +216,7 @@ void proxenet_ruby_unlock_vm(interpreter_t *interpreter)
 /**
  * 
  */
-char* proxenet_ruby_plugin(plugin_t* plugin, long rid, char* request, int type)
+char* proxenet_ruby_plugin(plugin_t* plugin, long rid, char* request, size_t* request_size, int type)
 {
 	char* buf = NULL;
 	interpreter_t *interpreter = plugin->interpreter;
@@ -227,7 +228,7 @@ char* proxenet_ruby_plugin(plugin_t* plugin, long rid, char* request, int type)
 		rFunc = (ID) plugin->post_function;
 
 	proxenet_ruby_lock_vm(interpreter);
-		buf = proxenet_ruby_execute_function(interpreter, rFunc, rid, request);
+		buf = proxenet_ruby_execute_function(interpreter, rFunc, rid, request, request_size);
 	proxenet_ruby_unlock_vm(interpreter);
 	
 	return buf;
