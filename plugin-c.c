@@ -117,7 +117,7 @@ int proxenet_c_initialize_function(plugin_t* plugin, int type)
 /**
  *
  */
-char* proxenet_c_plugin(plugin_t *plugin, unsigned long request_id, char *request, int type)
+char* proxenet_c_plugin(plugin_t *plugin, unsigned long request_id, char *request, size_t* request_size, int type)
 {
 	char* (*plugin_function)(unsigned long, char*);
 	char *bufres;
@@ -129,7 +129,7 @@ char* proxenet_c_plugin(plugin_t *plugin, unsigned long request_id, char *reques
 	else
 		plugin_function = plugin->post_function;
 
-	bufres = (*plugin_function)(request_id, request);
+	bufres = (*plugin_function)(request_id, request, request_size);
 	if(!bufres)
 		return request;
 	

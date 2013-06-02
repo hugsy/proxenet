@@ -292,11 +292,11 @@ int proxenet_toggle_plugin(int plugin_id)
 /**
  *
  */
-char* proxenet_apply_plugins(long id, char* data, char type)
+char* proxenet_apply_plugins(long id, char* data, size_t* data_size, char type)
 {
 	plugin_t *p;
 	char *new_data, *old_data;
-	char* (*plugin_function)(plugin_t*, long, char*, int) = NULL;
+	char* (*plugin_function)(plugin_t*, long, char*, size_t*, int) = NULL;
 
 	
 	old_data = NULL;
@@ -345,7 +345,7 @@ char* proxenet_apply_plugins(long id, char* data, char type)
 		}
 
 		old_data = new_data;
-		new_data = (*plugin_function)(p, id, old_data, type);
+		new_data = (*plugin_function)(p, id, old_data, data_size, type);
 		
 		if (strcmp(old_data,new_data)) {
 			/* if new_data is different, request/response was modified, and  */
@@ -368,6 +368,7 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 	sock_t client_socket;
 	char *http_request, *http_response;
 	int retcode, rid;
+	size_t length;
 	fd_set rfds;
 	struct timespec ts;
 	ssl_context_t ssl_context;
@@ -471,18 +472,18 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 				rid = get_new_request_id();
 			
 			/* hook request with all plugins in plugins_l  */
-			http_request = proxenet_apply_plugins(rid, http_request, REQUEST);
-			n = strlen(http_request);
+			length = (size_t) n;
+			http_request = proxenet_apply_plugins(rid, http_request, &length, REQUEST);
 			
 #ifdef DEBUG
-			xlog(LOG_DEBUG, "[%d] Sending %d bytes (%s)\n", rid, n, (is_ssl)?"SSL":"PLAIN");
+			xlog(LOG_DEBUG, "[%d] Sending %d bytes (%s)\n", rid, length, (is_ssl)?"SSL":"PLAIN");
 #endif
 			/* send modified data */
 			if (is_ssl) {
-				retcode = proxenet_ssl_write(client_socket, http_request, n,
+				retcode = proxenet_ssl_write(client_socket, http_request, length,
 							     &(ssl_context.client.context));
 			} else {
-				retcode = proxenet_write(client_socket, http_request, n);
+				retcode = proxenet_write(client_socket, http_request, length);
 			}
 					
 			proxenet_xfree(http_request);
@@ -515,14 +516,14 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 
 			
 			/* execute response hooks */
-			http_response = proxenet_apply_plugins(rid, http_response, RESPONSE);
-			n = strlen(http_response);
+			length = (size_t) n;
+			http_response = proxenet_apply_plugins(rid, http_response, &length, RESPONSE);
 
 			/* send modified data to client */
 			if (is_ssl)
-				retcode = proxenet_ssl_write(server_socket, http_response, n, &ssl_context.server.context);
+				retcode = proxenet_ssl_write(server_socket, http_response, length, &ssl_context.server.context);
 			else
-				retcode = proxenet_write(server_socket, http_response, n);
+				retcode = proxenet_write(server_socket, http_response, length);
 			
 			if (retcode < 0) {
 				xlog(LOG_ERROR, "[%d] %s\n", rid, "proxy->client: write failed");

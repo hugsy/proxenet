@@ -89,7 +89,7 @@ int proxenet_lua_destroy_vm(plugin_t* plugin)
 /**
  *
  */
-char* proxenet_lua_execute_function(interpreter_t* interpreter, long rid, char* request, int type)
+char* proxenet_lua_execute_function(interpreter_t* interpreter, long rid, char* request, size_t* request_size, int type)
 {
 	const char *lRet;
 	char *buf;
@@ -104,17 +104,18 @@ char* proxenet_lua_execute_function(interpreter_t* interpreter, long rid, char* 
 		lua_getglobal(lua_interpreter, CFG_RESPONSE_PLUGIN_FUNCTION);
 	
 	lua_pushnumber(lua_interpreter, rid);
-	lua_pushstring(lua_interpreter, request);
+	lua_pushlstring(lua_interpreter, request, *request_size);
 	lua_call(lua_interpreter, 2, 1);
 	lRet = lua_tostring(lua_interpreter, -1);
+	len = lua_strlen(lua_interpreter, -1);
 	lua_pop(lua_interpreter, 1);
 
 	if (!lRet)
 		return NULL;
 
-	len = strlen(lRet);
 	buf = (char*) proxenet_xmalloc(len+1);
 	memcpy(buf, lRet, len);
+	*request_size = len;
 
 	return buf;
 }
@@ -139,13 +140,13 @@ void proxenet_lua_unlock_vm(interpreter_t *interpreter)
 /**
  * 
  */
-char* proxenet_lua_plugin(plugin_t* plugin, long rid, char* request, int type)
+char* proxenet_lua_plugin(plugin_t* plugin, long rid, char* request, size_t* request_size, int type)
 {
 	char* buf = NULL;
 	interpreter_t *interpreter = plugin->interpreter;
 
 	proxenet_lua_lock_vm(interpreter);
-	buf = proxenet_lua_execute_function(interpreter, rid, request, type);
+	buf = proxenet_lua_execute_function(interpreter, rid, request, request_size, type);
 	proxenet_lua_unlock_vm(interpreter);
 	
 	return buf;

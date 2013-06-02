@@ -48,7 +48,7 @@ int 		proxenet_start();
 unsigned int	get_active_threads_size();
 bool 		is_thread_active(int);
 int		proxenet_toggle_plugin(int);
-char* 		proxenet_apply_plugins(long, char*, char);
+char* 		proxenet_apply_plugins(long, char*, size_t*, char);
 void 		proxenet_destroy_plugins_vm();
 int 		proxenet_initialize_plugins_list();
 void 		proxenet_initialize_plugins();
