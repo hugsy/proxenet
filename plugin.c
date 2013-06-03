@@ -117,7 +117,14 @@ void proxenet_delete_list_plugins()
 	plugin_t *next;
 	
 	while (p != NULL) {
-		next = p->next; 
+		next = p->next;
+		
+		printf("Perl: %d, type: %d\n", _PERL_, p->type);
+		if(p->type == _PERL_) {
+			proxenet_xfree(p->pre_function);
+			proxenet_xfree(p->post_function);
+		}
+		
 		proxenet_xfree(p->name);
 		proxenet_xfree(p->filename);
 		proxenet_xfree(p);
@@ -157,7 +164,7 @@ char* proxenet_build_plugins_list()
 		if (n<0)
 			break;
 
-		if ((n+128) < 2048)
+		if ((ptr - list_str + 128) > 2048)
 			break;
 	}
 
