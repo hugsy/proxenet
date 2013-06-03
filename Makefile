@@ -90,7 +90,7 @@ endif
 
 
 # TEST
-TEST_ARGS		= 	-4 -vvvv -t 10
+TEST_ARGS		= 	-4 -vvvv -t 10 -b 0.0.0.0 -p 8000 -n
 
 
 # Compile rules

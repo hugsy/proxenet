@@ -67,19 +67,22 @@ SYNTAX :
         proxenet [OPTIONS+]
 
 OPTIONS:
-        -t, --nb-threads=N                      Number of threads (default: 10)
-        -b, --lbind=bindaddr                    Bind local address (default: localhost)
-        -p, --lport=N                           Bind local port file (default: 8008)
-        -l, --logfile=/path/to/logfile          Log actions in file
-        -x, --plugins=/path/to/plugins/dir      Specify plugins directory (default: ./plugins)
-        -k, --key=/path/to/ssl.key              Specify SSL key to use (default: ./keys/proxenet.key)
-        -c, --cert=/path/to/ssl.crt             Specify SSL cert to use (default: ./keys/proxenet.crt)
-        -v, --verbose                           Increase verbosity (default: 0)
-        -n, --no-color                          Disable colored output
-        -4,                                     IPv4 only (default: all)
-        -6,                                     IPv6 only (default: all)
-        -h, --help                              Show help
-        -V, --version                           Show version
+	-t, --nb-threads=N			Number of threads (default: 10)
+	-b, --lbind=bindaddr			Bind local address (default: localhost)
+	-p, --lport=N				Bind local port file (default: 8008)
+	-l, --logfile=/path/to/logfile		Log actions in file
+	-x, --plugins=/path/to/plugins/dir	Specify plugins directory (default: ./plugins)
+	-X, --proxy-host=proxyhost				Forward to proxy
+	-P  --proxy-port=proxyport				Specify port for proxy (default: 8080)
+	-k, --key=/path/to/ssl.key		Specify SSL key to use (default: ./keys/proxenet.key)
+	-c, --cert=/path/to/ssl.crt		Specify SSL cert to use (default: ./keys/proxenet.crt)
+	-v, --verbose				Increase verbosity (default: 0)
+	-n, --no-color				Disable colored output
+	-4, 					IPv4 only (default)
+	-6, 					IPv6 only (default: IPv4)
+	-h, --help				Show help
+	-V, --version				Show version
+
 ```
 
 ### Runtime

@@ -26,7 +26,7 @@ void version(bool end)
 {
 	printf("%s v%.2f\n", PROGNAME, VERSION);
 	if (end) {
-		proxenet_xfree(cfg);
+		proxenet_free_config();
 		exit(0);
 	}
 }
@@ -50,7 +50,7 @@ void usage(int retcode)
 		"\t-l, --logfile=/path/to/logfile\t\tLog actions in file\n"
 		"\t-x, --plugins=/path/to/plugins/dir\tSpecify plugins directory (default: %s)\n"
 		"\t-X, --proxy-host=proxyhost\t\t\t\tForward to proxy\n"
-		"\t    --proxy-port=proxyport\t\t\t\tSpecify port for proxy (default: %s)\n"
+		"\t-P  --proxy-port=proxyport\t\t\t\tSpecify port for proxy (default: %s)\n"
 		"\t-k, --key=/path/to/ssl.key\t\tSpecify SSL key to use (default: %s)\n"
 		"\t-c, --cert=/path/to/ssl.crt\t\tSpecify SSL cert to use (default: %s)\n"
 		"\t-v, --verbose\t\t\t\tIncrease verbosity (default: 0)\n"
