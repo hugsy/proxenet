@@ -14,7 +14,7 @@
 #define BUFSIZE 1024
 
 
-static struct command_t known_commands[] = {
+struct command_t known_commands[] = {
 	{ "quit", 	 0, &quit_cmd, "Leave kindly" },
 	{ "help", 	 0, &help_cmd, "Show this menu" },
 	{ "pause", 	 0, &pause_cmd, "Toggle pause" },
@@ -321,15 +321,15 @@ int proxenet_handle_control_event(sock_t* sock) {
 	if (retcode == 0) {
 		return -1;
 	}
-	
-#ifdef DEBUG
-	xlog(LOG_DEBUG, "Receiving control command: (%d)\"%s\" \n", strlen(read_buf), read_buf);
-#endif
-	
+		
 	if ( (cmd=get_command(read_buf)) == NULL ) {
 		proxenet_write(*sock, CONTROL_INVALID, strlen(CONTROL_INVALID));
 		goto cmd_end;
 	}
+	
+#ifdef DEBUG
+	xlog(LOG_DEBUG, "Receiving control command: \"%s\" \n", cmd->name);
+#endif
 
 	ptr = &read_buf[strlen(cmd->name)];
 	cmd->func(*sock, ptr, cmd->nb_opt_max);

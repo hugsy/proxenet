@@ -42,7 +42,7 @@ int proxenet_python_append_path(interpreter_t *interpreter)
 	if (!pAddPath) {
 		return -1;
 	}
-	
+
 	if (PyList_Insert(pPath, 0, pAddPath) < 0) {
 		retcode = -1;
 	}

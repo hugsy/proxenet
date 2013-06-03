@@ -11,7 +11,6 @@
 #define HTTP_TIMEOUT_SOCK 5    /* in seconds, used for select() call in thread */
 #define MAX_VERBOSE_LEVEL 4
 
-#define _GNU_SOURCE
 #include <sys/select.h>
 #ifndef FD_SETSIZE
 #define FD_SETSIZE             256

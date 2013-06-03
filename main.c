@@ -119,7 +119,7 @@ bool parse_options (int argc, char** argv)
 		{ "help",       0, 0, 'h' },
 		{ "verbose",    0, 0, 'v' },
 		{ "nb-threads", 1, 0, 't' },
-		{ "liface",     1, 0, 'b' },
+		{ "lbind",      1, 0, 'b' },
 		{ "lport",      1, 0, 'p' },
 		{ "logfile",    1, 0, 'l' },
 		{ "certfile",   1, 0, 'c' },

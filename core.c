@@ -1,5 +1,3 @@
-#define _GNU_SOURCE
-
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -852,25 +850,27 @@ void xloop(sock_t sock, sock_t ctl_sock)
 #endif
 			struct sockaddr_un sun_cli;
 			socklen_t sun_cli_len = 0;
+			int new_conn = -1;
 			
 			proxenet_xzero(&sun_cli, sizeof(struct sockaddr_un));
+
+			new_conn = accept(ctl_sock, (struct sockaddr *)&sun_cli, &sun_cli_len);
+			if (new_conn < 0) {
+				xlog(LOG_ERROR, "[main] control accept() failed: %s\n", strerror(errno));
+				continue;
+			}
 			
 			if (ctl_cli_sock < 0) {
-
-				ctl_cli_sock = accept(ctl_sock, (struct sockaddr *)&sun_cli, &sun_cli_len);
-				if (ctl_cli_sock < 0) {
-					xlog(LOG_ERROR, "[main] control accept() failed: %s\n", strerror(errno));
-					continue;
-				}
-
+				ctl_cli_sock = new_conn;
 				xlog(LOG_INFO, "%s\n", "New connection on Control socket");
 				proxenet_write(ctl_cli_sock, CONTROL_MOTD, strlen(CONTROL_MOTD));
 				proxenet_write(ctl_cli_sock, CONTROL_PROMPT, strlen(CONTROL_PROMPT));
+				
 			} else {
-				int denied_ctl = accept(ctl_sock, (struct sockaddr *)&sun_cli, &sun_cli_len);
-				if(denied_ctl > 0) {
-					if(close_socket(denied_ctl) >= 0) {
-						xlog(LOG_INFO, "%s\n", "Denied control connection: already established");
+				if(new_conn > 0) {
+					xlog(LOG_ERROR, "%s\n", "Denied control connection: already established");
+					if(close_socket(new_conn) < 0) {
+						xlog(LOG_ERROR, "Failed to close socket: %s\n", strerror(errno));
 					}
 				}
 			}
@@ -916,7 +916,6 @@ void sighandler(int signum)
 			if (proxenet_state != INACTIVE) 
 				proxenet_state = INACTIVE;
 			
-
 			cfg->try_exit++;
 			xlog(LOG_INFO, "%s, %d/%d\n", "Trying to leave", cfg->try_exit, cfg->try_exit_max);
 			

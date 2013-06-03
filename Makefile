@@ -8,6 +8,7 @@
 VERSION         =       0.01
 ARCH            =       $(shell uname)
 DEBUG           =       1
+DEBUG_SSL	=       0
 
 CC              =       cc
 BIN             =       proxenet
@@ -21,18 +22,23 @@ CFLAGS          =       -O2 -Wall $(DEFINES) $(INC) -pthread
 LIB		= 	-L/lib
 
 
+# SSL 
+INC		+=	-Ipolarssl/include
+LIB		+= 	-Lpolarssl/library
+LDFLAGS		+=	-lpolarssl
+
+
 # DEBUG
 ifeq ($(DEBUG), 1)
 DBGFLAGS        =       -ggdb -DDEBUG
 CFLAGS          +=      $(DBGFLAGS)
+
+ifeq ($(DEBUG_SSL), 1)
+CFLAGS		+=	-DDEBUG_SSL
 endif
 
+endif
 
-# SSL 
-INC			+=	-Ipolarssl/include
-LIB			+= 	-Lpolarssl/library
-LDFLAGS			+=	-lpolarssl
-# CFLAGS			+=	-DDEBUG_SSL
 
 # PLUGINS 
 WITH_C_PLUGIN		=	0
