@@ -347,10 +347,16 @@ char* proxenet_apply_plugins(long id, char* data, size_t* data_size, char type)
 		old_data = new_data;
 		new_data = (*plugin_function)(p, id, old_data, data_size, type);
 		
-		if (strcmp(old_data,new_data)) {
-			/* if new_data is different, request/response was modified, and  */
-			/* another buffer *must* have been allocated, so we can free old one */
+		if (new_data) {
+			/*
+			 * If new_data is not null, then the buffer is allocated on the
+			 * stack and the old one isn't needed anymore'
+			 */
 			proxenet_xfree(old_data);
+			old_data = NULL;
+		} else {
+			/* Otherwise, use the old_data, which is only the original data */
+			new_data = old_data;
 		}
 	}
 	
