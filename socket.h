@@ -10,9 +10,9 @@ typedef int sock_t;
 
 #include "ssl.h"
 
-sock_t create_control_socket(char**);
-sock_t create_bind_socket(char *host, char* port, char** errcode);
-sock_t create_connect_socket(char *host, char* port, char** errcode);
+sock_t create_control_socket();
+sock_t create_bind_socket(char *host, char* port);
+sock_t create_connect_socket(char *host, char* port);
 int close_socket(sock_t);
 ssize_t proxenet_write(sock_t sock, void *buf, size_t count);
 ssize_t proxenet_read(sock_t sock, void *buf, size_t count);

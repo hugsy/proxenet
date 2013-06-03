@@ -961,16 +961,14 @@ void initialize_sigmask(struct sigaction *saction)
 int proxenet_start() 
 {
 	sock_t control_socket, listening_socket;
-	char *err;
 	struct sigaction saction;
 	
 	control_socket = listening_socket = -1;
-	err = NULL;
 
 	/* create control socket */
-	control_socket = create_control_socket(&err);
+	control_socket = create_control_socket();
 	if (control_socket < 0) {
-		xlog(LOG_CRITICAL, "Cannot create control socket: %s\n", *err);
+		xlog(LOG_CRITICAL, "Cannot create control socket: %s\n", strerror(errno));
 		return -1;
 	}
 
@@ -979,9 +977,9 @@ int proxenet_start()
 #endif
 	
 	/* create listening socket */
-	listening_socket = create_bind_socket(cfg->iface, cfg->port, &err);
+	listening_socket = create_bind_socket(cfg->iface, cfg->port);
 	if (listening_socket < 0) {
-		xlog(LOG_CRITICAL, "Cannot create bind socket: %s\n", *err);
+		xlog(LOG_CRITICAL, "Cannot create bind socket: %s\n", strerror(errno));
 		return -1;
 	}
 

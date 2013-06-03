@@ -155,7 +155,6 @@ bool is_valid_http_request(char* request)
 int create_http_socket(char* http_request, sock_t* server_sock, sock_t* client_sock, ssl_context_t* ssl_ctx) 
 {
 	int retcode;
-	char* err;
 	char *host, *port;
 	char sport[6] = {0, };
 	http_request_t http_infos = { .method = NULL,
@@ -185,10 +184,10 @@ int create_http_socket(char* http_request, sock_t* server_sock, sock_t* client_s
 		port = sport;
 	}
 	
-	retcode = create_connect_socket(host, port, &err);
+	retcode = create_connect_socket(host, port);
 	if (retcode < 0) {
-		if (err)
-			generic_http_error_page(*server_sock, err);
+		if (errno)
+			generic_http_error_page(*server_sock, strerror(errno));
 		else
 			generic_http_error_page(*server_sock, "Unknown error in <i>create_connect_socket</i>");
 		

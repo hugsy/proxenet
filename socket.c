@@ -16,7 +16,7 @@
 /**
  *
  */
-sock_t create_control_socket(char** err)
+sock_t create_control_socket()
 {
 	sock_t control_sock = -1;
 	struct sockaddr_un sun_local;
@@ -26,7 +26,6 @@ sock_t create_control_socket(char** err)
 	/* create control socket */
 	control_sock = socket(AF_UNIX, SOCK_STREAM, 0);
 	if (control_sock < 0) {
-		*err = strerror(errno);
 		return -1;
 	}
 
@@ -37,7 +36,6 @@ sock_t create_control_socket(char** err)
 	/* and bind+listen */
 	if ( (bind(control_sock, (struct sockaddr *)&sun_local, SUN_LEN(&sun_local)) < 0) ||
 	     (listen(control_sock, 1) < 0 ) ) {
-		*err = strerror(errno);
 		close(control_sock);
 		return -1;
 	}
@@ -52,7 +50,7 @@ sock_t create_control_socket(char** err)
  * @param host
  * @param srv
  */
-sock_t create_bind_socket(char *host, char* port, char** errcode) 
+sock_t create_bind_socket(char *host, char* port) 
 {
 	sock_t sock;
 	struct addrinfo hostinfo, *res, *ll;
@@ -111,12 +109,13 @@ sock_t create_bind_socket(char *host, char* port, char** errcode)
  * @param host
  * @param port
  */
-sock_t create_connect_socket(char *host, char* port, char** errcode)
+sock_t create_connect_socket(char *host, char* port)
 {
 	sock_t sock;
 	struct addrinfo hostinfo, *res, *ll;
 	int retcode, keepalive_val;
-
+	char *err;
+	
 	retcode = sock = -1;
 	memset(&hostinfo, 0, sizeof(struct addrinfo));
 	hostinfo.ai_family = cfg->ip_version;
@@ -128,9 +127,9 @@ sock_t create_connect_socket(char *host, char* port, char** errcode)
 	/* get host info */
 	retcode = getaddrinfo(host, port, &hostinfo, &res);
 	if ( retcode < 0 ) {
-		*errcode = (char*)gai_strerror(retcode);
+		err = (char*)gai_strerror(retcode);
 		if (cfg->verbose)
-			xlog(LOG_ERROR, "getaddrinfo failed: %s\n", *errcode);
+			xlog(LOG_ERROR, "getaddrinfo failed: %s\n", err);
 		return -1;
 	}
 	
@@ -146,9 +145,9 @@ sock_t create_connect_socket(char *host, char* port, char** errcode)
 		if (connect(sock, ll->ai_addr, ll->ai_addrlen) == 0)
 			break;
 		else {
-			*errcode = (char*)strerror(errno);
+			err = (char*)strerror(errno);
 			if (cfg->verbose)
-				xlog(LOG_ERROR, "connect failed: %s\n", errcode);
+				xlog(LOG_ERROR, "connect failed: %s\n", err);
 		}
 		
 		close(sock);
@@ -156,7 +155,6 @@ sock_t create_connect_socket(char *host, char* port, char** errcode)
 	}
 	
 	if (!ll || sock < 0) {
-		*errcode = "Failed to connect to server";
 		xlog(LOG_ERROR, "%s\n", "Failed to create socket");
 	}
 #ifdef DEBUG     
