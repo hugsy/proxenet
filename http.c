@@ -17,7 +17,7 @@
 /**
  *
  * request MUST be like
- * METHOD proto://hostname[:port][/location][?param=value....]\r\n
+ * METHOD proto://hostname[:port][/location][?param=value....] HTTP/X.Y\r\n
  * cf. RFC2616
  */
 bool get_url_information(char* request, http_request_t* http)

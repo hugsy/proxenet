@@ -14,8 +14,8 @@
 #define BUFSIZE 1024
 
 
-struct command_t known_commands[] = {
-	{ "quit", 	 0, &quit_cmd, "Leave kindly" },
+static struct command_t known_commands[] = {
+	{ "quit", 	 0, &quit_cmd, "Make "PROGNAME" leave kindly" },
 	{ "help", 	 0, &help_cmd, "Show this menu" },
 	{ "pause", 	 0, &pause_cmd, "Toggle pause" },
 	{ "info", 	 0, &info_cmd, "Display information about environment" },

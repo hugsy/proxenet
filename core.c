@@ -261,7 +261,7 @@ int proxenet_toggle_plugin(int plugin_id)
 	
 	for (plugin=plugins_list; plugin!=NULL; plugin=plugin->next) {
 		
-		if (plugin->id == plugin_id) {	       
+		if (plugin->id == plugin_id) {
 			switch (plugin->state){
 				case INACTIVE:
 					plugin->state = ACTIVE;
@@ -345,10 +345,16 @@ char* proxenet_apply_plugins(long id, char* data, size_t* data_size, char type)
 		old_data = new_data;
 		new_data = (*plugin_function)(p, id, old_data, data_size, type);
 		
-		if (strcmp(old_data,new_data)) {
-			/* if new_data is different, request/response was modified, and  */
-			/* another buffer *must* have been allocated, so we can free old one */
+		if (new_data) {
+			/*
+			 * If new_data is not null, then the buffer is allocated on the
+			 * heap and the old one isn't needed anymore
+			 */
 			proxenet_xfree(old_data);
+			old_data = NULL;
+		} else {
+			/* Otherwise, use the old_data, which is only the original data */
+			new_data = old_data;
 		}
 	}
 	
@@ -359,9 +365,8 @@ char* proxenet_apply_plugins(long id, char* data, size_t* data_size, char type)
 /**
  * This function is called by all threads to treat to process the request and response.
  * It will also apply the plugins.
- *
  */
-void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
+void proxenet_process_http_request(sock_t server_socket)
 {
 	sock_t client_socket;
 	char *http_request, *http_response;
@@ -384,7 +389,7 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 			xlog(LOG_ERROR, "%s\n", "Sock browser->proxy died unexpectedly");
 			break;
 		}
-			
+		
 		http_request  = NULL;
 		http_response = NULL;
 		
@@ -469,7 +474,7 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 			if (!rid) 
 				rid = get_new_request_id();
 			
-			/* hook request with all plugins in plugins_l  */
+			/* hook request with all plugins in plugins_list  */
 			length = (size_t) n;
 			http_request = proxenet_apply_plugins(rid, http_request, &length, REQUEST);
 			
@@ -483,7 +488,7 @@ void proxenet_process_http_request(sock_t server_socket, plugin_t** plugin_list)
 			} else {
 				retcode = proxenet_write(client_socket, http_request, length);
 			}
-					
+			
 			proxenet_xfree(http_request);
 
 			if (retcode < 0) {
@@ -580,10 +585,9 @@ static void* process_thread_job(void* arg)
 	parent_tid = tinfo->main_tid;
 	
 	/* treat request */
-	proxenet_process_http_request(tinfo->sock, tinfo->plugin_list);
+	proxenet_process_http_request(tinfo->sock);
 
 	/* purge thread */
-	tinfo->plugin_list = NULL;
 	proxenet_xfree(arg);
 
 	/* signal main thread (parent) to clean up */
@@ -826,14 +830,12 @@ void xloop(sock_t sock, sock_t ctl_sock)
 			proxenet_xzero(&addr, sizeof(struct sockaddr));
 
 			conn = accept(sock, &addr, &addrlen); 
-			if (conn < 0 && errno != EINTR) {
-				xlog(LOG_ERROR, "[main] accept() failed: %s\n", strerror(errno));
+			if (conn < 0) {
+				if(errno != EINTR)
+					xlog(LOG_ERROR, "[main] accept() failed: %s\n", strerror(errno));
 				continue;
 			}
 			
-			if (conn < 0)
-				continue;
-					
 			retcode = proxenet_start_new_thread(conn, tid, &threads[tid], &pattr);
 			if (retcode < 0) {
 				xlog(LOG_ERROR, "[main] %s\n", "Error while spawn new thread");
@@ -885,7 +887,7 @@ void xloop(sock_t sock, sock_t ctl_sock)
 				close_socket(ctl_cli_sock);
 				ctl_cli_sock = -1;
 			}
-
+			
 		} /* end if _control_event */
 		
 	}  /* endof while(!INACTIVE) */

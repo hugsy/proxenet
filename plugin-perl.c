@@ -26,22 +26,68 @@ static PerlInterpreter *my_perl;
  */
 int proxenet_perl_load_file(plugin_t* plugin)
 {
-	char *args[2], *pathname;
-	size_t pathlen;
+	char *pathname = NULL;
+	size_t pathlen = 0;
+	SV* sv = NULL;
+	int nb_res = -1;
+	char *res  = NULL;
+	char *package_name = NULL;
+	size_t package_len, len = 0;
+	
 	
 	pathlen = strlen(cfg->plugins_path) + 1 + strlen(plugin->filename) + 1;
 	pathname = (char*) alloca(pathlen+1);
 	proxenet_xzero(pathname, pathlen+1);
 	snprintf(pathname, pathlen, "%s/%s", cfg->plugins_path, plugin->filename);
-
+	
 #ifdef DEBUG
 	xlog(LOG_DEBUG, "[Perl] Loading '%s'\n", pathname);
 #endif
 	
-	args[0] = "";
-	args[1] = pathname;
-	perl_parse(my_perl, NULL, 2, args, NULL);
-
+	/* Load the file through perl's require mechanism */
+	dSP;
+	ENTER;
+	SAVETMPS;
+	
+	PUSHMARK(SP);
+	PUTBACK;
+	
+	sv = newSVpvf("$package = require q%c%s%c", 0, pathname, 0);
+	nb_res = eval_sv(sv_2mortal(sv), G_EVAL);
+	
+	if (nb_res != 1) {
+		fprintf(stderr, "[Perl] Invalid number of response returned (got %d, expected 1)\n", nb_res);
+	} else if (SvTRUE(ERRSV)) {
+		fprintf(stderr, "[Perl] Eval error: %s\n", SvPV_nolen(ERRSV));
+	} else {
+		/* Get the package name from the package (which should follow the convention...) */
+		res = (char*) SvPV_nolen(get_sv("package", 0));
+		package_len = strlen(res);
+		package_name = (char*) alloca(package_len+1);
+		proxenet_xzero(package_name, package_len+1);
+		
+		memcpy(package_name, res, package_len);
+		
+#ifdef DEBUG
+	xlog(LOG_DEBUG, "[Perl] Package name loaded '%s'\n", package_name);
+#endif
+		
+		/* Save the functions full name to call them later */
+		len = package_len + 2 + strlen(CFG_REQUEST_PLUGIN_FUNCTION);
+		plugin->pre_function = proxenet_xmalloc(len + 1);
+		snprintf(plugin->pre_function, len+1, "%s::%s", package_name, CFG_REQUEST_PLUGIN_FUNCTION);
+		
+		len = package_len + 2 + strlen(CFG_RESPONSE_PLUGIN_FUNCTION);
+		plugin->post_function = proxenet_xmalloc(len + 1);
+		snprintf(plugin->post_function, len+1, "%s::%s", package_name, CFG_RESPONSE_PLUGIN_FUNCTION);
+	}
+	
+	SPAGAIN;
+	
+	PUTBACK;
+	FREETMPS;
+	LEAVE;
+	
 	return 0;
 }
 
@@ -53,6 +99,12 @@ int proxenet_perl_initialize_vm(plugin_t* plugin)
 {
 	interpreter_t *interpreter;
 	interpreter = plugin->interpreter;
+	
+	/* In order to perl_parse nothing */
+	char *args[2] = {
+		"",
+		"/dev/null"
+	};
 	
 	/* checks */
 	if (!interpreter->ready){
@@ -73,6 +125,8 @@ int proxenet_perl_initialize_vm(plugin_t* plugin)
 
 		interpreter->vm = (void*) my_perl;
 		interpreter->ready = true;
+		
+		perl_parse(my_perl, NULL, 2, args, (char **)NULL);
 	}
 
 	proxenet_perl_load_file(plugin);
@@ -91,7 +145,7 @@ int proxenet_perl_destroy_vm(plugin_t* plugin)
 		return -1;
 	
 	perl_destruct(my_perl);
-        perl_free(my_perl);
+	perl_free(my_perl);
 
 	plugin->interpreter->vm = NULL;
 	plugin->interpreter->ready = false;
@@ -177,9 +231,9 @@ char* proxenet_perl_plugin(plugin_t* plugin, long rid, char* request, size_t* re
 		return NULL;
 
 	if (type == REQUEST)
-		function_name = CFG_REQUEST_PLUGIN_FUNCTION;
+		function_name = plugin->pre_function;
 	else 
-		function_name = CFG_RESPONSE_PLUGIN_FUNCTION;
+		function_name = plugin->post_function;
 
 	proxenet_perl_lock_vm(interpreter);
 	buf = proxenet_perl_execute_function(plugin, function_name, rid, request, request_size);
