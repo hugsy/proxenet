@@ -90,7 +90,7 @@ endif
 
 
 # TEST
-TEST_ARGS		= 	-4 -vvvv -t 10 -b 0.0.0.0 -p 8000 -n
+TEST_ARGS		= 	-4 -vvvv -t 10 -b 0.0.0.0 -p 8000 
 
 
 # Compile rules
@@ -118,15 +118,20 @@ keys:
 	@make -C keys all
 
 # use this rule if you want to embed polarssl
-ssl:	ssl-git polarssl/library/libpolarssl.a
+ssl:	polarssl/library/libpolarssl.a
 
 ssl-git:
 	@echo "Downloading PolarSSL library"
 	@git clone https://github.com/polarssl/polarssl.git
 
 polarssl/library/libpolarssl.a:
-	@echo "Building PolarSSL library"
-	@make -C polarssl lib
+	@if [ $(DEBUG_SSL) -eq 1 ]; then \
+		echo "Building PolarSSL library with DEBUG syms";\
+		make -C polarssl lib DEBUG=1; \
+	else \
+		echo "Building PolarSSL library";\
+		make -C polarssl lib; \
+	fi
 
 ssl-clean: clean
 	@make -C polarssl clean

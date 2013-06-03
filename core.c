@@ -546,8 +546,7 @@ void proxenet_process_http_request(sock_t server_socket)
 	/* close client socket */
 	if (client_socket > 0) {
 		if (ssl_context.client.is_valid) {
-			proxenet_ssl_bye(&ssl_context.client.context); 
-			proxenet_ssl_free_certificate(&ssl_context.client.cert);
+			proxenet_ssl_finish(&ssl_context.client);
 			close_socket_ssl(client_socket, &ssl_context.client.context);
 		
 		} else {
@@ -559,8 +558,7 @@ void proxenet_process_http_request(sock_t server_socket)
 	/* close local socket */
 	if (server_socket > 0) {
 		if (ssl_context.server.is_valid) {
-			proxenet_ssl_bye(&ssl_context.server.context);
-			proxenet_ssl_free_certificate(&ssl_context.server.cert);
+			proxenet_ssl_finish(&(ssl_context.server));
 			close_socket_ssl(server_socket, &ssl_context.server.context);
 			
 		} else {

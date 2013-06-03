@@ -88,6 +88,7 @@ int proxenet_ssl_init_server_context(ssl_atom_t *server)
 	retcode = x509parse_keyfile(&(server->rsa), cfg->keyfile, NULL);
 	if(retcode) {
 		error_strerror(retcode, ssl_error_buffer, 127);
+		rsa_free(&(server->rsa));
 		xlog(LOG_CRITICAL, "Failed to parse key: %s\n", ssl_error_buffer);
 		return -1;
 	}
@@ -201,6 +202,16 @@ void proxenet_ssl_bye(proxenet_ssl_context_t* ssl)
 	ssl_close_notify( ssl );
 }
 			     
+
+/**
+ *
+ */
+void proxenet_ssl_finish(ssl_atom_t* ssl)
+{
+	rsa_free(&ssl->rsa);
+	proxenet_ssl_bye(&ssl->context);
+	proxenet_ssl_free_certificate(&ssl->cert);
+}
 			     
 /**
  *
