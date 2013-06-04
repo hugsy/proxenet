@@ -321,6 +321,10 @@ int proxenet_handle_control_event(sock_t* sock) {
 	if (retcode == 0) {
 		return -1;
 	}
+	
+	if (read_buf[0] == '\n') {
+		goto cmd_end;
+	}
 		
 	if ( (cmd=get_command(read_buf)) == NULL ) {
 		proxenet_write(*sock, CONTROL_INVALID, strlen(CONTROL_INVALID));
