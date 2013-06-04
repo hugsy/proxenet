@@ -119,7 +119,7 @@ void proxenet_delete_list_plugins()
 	while (p != NULL) {
 		next = p->next;
 		
-#ifdef _PERL_
+#ifdef _PERL_PLUGIN
 		if(p->type == _PERL_) {
 			proxenet_xfree(p->pre_function);
 			proxenet_xfree(p->post_function);
