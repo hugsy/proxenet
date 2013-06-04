@@ -351,7 +351,6 @@ char* proxenet_apply_plugins(long id, char* data, size_t* data_size, char type)
 			 * heap and the old one isn't needed anymore
 			 */
 			proxenet_xfree(old_data);
-			old_data = NULL;
 		} else {
 			/* Otherwise, use the old_data, which is only the original data */
 			new_data = old_data;

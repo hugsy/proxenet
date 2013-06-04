@@ -184,7 +184,6 @@ char* proxenet_perl_execute_function(plugin_t* plugin, const char* fname, long r
 		
 	} else {
 		sv = POPs;
-		len = SvLEN(sv);
 		res = SvPV(sv, len);
 		data = (char*) proxenet_xmalloc(len+1);
 		memcpy(data, res, len);
