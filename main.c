@@ -41,9 +41,9 @@ void usage(int retcode)
 	fd = (retcode == 0) ? stdout : stderr;
 	
 	fprintf(fd,
-		"\nSYNTAX :\n"
-		"\t%s [OPTIONS+]\n"
-		"\nOPTIONS:\n"
+		"\n"RED"SYNTAX:"NOCOLOR"\n"
+		"\t%s "GREEN"[OPTIONS+]"NOCOLOR"\n"
+		"\n"RED"OPTIONS:"NOCOLOR"\n"
 		"\t-t, --nb-threads=N\t\t\tNumber of threads (default: %d)\n"
 		"\t-b, --lbind=bindaddr\t\t\tBind local address (default: %s)\n"
 		"\t-p, --lport=N\t\t\t\tBind local port file (default: %s)\n"
@@ -224,7 +224,7 @@ int parse_options (int argc, char** argv)
 		xlog(LOG_CRITICAL, "realpath(certfile) failed: %s\n", strerror(errno));
 		return -1;
 	}
-	if ( is_readable_file(cfg->certfile) ) {
+	if ( !is_readable_file(cfg->certfile) ) {
 		xlog(LOG_CRITICAL, "Failed to read certificate '%s'\n", cfg->certfile);
 		return -1;
 	}
@@ -235,7 +235,7 @@ int parse_options (int argc, char** argv)
 		xlog(LOG_CRITICAL, "realpath(certfile) failed: %s\n", strerror(errno));
 		return -1;
 	}
-	if ( is_readable_file(cfg->keyfile) ){
+	if ( !is_readable_file(cfg->keyfile) ){
 		xlog(LOG_CRITICAL, "Failed to read private key '%s'\n", cfg->keyfile);
 		return -1;
 	}
@@ -248,13 +248,13 @@ int parse_options (int argc, char** argv)
 
 	if (proxy_host) {
 		cfg->proxy.host = strdup(proxy_host);
-		if (!cfg->proxy.host || cfg->proxy.port) {
+		if (!cfg->proxy.host) {
 			xlog(LOG_CRITICAL, "proxy %s\n", strerror(errno));
 			return -1;
 		}
 
 		cfg->proxy.port = strdup(proxy_port);
-		if (cfg->proxy.port) {
+		if (!cfg->proxy.port) {
 			xlog(LOG_CRITICAL, "proxy_port %s\n", strerror(errno));
 			return -1;
 		}
