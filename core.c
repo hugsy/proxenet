@@ -95,9 +95,13 @@ void proxenet_delete_once_plugins()
  */
 void proxenet_initialize_plugins()
 {
-	plugin_t *plugin;
+	plugin_t *plugin      = plugins_list;
+	plugin_t *prec_plugin = NULL;
+	plugin_t *next_plugin = NULL;
 	
-	for (plugin=plugins_list; plugin; plugin=plugin->next) {
+	
+	while(plugin) {
+// 	for (plugin=plugins_list; plugin; plugin=plugin->next) {
 		
 		switch (plugin->type) {
 			
@@ -106,19 +110,19 @@ void proxenet_initialize_plugins()
 				if (proxenet_python_initialize_vm(plugin) < 0) {
 					plugin->state = INACTIVE;
 					xlog(LOG_ERROR, "%s\n", "Failed to init Python VM");
-					continue;
+					goto delete_plugin;
 				}
 				
 				if (proxenet_python_initialize_function(plugin, REQUEST) < 0) {
 					plugin->state = INACTIVE;
 					xlog(LOG_ERROR, "Failed to init %s in %s\n", CFG_REQUEST_PLUGIN_FUNCTION, plugin->name);
-					continue;
+					goto delete_plugin;
 				}
 				
 				if (proxenet_python_initialize_function(plugin, RESPONSE) < 0) {
 					plugin->state = INACTIVE;
 					xlog(LOG_ERROR, "Failed to init %s in %s\n", CFG_RESPONSE_PLUGIN_FUNCTION, plugin->name);
-					continue;
+					goto delete_plugin;
 				}
 				break;
 #endif
@@ -128,19 +132,19 @@ void proxenet_initialize_plugins()
 				if (proxenet_c_initialize_vm(plugin) < 0) {
 					plugin->state = INACTIVE;
 					xlog(LOG_ERROR, "%s\n", "Failed to init C VM");
-					continue;
+					goto delete_plugin;
 				}
 				
 				if (proxenet_c_initialize_function(plugin, REQUEST) < 0) {
 					plugin->state = INACTIVE;
 					xlog(LOG_ERROR, "Failed to init %s in %s\n", CFG_REQUEST_PLUGIN_FUNCTION, plugin->name);
-					continue;
+					goto delete_plugin;
 				}
 				
 				if (proxenet_c_initialize_function(plugin, RESPONSE) < 0) {
 					plugin->state = INACTIVE;
 					xlog(LOG_ERROR, "Failed to init %s in %s\n", CFG_RESPONSE_PLUGIN_FUNCTION, plugin->name);
-					continue;
+					goto delete_plugin;
 				}
 				break;
 #endif
@@ -150,18 +154,18 @@ void proxenet_initialize_plugins()
 				if (proxenet_ruby_initialize_vm(plugin) < 0) {
 					plugin->state = INACTIVE;
 					xlog(LOG_ERROR, "%s\n", "Failed to init Ruby VM");
-					continue;
+					goto delete_plugin;
 				}
 				if (proxenet_ruby_initialize_function(plugin, REQUEST) < 0) {
 					plugin->state = INACTIVE;
 					xlog(LOG_ERROR, "Failed to init %s in %s\n", CFG_REQUEST_PLUGIN_FUNCTION, plugin->name);
-					continue;
+					goto delete_plugin;
 				}
 				
 				if (proxenet_ruby_initialize_function(plugin, RESPONSE) < 0) {
 					plugin->state = INACTIVE;
 					xlog(LOG_ERROR, "Failed to init %s in %s\n", CFG_RESPONSE_PLUGIN_FUNCTION, plugin->name);
-					continue;
+					goto delete_plugin;
 				}
 				
 				break;
@@ -169,34 +173,50 @@ void proxenet_initialize_plugins()
 
 #ifdef _PERL_PLUGIN
 			case _PERL_:
-				if (proxenet_perl_initialize_vm(plugin) < 0) {
+				if (proxenet_perl_initialize_vm(plugin) < 0) { // TODO voir pour retirer le plugin de la liste, non ?
 					plugin->state = INACTIVE;
+					plugin->type = -1;
 					xlog(LOG_ERROR, "%s\n", "Failed to init Perl VM");
-					continue;
+					goto delete_plugin;
 				}
 				break;
-#endif				
+#endif
 
 #ifdef _LUA_PLUGIN
 			case _LUA_:
 				if (proxenet_lua_initialize_vm(plugin) < 0) {
 					plugin->state = INACTIVE;
 					xlog(LOG_ERROR, "%s\n", "Failed to init Lua VM");
-					continue;
+					goto delete_plugin;
 				}
 
 				if (proxenet_lua_load_file(plugin) < 0) {
 					plugin->state = INACTIVE;
 					xlog(LOG_ERROR, "Failed to load %s\n", plugin->filename);
-					continue;
+					goto delete_plugin;
 				}
 				
 				break;
-#endif					
+#endif
 			default:
 				break;
 		}
 		
+		prec_plugin = plugin;
+		plugin = plugin->next;
+		continue;
+		
+		
+delete_plugin:
+		if(prec_plugin) {
+			prec_plugin->next = plugin->next;
+		} else {
+			plugins_list = plugin->next;
+		}
+		
+		next_plugin = plugin->next;
+		free_plugin(plugin);
+		plugin = next_plugin;
 	}
 }
 
