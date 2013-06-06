@@ -41,9 +41,9 @@ void usage(int retcode)
 	fd = (retcode == 0) ? stdout : stderr;
 	
 	fprintf(fd,
-		"\nSYNTAX :\n"
-		"\t%s [OPTIONS+]\n"
-		"\nOPTIONS:\n"
+		"\n"RED"SYNTAX:"NOCOLOR"\n"
+		"\t%s "GREEN"[OPTIONS+]"NOCOLOR"\n"
+		"\n"RED"OPTIONS:"NOCOLOR"\n"
 		"\t-t, --nb-threads=N\t\t\tNumber of threads (default: %d)\n"
 		"\t-b, --lbind=bindaddr\t\t\tBind local address (default: %s)\n"
 		"\t-p, --lport=N\t\t\t\tBind local port file (default: %s)\n"
@@ -105,12 +105,15 @@ void help(char* argv0)
 
 
 /**
+ * Checks command line arguments once and for all. Handles (de)allocation for config_t structure
  *
+ * @return 0 if successfully parsed and allocated
+ * @return -1
  */
-bool parse_options (int argc, char** argv)
+int parse_options (int argc, char** argv)
 {
 	int curopt, curopt_idx;
-	char *path, *keyfile, *certfile;
+	char *logfile, *path, *keyfile, *certfile;
 	char *proxy_host, *proxy_port;
 
 	proxy_host = proxy_port = NULL;
@@ -144,7 +147,8 @@ bool parse_options (int argc, char** argv)
 	path			= CFG_DEFAULT_PLUGINS_PATH;
 	keyfile			= CFG_DEFAULT_SSL_KEYFILE;
 	certfile		= CFG_DEFAULT_SSL_CERTFILE;
-
+	logfile			= NULL;
+	
 	/* parse command line arguments */
 	while (1) {
 		curopt = -1;
@@ -156,7 +160,7 @@ bool parse_options (int argc, char** argv)
 			case 'v': cfg->verbose++; break;
 			case 'b': cfg->iface = optarg; break;
 			case 'p': cfg->port = optarg; break;
-			case 'l': cfg->logfile = optarg; break;
+			case 'l': logfile = optarg; break;
 			case 't': cfg->nb_threads = (unsigned short)atoi(optarg); break;
 			case 'X':
 				proxy_host = optarg;
@@ -179,64 +183,103 @@ bool parse_options (int argc, char** argv)
 	}
 
 	/* validate command line arguments */
-	if(cfg->logfile && is_readable_file(cfg->logfile)) {
-		cfg->logfile_fd = fopen(cfg->logfile, "a");
-		if(!cfg->logfile_fd) {
-			fprintf(stderr, "[-] Failed to open '%s': %s\n", cfg->logfile, strerror(errno));
-			return false;
+
+	/* logfile validation : if a logfile is given, use its FILE* for output */
+	if (logfile) {
+		cfg->logfile = realpath(logfile, NULL);
+		if (cfg->logfile == NULL){
+			xlog(LOG_CRITICAL, "realpath(logfile) failed: %s\n", strerror(errno));
+			return -1;
+		}
+		if(is_readable_file(cfg->logfile)) {
+			cfg->logfile_fd = fopen(cfg->logfile, "w");
+			if(!cfg->logfile_fd) {
+				cfg->logfile_fd = stderr;
+				xlog(LOG_CRITICAL, "[-] Failed to open '%s': %s\n", cfg->logfile, strerror(errno));
+				return -1;
+			}
 		}
 	}
-	
+
+	/* check if nb of threads is in boundaries */
 	if (cfg->nb_threads > MAX_THREADS) {
 		fprintf(stderr, "Too many threads. Setting to default.\n");
 		cfg->nb_threads = CFG_DEFAULT_NB_THREAD;
 	}
 	
-	if (path && is_valid_path(path))
-		cfg->plugins_path = realpath(path, NULL);
-	else {
+	/* check plugins path */
+	cfg->plugins_path = realpath(path, NULL);
+	if (cfg->plugins_path == NULL){
+		xlog(LOG_CRITICAL, "realpath(plugins_path) failed: %s\n", strerror(errno));
+		return -1;
+	}
+	if (!is_valid_path(cfg->plugins_path)) {
 		xlog(LOG_CRITICAL, "%s\n", "Invalid plugins path provided");
-		return false;
+		return -1;
 	}
 
-	if ( is_readable_file(certfile) )
-		cfg->certfile = realpath(certfile, NULL);
-	else {
+	/* check ssl certificate */
+	cfg->certfile = realpath(certfile, NULL);
+	if (cfg->certfile == NULL){
+		xlog(LOG_CRITICAL, "realpath(certfile) failed: %s\n", strerror(errno));
+		return -1;
+	}
+	if ( !is_readable_file(cfg->certfile) ) {
 		xlog(LOG_CRITICAL, "Failed to read certificate '%s'\n", cfg->certfile);
-		return false;
+		return -1;
 	}
 
-	if ( is_readable_file(keyfile) )
-		cfg->keyfile = realpath(keyfile, NULL);
-	else {
+	/* check ssl key */
+	cfg->keyfile = realpath(keyfile, NULL);
+	if (cfg->certfile == NULL){
+		xlog(LOG_CRITICAL, "realpath(certfile) failed: %s\n", strerror(errno));
+		return -1;
+	}
+	if ( !is_readable_file(cfg->keyfile) ){
 		xlog(LOG_CRITICAL, "Failed to read private key '%s'\n", cfg->keyfile);
-		return false;
+		return -1;
 	}
 
+	/* check proxy values (if any) */
 	if ( proxy_port && !proxy_host) {
-		xlog(LOG_CRITICAL, "%s\n", "Cannot use proxy-port with proxy-host");
-		return false;
+		xlog(LOG_CRITICAL, "%s\n", "Cannot use proxy-port without proxy-host");
+		return -1;
 	}
 
 	if (proxy_host) {
 		cfg->proxy.host = strdup(proxy_host);
+		if (!cfg->proxy.host) {
+			xlog(LOG_CRITICAL, "proxy %s\n", strerror(errno));
+			return -1;
+		}
+
 		cfg->proxy.port = strdup(proxy_port);
+		if (!cfg->proxy.port) {
+			xlog(LOG_CRITICAL, "proxy_port %s\n", strerror(errno));
+			return -1;
+		}
 	}
 	
-	return true;
+	return 0;
+
 }
 
 
 /**
+ * initialize config and allocate buffers
  *
+ * @return -1 if an error occured
+ * @return 0 on success
  */
 int proxenet_init_config(int argc, char** argv)
 {
 	cfg = &current_config;
 	proxenet_xzero(cfg, sizeof(conf_t));
 	
-	if (parse_options(argc, argv) == false) {
-		xlog(LOG_ERROR, "%s\n", "Failed to parse arguments");
+	if (parse_options(argc, argv) < 0) {
+		xlog(LOG_CRITICAL, "%s\n", "Failed to parse arguments");
+		proxenet_free_config();
+		proxenet_xzero(cfg, sizeof(conf_t));
 		return -1;
 	}
 
@@ -245,13 +288,22 @@ int proxenet_init_config(int argc, char** argv)
 
 
 /**
- *
+ * deallocate all data related to cfg
  */
 void proxenet_free_config()
 {
-	proxenet_xfree(cfg->plugins_path);
-	proxenet_xfree(cfg->certfile);
-	proxenet_xfree(cfg->keyfile);
+	/* those calls should be safe */
+	if (cfg->logfile)
+		proxenet_xfree(cfg->logfile);
+	
+	if (cfg->plugins_path)
+		proxenet_xfree(cfg->plugins_path);
+
+	if (cfg->certfile)
+		proxenet_xfree(cfg->certfile);
+
+	if (cfg->keyfile)
+		proxenet_xfree(cfg->keyfile);
 	
 	if(cfg->logfile_fd)
 		fclose(cfg->logfile_fd);
@@ -276,8 +328,8 @@ int main (int argc, char **argv, char** envp)
 	
 	/* get configuration */
 	retcode = proxenet_init_config(argc, argv);
-	if (retcode)		
-		goto end;
+	if (retcode<0)		
+		return EXIT_FAILURE;
 	
 	
 #ifdef _PERL_PLUGIN
@@ -294,11 +346,9 @@ int main (int argc, char **argv, char** envp)
 	proxenet_delete_once_plugins();
 #endif
 
-end:
-
 	/* proxenet ends here */
 	proxenet_free_config();
-	
+
 	return (retcode == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 

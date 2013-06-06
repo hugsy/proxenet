@@ -103,7 +103,7 @@ void* proxenet_xmalloc(size_t size)
 void proxenet_xfree(void* ptr)
 {
 	if(ptr == NULL) {
-		xlog(LOG_ERROR, "%s\n", "Trying to free null pointer");
+		xlog(LOG_CRITICAL, "%s\n", "Trying to free null pointer");
 		abort();
 	}
 	
@@ -146,9 +146,12 @@ void* proxenet_xrealloc(void* oldptr, size_t new_size)
  */
 void proxenet_xzero(void* buf, size_t buflen)
 {
-	if (buflen)
-		memset(buf, 0, buflen);
+	if (!buflen) {
+		xlog(LOG_CRITICAL, "%s\n", "trying to zero-ify NULL pointer"); 
+		abort();
+	}
 	
+	memset(buf, 0, buflen);
 }
 
 
