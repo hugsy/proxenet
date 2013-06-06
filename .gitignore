@@ -1,9 +1,0 @@
-TAGS
-todo
-*.o
-plugins/*.so
-plugins/*.pyc
-proxenet
-proxenet.1
-polarssl
-
