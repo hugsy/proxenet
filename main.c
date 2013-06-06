@@ -49,8 +49,8 @@ void usage(int retcode)
 		"\t-p, --lport=N\t\t\t\tBind local port file (default: %s)\n"
 		"\t-l, --logfile=/path/to/logfile\t\tLog actions in file\n"
 		"\t-x, --plugins=/path/to/plugins/dir\tSpecify plugins directory (default: %s)\n"
-		"\t-X, --proxy-host=proxyhost\t\t\t\tForward to proxy\n"
-		"\t-P  --proxy-port=proxyport\t\t\t\tSpecify port for proxy (default: %s)\n"
+		"\t-X, --proxy-host=proxyhost\t\tForward to proxy\n"
+		"\t-P  --proxy-port=proxyport\t\tSpecify port for proxy (default: %s)\n"
 		"\t-k, --key=/path/to/ssl.key\t\tSpecify SSL key to use (default: %s)\n"
 		"\t-c, --cert=/path/to/ssl.crt\t\tSpecify SSL cert to use (default: %s)\n"
 		"\t-v, --verbose\t\t\t\tIncrease verbosity (default: 0)\n"
@@ -88,17 +88,20 @@ void help(char* argv0)
 	       "Compiled with support for :\n",
 	       AUTHOR, LICENSE);
 
-	plugin_name = supported_plugins_str[0];
-	plugin_ext  = plugins_extensions_str[0];
-	
-	for(i=1; plugin_name; i++) {
-		printf("\t[+] 0x%.2x   %-10s (%s)\n",
-		       i,
-		       plugin_name,
-		       plugin_ext);
+	i = 0;
+	while (true) {
 		plugin_name = supported_plugins_str[i];
 		plugin_ext  = plugins_extensions_str[i];
+
+		if (!plugin_name || !plugin_ext)
+			break;
+	
+		printf("\t[+] 0x%.2x   "GREEN"%-10s"NOCOLOR" (%s)\n", i, plugin_name, plugin_ext);
+		i++;
 	}
+
+	if (i==0)
+		printf("\t[-] "RED"No support for plugin"NOCOLOR"\n");
 	
 	usage(EXIT_SUCCESS);
 }

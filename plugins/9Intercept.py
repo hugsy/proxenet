@@ -72,5 +72,5 @@ if __name__ == "__main__":
     req = "GET / HTTP/1.1\r\nHost: foo\r\nX-Header: Powered by proxenet\r\n\r\n"
     rid = 10
     
-    print proxenet_request_hook(rid, req)
+    print ("%s" % proxenet_request_hook(rid, req))
 

@@ -16,6 +16,6 @@ if __name__ == "__main__":
     req = "GET   /   HTTP/1.1\r\nHost: foo\r\nAccept-Encoding: gzip, deflate\r\n\r\n"
     res = "HTTP/1.1 404 Not Found\r\nServer: foo\r\n\r\n"
     
-    print proxenet_request_hook(1, req)
-    print proxenet_reponse_hook(1, res)
+    print ("%s", proxenet_request_hook(1, req))
+    print ("%s", proxenet_reponse_hook(1, res))
     

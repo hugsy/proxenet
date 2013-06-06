@@ -19,6 +19,19 @@
 #include "utils.h"
 #include "plugin-python.h"
 
+#if defined _PYTHON2_
+#define PYTHON_CHECK PyString_Check
+#define PYTHON_ASSTRINGANDSIZE  PyString_AsStringAndSize
+#define PYTHON_FROMSTRING  PyStringBytes_FromString
+
+#elif defined _PYTHON3_
+#define PYTHON_CHECK PyBytes_Check
+#define PYTHON_FROMSTRING  PyUnicode_FromString
+#define PYTHON_ASSTRINGANDSIZE  PyBytes_AsStringAndSize
+
+#else
+abort();
+#endif
 
 /**
  *
@@ -38,7 +51,7 @@ int proxenet_python_append_path(interpreter_t *interpreter)
 		return -1;
 	}
 	
-	pAddPath = PyString_FromString(cfg->plugins_path);
+	pAddPath = PYTHON_FROMSTRING(cfg->plugins_path);
 	if (!pAddPath) {
 		return -1;
 	}
@@ -141,9 +154,13 @@ int proxenet_python_initialize_function(plugin_t* plugin, char type)
 	module_name_len = strlen(plugin->name) + 2; 
 	module_name = alloca(module_name_len);
 	proxenet_xzero(module_name, module_name_len);
-	snprintf(module_name, module_name_len, "%d%s", plugin->priority, plugin->name);
+
+	if (snprintf(module_name, module_name_len, "%d%s", plugin->priority, plugin->name) < 0){
+		xlog(LOG_ERROR, "snprintf failed : %s\n", strerror(errno));
+		return -1;
+	}
 	
-	pModStr = PyString_FromString(module_name);
+	pModStr = PYTHON_FROMSTRING(module_name);
 	if (!pModStr) {
 		PyErr_Print();
 		return -1;
@@ -151,6 +168,7 @@ int proxenet_python_initialize_function(plugin_t* plugin, char type)
 
 	pMod = PyImport_Import(pModStr);
 	if(!pMod) {
+		xlog(LOG_ERROR, "Failed to import '%s'\n", module_name);
 		PyErr_Print(); 
 		Py_DECREF(pModStr);
 		return -1;
@@ -209,10 +227,10 @@ char* proxenet_python_execute_function(PyObject* pFuncRef, long rid, char* reque
 		PyErr_Print();
 		return result;
 	}
-	
-	/* if (PyString_Check(pResult)){  // supprime dans python2.7 ?? */
-	if (PyBytes_Check(pResult)) {
-		ret = PyString_AsStringAndSize(pResult, &buffer, &len);
+
+
+	if (PYTHON_CHECK(pResult)) {
+		ret = PYTHON_ASSTRINGANDSIZE(pResult, &buffer, &len);
 		if (ret < 0) {
 			PyErr_Print();
 			

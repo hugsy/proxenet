@@ -43,10 +43,15 @@ endif
 # PLUGINS 
 WITH_C_PLUGIN		=	0
 WITH_PYTHON_PLUGIN	=	1
-WITH_PERL_PLUGIN	=	0
-WITH_RUBY_PLUGIN	=	0
-WITH_LUA_PLUGIN		=	0
+_USE_PYTHON2_		= 	0
+_USE_PYTHON3_		= 	1
 
+WITH_RUBY_PLUGIN	=	0
+_USE_RUBY18_		=	0
+_USE_RUBY19_		=	0
+
+WITH_LUA_PLUGIN		=	0
+WITH_PERL_PLUGIN	=	0
 
 ifeq ($(WITH_C_PLUGIN), 1)
 DEFINES			+=	-D_C_PLUGIN 
@@ -54,35 +59,45 @@ LDFLAGS			+=	-ldl
 endif
 
 ifeq ($(WITH_PYTHON_PLUGIN), 1)
-DEFINES			+=	-D_PYTHON_PLUGIN
-LDFLAGS			+=	-lpython2.7
-INC			+=	-I/usr/include/python2.7
+
+# Check Python version (2 or 3)
+ifeq ($(_USE_PYTHON2_), 1)
+	DEFINES		+=	-D_PYTHON_PLUGIN -D_PYTHON2_
+	LDFLAGS		+=	-lpython2.7
+	INC		+=	-I/usr/include/python2.7
+else ifeq ($(_USE_PYTHON3_), 1)
+	DEFINES		+=	-D_PYTHON_PLUGIN -D_PYTHON3_
+	LDFLAGS		+=	-lpython3.3m
+	INC		+=	-I/usr/include/python3.3m
+endif
+
 endif
 
 ifeq ($(WITH_PERL_PLUGIN), 1)
 DEFINES			+=	-D_PERL_PLUGIN
 INC			+=	-I/usr/lib/perl5/core_perl/CORE/
-LIB			+=	-L/usr/lib/perl5/core_perl/CORE/
 INC			+=	-I/usr/lib/perl5/CORE/
+LIB			+=	-L/usr/lib/perl5/core_perl/CORE/
 LIB			+=	-L/usr/lib/perl5/CORE/
 LDFLAGS			+=	-lperl
 endif
 
+# Check Ruby version (1.8 or 1.9 - 1.9 api is compatible with Ruby2) 
 ifeq ($(WITH_RUBY_PLUGIN), 1)
-DEFINES			+=	-D_RUBY_PLUGIN
 
-# Ruby 1.8
-# DEFINES			+=	-D_RUBY_VERSION_1_8
-# INC			+=	-I/home/hugsy/.rvm/rubies/ruby-1.8.7-p370/lib/ruby/1.8/x86_64-linux/
-# LIB			+=	-L/home/hugsy/.rvm/rubies/ruby-1.8.7-p370/lib
+ifeq ($(_USE_RUBY18_), 1)
+	DEFINES		+=	-D_RUBY_PLUGIN -D_RUBY18_
+	INC		+=	-I/home/hugsy/.rvm/rubies/ruby-1.8.7-p370/lib/ruby/1.8/x86_64-linux/
+	LIB		+=	-L/home/hugsy/.rvm/rubies/ruby-1.8.7-p370/lib
+	LDFLAGS		+=	-lruby
+else ifeq ($(_USE_RUBY19_), 1)
+	DEFINES		+=	-D_RUBY_PLUGIN -D_RUBY19_
+	INC		+=	-I/home/hugsy/.rvm/rubies/ruby-1.9.3-p194/include/ruby-1.9.1
+	INC		+=	-I/home/hugsy/.rvm/rubies/ruby-1.9.3-p194/include/ruby-1.9.1/x86_64-linux
+	LIB		+=	-L/home/hugsy/.rvm/rubies/ruby-1.9.3-p194/lib
+	LDFLAGS		+=	-lruby
+endif
 
-# Ruby 1.9
-DEFINES			+=	-D_RUBY_VERSION_1_9
-INC			+=	-I/home/hugsy/.rvm/rubies/ruby-1.9.3-p194/include/ruby-1.9.1
-INC			+=	-I/home/hugsy/.rvm/rubies/ruby-1.9.3-p194/include/ruby-1.9.1/x86_64-linux
-LIB			+=	-L/home/hugsy/.rvm/rubies/ruby-1.9.3-p194/lib
-
-LDFLAGS			+=	-lruby
 endif
 
 ifeq ($(WITH_LUA_PLUGIN), 1)

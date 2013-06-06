@@ -33,7 +33,13 @@ typedef enum __supported_plugins_t {
 
 const static UNUSED char* supported_plugins_str[] = {
 #ifdef _PYTHON_PLUGIN
-	"Python",
+	#if defined _PYTHON2_
+	"Python2",
+	#elif defined _PYTHON3_
+	"Python3",
+	#else
+	"Unknown Python version (incorrect build?)",
+	#endif
 #endif
 
 #ifdef _C_PLUGIN
@@ -41,7 +47,13 @@ const static UNUSED char* supported_plugins_str[] = {
 #endif
 	
 #ifdef _RUBY_PLUGIN
-	"Ruby",
+	#if defined _RUBY18_
+	"Ruby 1.8",
+	#elif defined _RUBY19_
+	"Ruby 1.9",
+	#else
+	"Unknown Ruby version (incorrect build?)",
+	#endif	
 #endif
 
 #ifdef _PERL_PLUGIN
