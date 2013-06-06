@@ -111,7 +111,7 @@ int proxenet_plugin_list_size()
 /**
  * 
  */
-void free_plugin(plugin_t* plugin)
+void proxenet_free_plugin(plugin_t* plugin)
 {
 #ifdef _PERL_PLUGIN
 	if(plugin->type == _PERL_) {
@@ -137,7 +137,7 @@ void proxenet_delete_list_plugins()
 	
 	while (p != NULL) {
 		next = p->next;
-		free_plugin(p);
+		proxenet_free_plugin(p);
 		p = next;
 	}
 	

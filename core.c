@@ -101,7 +101,6 @@ void proxenet_initialize_plugins()
 	
 	
 	while(plugin) {
-// 	for (plugin=plugins_list; plugin; plugin=plugin->next) {
 		
 		switch (plugin->type) {
 			
@@ -215,7 +214,7 @@ delete_plugin:
 		}
 		
 		next_plugin = plugin->next;
-		free_plugin(plugin);
+		proxenet_free_plugin(plugin);
 		plugin = next_plugin;
 	}
 }
