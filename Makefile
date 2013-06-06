@@ -63,6 +63,8 @@ ifeq ($(WITH_PERL_PLUGIN), 1)
 DEFINES			+=	-D_PERL_PLUGIN
 INC			+=	-I/usr/lib/perl5/core_perl/CORE/
 LIB			+=	-L/usr/lib/perl5/core_perl/CORE/
+INC			+=	-I/usr/lib/perl5/CORE/
+LIB			+=	-L/usr/lib/perl5/CORE/
 LDFLAGS			+=	-lperl
 endif
 
@@ -115,7 +117,7 @@ clean: purge
 	@rm -fr $(BIN)
 
 keys:
-	@make -C keys all
+	@make -C keys keys
 
 # use this rule if you want to embed polarssl
 ssl:	polarssl/library/libpolarssl.a
