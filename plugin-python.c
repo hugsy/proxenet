@@ -4,7 +4,10 @@
  *
  * Python plugin implementation
  *
- * tested on CPython2.6, CPython2.7
+ * tested on
+ * - CPython2.6
+ * - CPython2.7
+ * - CPython3.3
  *
  */
 

@@ -18,6 +18,13 @@
 #include "main.h"
 
 
+/**
+ *
+ */
+VALUE proxenet_ruby_require_cb(VALUE arg)
+{
+	return rb_require((char *)arg);
+}
 
 /**
  *
@@ -37,10 +44,12 @@ int proxenet_ruby_load_file(plugin_t* plugin)
 	proxenet_xzero(pathname, pathname_len + 1);
 	snprintf(pathname, pathname_len, "%s/%s", cfg->plugins_path, filename);
 
-#ifdef _RUBY_VERSION_1_9
-	rb_protect(RUBY_METHOD_FUNC(rb_require), (VALUE) pathname, &res);
+#if defined _RUBY19_
+	rb_protect(proxenet_ruby_require_cb, (VALUE) pathname, &res);
+#elif defined _RUBY18_
+	rb_protect(proxenet_ruby_require_cb, (VALUE) pathname, &res);
 #else
-	rb_protect(rb_require, (VALUE) pathname, &res);
+	abort();
 #endif
 	if (res != 0) {
 		xlog(LOG_ERROR, "[Ruby] Error %d when load file '%s'\n", res, pathname);
@@ -73,18 +82,22 @@ int proxenet_ruby_initialize_vm(plugin_t* plugin)
 	/* init vm */
 	ruby_init();
 	
-#ifdef _RUBY_VERSION_1_9
+#if defined _RUBY19_
 #ifdef DEBUG
 	xlog(LOG_DEBUG, "%s\n", "Using Ruby 1.9 C API");
 #endif
 	/* luke : not great, but temporary until I get rb_vm_top_self working */
 	interpreter->vm = (void*) rb_cObject;
-#else
+
+#elif defined _RUBY18_
 	
 #ifdef DEBUG
 	xlog(LOG_DEBUG, "%s\n", "Using Ruby 1.8 C API");
 #endif
 	interpreter->vm = (void*) ruby_top_self;
+
+#else
+	abort();
 #endif
 
 	ruby_init_loadpath();

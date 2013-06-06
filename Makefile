@@ -40,14 +40,16 @@ endif
 endif
 
 
-# PLUGINS 
+# PLUGINS
+# Modify path to match your config
+#
 WITH_C_PLUGIN		=	0
-WITH_PYTHON_PLUGIN	=	1
+WITH_PYTHON_PLUGIN	=	0
 _USE_PYTHON2_		= 	0
 _USE_PYTHON3_		= 	1
 
 WITH_RUBY_PLUGIN	=	0
-_USE_RUBY18_		=	0
+_USE_RUBY18_		=	1
 _USE_RUBY19_		=	0
 
 WITH_LUA_PLUGIN		=	0
@@ -82,7 +84,7 @@ LIB			+=	-L/usr/lib/perl5/CORE/
 LDFLAGS			+=	-lperl
 endif
 
-# Check Ruby version (1.8 or 1.9 - 1.9 api is compatible with Ruby2) 
+# Check Ruby version (1.8 or 1.9 - 1.9 api is compatible with Ruby2)
 ifeq ($(WITH_RUBY_PLUGIN), 1)
 
 ifeq ($(_USE_RUBY18_), 1)
