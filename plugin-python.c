@@ -216,8 +216,12 @@ char* proxenet_python_execute_function(PyObject* pFuncRef, long rid, char* reque
 
 	result = buffer = NULL;
 	len = -1;
-	
+
+#ifdef _PYTHON3_
+	pArgs = Py_BuildValue("iy", rid, request_str);
+#else
 	pArgs = Py_BuildValue("is", rid, request_str);
+#endif
 	if (!pArgs) {
 		xlog(LOG_ERROR, "%s\n", "Failed to build args");
 		PyErr_Print();
@@ -303,7 +307,6 @@ char* proxenet_python_plugin(plugin_t* plugin, long rid, char* request, size_t* 
 		dst_buf = request;
 	}
 	
-	/* Py_DECREF(pFunc); */
 
 	proxenet_python_unlock_vm(interpreter);
 	

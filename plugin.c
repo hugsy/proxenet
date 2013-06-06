@@ -191,7 +191,7 @@ void proxenet_print_plugins_list()
 
 	list_str = proxenet_build_plugins_list();
 	sem_wait(&tty_semaphore);
-	fprintf(cfg->logfile_fd, "%s", list_str);
+	xlog(LOG_INFO, "%s", list_str);
 	fflush(cfg->logfile_fd);
 	sem_post(&tty_semaphore);
 	proxenet_xfree(list_str);
