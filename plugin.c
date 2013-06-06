@@ -109,6 +109,25 @@ int proxenet_plugin_list_size()
 
 
 /**
+ * 
+ */
+void free_plugin(plugin_t* plugin)
+{
+#ifdef _PERL_PLUGIN
+	if(plugin->type == _PERL_) {
+		proxenet_xfree(plugin->pre_function);
+		proxenet_xfree(plugin->post_function);
+	}
+#endif
+	
+	proxenet_xfree(plugin->name);
+	proxenet_xfree(plugin->filename);
+	proxenet_xfree(plugin);
+}
+
+
+
+/**
  *
  */
 void proxenet_delete_list_plugins()
@@ -118,17 +137,7 @@ void proxenet_delete_list_plugins()
 	
 	while (p != NULL) {
 		next = p->next;
-		
-#ifdef _PERL_PLUGIN
-		if(p->type == _PERL_) {
-			proxenet_xfree(p->pre_function);
-			proxenet_xfree(p->post_function);
-		}
-#endif
-		
-		proxenet_xfree(p->name);
-		proxenet_xfree(p->filename);
-		proxenet_xfree(p);
+		free_plugin(p);
 		p = next;
 	}
 	

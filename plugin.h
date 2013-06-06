@@ -117,6 +117,7 @@ typedef struct _plugin_type {
 
 int	proxenet_create_list_plugins(char*);
 int 	proxenet_plugin_list_size();
+void free_plugin(plugin_t*);
 void 	proxenet_delete_list_plugins();
 void 	proxenet_print_plugins_list();
 int	count_plugins_by_type(int);
