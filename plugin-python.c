@@ -25,7 +25,7 @@
 #if defined _PYTHON2_
 #define PYTHON_CHECK PyString_Check
 #define PYTHON_ASSTRINGANDSIZE  PyString_AsStringAndSize
-#define PYTHON_FROMSTRING  PyStringBytes_FromString
+#define PYTHON_FROMSTRING  PyString_FromString
 
 #elif defined _PYTHON3_
 #define PYTHON_CHECK PyBytes_Check

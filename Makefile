@@ -44,9 +44,9 @@ endif
 # Modify path to match your config
 #
 WITH_C_PLUGIN		=	0
-WITH_PYTHON_PLUGIN	=	0
-_USE_PYTHON2_		= 	0
-_USE_PYTHON3_		= 	1
+WITH_PYTHON_PLUGIN	=	1
+_USE_PYTHON2_		= 	1
+_USE_PYTHON3_		= 	0
 
 WITH_RUBY_PLUGIN	=	0
 _USE_RUBY18_		=	1

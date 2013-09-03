@@ -129,9 +129,11 @@ char* proxenet_c_plugin(plugin_t *plugin, unsigned long request_id, char *reques
 	else
 		plugin_function = plugin->post_function;
 
-	bufres = (*plugin_function)(request_id, request, request_size);
+	bufres = (*plugin_function)(request_id, request);
 	if(!bufres)
 		return request;
+
+	*request_size = strlen(bufres);
 	
 	return bufres;
 }

@@ -53,13 +53,13 @@ static pthread_t threads[MAX_THREADS];
 int get_new_request_id()
 {
 	int rid;
-	
+
 	pthread_mutex_lock(&request_id_mutex);
 	rid = request_id;
 	request_id++;
 #ifdef DEBUG
 	xlog(LOG_DEBUG, "Allocating ID #%d\n", rid);
-#endif	
+#endif
 	pthread_mutex_unlock(&request_id_mutex);
 
 	return rid;
@@ -69,7 +69,7 @@ int get_new_request_id()
 #ifdef _PERL_PLUGIN
 /**
  * Specific initialisation done only once in proxenet whole process.
- * 
+ *
  * @note Only useful for Perl's plugins right now.
  */
 void proxenet_init_once_plugins(int argc, char** argv, char** envp)
@@ -80,7 +80,7 @@ void proxenet_init_once_plugins(int argc, char** argv, char** envp)
 
 /**
  * Specific delete/cleanup done only once in proxenet whole process.
- * 
+ *
  * @note Only useful for Perl's plugins right now.
  */
 void proxenet_delete_once_plugins()
@@ -98,8 +98,8 @@ void proxenet_initialize_plugins()
 	plugin_t *plugin      = plugins_list;
 	plugin_t *prec_plugin = NULL;
 	plugin_t *next_plugin = NULL;
-	
-	
+
+
 	while(plugin) {
 		
 		switch (plugin->type) {
@@ -111,7 +111,7 @@ void proxenet_initialize_plugins()
 					xlog(LOG_ERROR, "%s\n", "Failed to init Python VM");
 					goto delete_plugin;
 				}
-				
+
 				if (proxenet_python_initialize_function(plugin, REQUEST) < 0) {
 					plugin->state = INACTIVE;
 					xlog(LOG_ERROR, "Failed to init %s in %s\n", CFG_REQUEST_PLUGIN_FUNCTION, plugin->name);

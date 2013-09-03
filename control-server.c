@@ -145,9 +145,9 @@ void verbose_cmd(sock_t fd, char *options, unsigned int nb_options)
 		return;
 	}
 
-	if (strcmp(ptr, "inc") == 0)
+	if (strcmp(ptr, "inc")==0 && cfg->verbose<5)
 		n = snprintf(msg, 1024, "Verbose level is now %d\n", ++cfg->verbose);
-	else if (strcmp(ptr, "dec") == 0)
+	else if (strcmp(ptr, "dec")==0 && cfg->verbose>0)
 		n = snprintf(msg, 1024, "Verbose level is now %d\n", --cfg->verbose);
 	else
 		n = snprintf(msg, 1024, "Invalid action\n Syntax\n verbose (inc|dec)\n");
