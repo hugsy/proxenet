@@ -12,8 +12,7 @@ script: make
 notifications:
   email:
     recipients:
-      - hugsy+github@pyc.li
-      - romain.coltel@gmail.com
+      - proxenet@pyc.li
 
     on_success: always
     on_failure: always
