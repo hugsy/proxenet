@@ -1,12 +1,11 @@
-before_install:
-  - sudo apt-get install -qq python-dev liblua5.2-dev libpolarssl-dev
-
-
 language: c
 
 compiler:
   - clang
   - gcc
+
+before_script:
+  - sudo apt-get install -qq python-dev liblua5.2-dev libpolarssl-dev
 
 script: make
 
