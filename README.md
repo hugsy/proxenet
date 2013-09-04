@@ -14,6 +14,8 @@ supports plugins in the following languages :
 
 (Maybe more to come)
 
+## Current status
+[![Continuous Integration status](https://secure.travis-ci.org/hugsy/proxenet.png)](https://travis-ci.org/hugsy/proxenet)
 
 ## Environment setup
 
