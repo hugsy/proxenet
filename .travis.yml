@@ -8,7 +8,7 @@ compiler:
   - clang
   - gcc
 
-install: make
+script: make
 
 notifications:
   email:
