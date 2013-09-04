@@ -156,6 +156,29 @@ void proxenet_xzero(void* buf, size_t buflen)
 
 
 /**
+ * Wrapper for strdup
+ *
+ * @param data : the source buffer to duplicate
+ * @param len : the maximum size for the string (null byte is appended)
+ */
+char* proxenet_xstrdup(const char *data)
+{
+	char* s;
+	size_t len;
+	
+	len = strlen(data);
+	s = proxenet_xmalloc(len+1);
+	if (!strncpy(s, data, len)) {
+		xlog(LOG_ERROR, "Failed to strdup '%s'\n", data);
+		proxenet_xfree(s);
+		return NULL;
+	}
+
+	return s;		
+}
+
+
+/**
  *
  */
 bool is_valid_path(char* path)

@@ -49,8 +49,8 @@ _USE_PYTHON2_		= 	1
 _USE_PYTHON3_		= 	0
 
 WITH_RUBY_PLUGIN	=	0
-_USE_RUBY18_		=	1
-_USE_RUBY19_		=	0
+_USE_RUBY18_		=	0
+_USE_RUBY19_		=	1
 
 WITH_LUA_PLUGIN		=	0
 WITH_PERL_PLUGIN	=	0
@@ -79,6 +79,7 @@ ifeq ($(WITH_PERL_PLUGIN), 1)
 DEFINES			+=	-D_PERL_PLUGIN
 INC			+=	-I/usr/lib/perl5/core_perl/CORE/
 INC			+=	-I/usr/lib/perl5/CORE/
+INC			+=	-I/usr/lib/perl/5.14.2/CORE/
 LIB			+=	-L/usr/lib/perl5/core_perl/CORE/
 LIB			+=	-L/usr/lib/perl5/CORE/
 LDFLAGS			+=	-lperl
@@ -94,7 +95,7 @@ ifeq ($(_USE_RUBY18_), 1)
 	LDFLAGS		+=	-lruby
 else ifeq ($(_USE_RUBY19_), 1)
 	DEFINES		+=	-D_RUBY_PLUGIN -D_RUBY19_
-	INC		+=	-I/home/hugsy/.rvm/rubies/ruby-1.9.3-p194/include/ruby-1.9.1
+	INC		+=	-I/usr/include/ruby-1.9.1
 	INC		+=	-I/home/hugsy/.rvm/rubies/ruby-1.9.3-p194/include/ruby-1.9.1/x86_64-linux
 	LIB		+=	-L/home/hugsy/.rvm/rubies/ruby-1.9.3-p194/lib
 	LDFLAGS		+=	-lruby
@@ -104,7 +105,8 @@ endif
 
 ifeq ($(WITH_LUA_PLUGIN), 1)
 DEFINES			+=	-D_LUA_PLUGIN
-LDFLAGS			+=	-llua
+INC			+= 	-I/usr/include/lua5.2
+LDFLAGS			+=	-llua5.2
 endif
 
 

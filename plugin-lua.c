@@ -93,7 +93,6 @@ char* proxenet_lua_execute_function(interpreter_t* interpreter, long rid, char* 
 {
 	const char *lRet;
 	char *buf;
-	size_t len;
 	lua_State* lua_interpreter;
 
 	lua_interpreter = (lua_State*) interpreter->vm;
@@ -107,16 +106,14 @@ char* proxenet_lua_execute_function(interpreter_t* interpreter, long rid, char* 
 	lua_pushlstring(lua_interpreter, request, *request_size);
 	lua_call(lua_interpreter, 2, 1);
 	lRet = lua_tostring(lua_interpreter, -1);
-	len = lua_strlen(lua_interpreter, -1);
-	lua_pop(lua_interpreter, 1);
-
 	if (!lRet)
 		return NULL;
-
-	buf = (char*) proxenet_xmalloc(len+1);
-	memcpy(buf, lRet, len);
-	*request_size = len;
-
+	
+	buf = proxenet_xstrdup(lRet);
+	if (!buf)
+		return NULL;
+	
+	*request_size = strlen(buf);
 	return buf;
 }
 

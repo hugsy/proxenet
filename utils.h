@@ -45,9 +45,10 @@ void* 	proxenet_xmalloc(size_t size);
 void 	proxenet_xfree(void* ptr);
 void 	proxenet_xzero(void* buf, size_t buflen);
 void* 	proxenet_xrealloc(void* oldptr, size_t new_size);
+char*	proxenet_xstrdup(const char *data);
 bool	is_valid_path(char*);
 bool	is_file(char*);
 bool	is_readable_file(char*);
-	
+
 #endif /* _UTILS_H */
 

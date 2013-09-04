@@ -1,3 +1,15 @@
+before_install:
+  - sudo apt-get install -qq python-dev ruby-dev libperl-dev liblua5.2-dev
+
+
+language: c
+
+compiler:
+  - clang
+  - gcc
+
+install: make
+
 notifications:
   email:
     recipients:
