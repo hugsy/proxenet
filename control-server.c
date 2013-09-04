@@ -145,7 +145,7 @@ void verbose_cmd(sock_t fd, char *options, unsigned int nb_options)
 		return;
 	}
 
-	if (strcmp(ptr, "inc")==0 && cfg->verbose<5)
+	if (strcmp(ptr, "inc")==0 && cfg->verbose<MAX_VERBOSE_LEVEL)
 		n = snprintf(msg, 1024, "Verbose level is now %d\n", ++cfg->verbose);
 	else if (strcmp(ptr, "dec")==0 && cfg->verbose>0)
 		n = snprintf(msg, 1024, "Verbose level is now %d\n", --cfg->verbose);
@@ -214,9 +214,9 @@ void threads_cmd(sock_t fd, char *options, unsigned int nb_options)
 		return;
 	}
 
-	if (strcmp(ptr, "inc") == 0)
+	if (strcmp(ptr, "inc")==0 && cfg->nb_threads<MAX_THREADS)
 		n = snprintf(msg, 1024, "Nb threads level is now %d\n", ++cfg->nb_threads);
-	else if (strcmp(ptr, "dec") == 0)
+	else if (strcmp(ptr, "dec")==0 && cfg->nb_threads>1)
 		n = snprintf(msg, 1024, "Nb threads level is now %d\n", --cfg->nb_threads);
 	else
 		n = snprintf(msg, 1024, "Invalid action\n Syntax\n threads (inc|dec)\n");
