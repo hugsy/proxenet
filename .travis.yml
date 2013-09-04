@@ -1,5 +1,5 @@
 before_install:
-  - sudo apt-get install -qq python-dev liblua5.2-dev
+  - sudo apt-get install -qq python-dev liblua5.2-dev libpolarssl-dev
 
 
 language: c
