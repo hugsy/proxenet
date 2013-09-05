@@ -24,7 +24,7 @@
  */
 void version(bool end)
 {
-	printf("%s v%.2f\n", PROGNAME, VERSION);
+	printf("%s v%.2s\n", PROGNAME, VERSION);
 	if (end) {
 		proxenet_free_config();
 		exit(0);

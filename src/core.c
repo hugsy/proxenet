@@ -37,7 +37,7 @@
 #include "plugin-perl.h"
 #endif
 
-#ifdef _LUA_PLUGIN
+#ifdef HAVE_LIBLUA5_2
 #include "plugin-lua.h"
 #endif
 
@@ -181,7 +181,7 @@ void proxenet_initialize_plugins()
 				break;
 #endif
 
-#ifdef _LUA_PLUGIN
+#ifdef HAVE_LIBLUA5_2
 			case _LUA_:
 				if (proxenet_lua_initialize_vm(plugin) < 0) {
 					plugin->state = INACTIVE;
@@ -254,7 +254,7 @@ void proxenet_destroy_plugins_vm()
 				break;
 #endif				
 
-#ifdef _LUA_PLUGIN
+#ifdef HAVE_LIBLUA5_2
 			case _LUA_:
 				proxenet_lua_destroy_vm(p);
 				break;
@@ -350,7 +350,7 @@ char* proxenet_apply_plugins(long id, char* data, size_t* data_size, char type)
 				break;
 #endif	  
 
-#ifdef _LUA_PLUGIN
+#ifdef HAVE_LIBLUA5_2
 			case _LUA_:
 				plugin_function = proxenet_lua_plugin;
 				break;

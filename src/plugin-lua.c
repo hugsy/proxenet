@@ -1,4 +1,4 @@
-#ifdef _LUA_PLUGIN
+#ifdef HAVE_LIBLUA5_2
 
 /*******************************************************************************
  *
@@ -149,4 +149,4 @@ char* proxenet_lua_plugin(plugin_t* plugin, long rid, char* request, size_t* req
 	return buf;
 }
 
-#endif /* _LUA_PLUGIN */
+#endif /* HAVE_LIBLUA5_2 */

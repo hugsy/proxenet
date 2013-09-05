@@ -23,7 +23,7 @@ typedef enum __supported_plugins_t {
 	_PERL_,
 #endif
 
-#ifdef _LUA_PLUGIN
+#ifdef HAVE_LIBLUA5_2
 	_LUA_,
 #endif
 	
@@ -60,7 +60,7 @@ const static UNUSED char* supported_plugins_str[] = {
 	"Perl",
 #endif
 
-#ifdef _LUA_PLUGIN
+#ifdef HAVE_LIBLUA5_2
 	"Lua",
 #endif
 	
@@ -85,7 +85,7 @@ const static UNUSED char* plugins_extensions_str[] = {
 	".pl",
 #endif
 
-#ifdef _LUA_PLUGIN
+#ifdef HAVE_LIBLUA5_2
 	".lua",
 #endif
 	
