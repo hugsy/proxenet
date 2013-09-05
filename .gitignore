@@ -17,13 +17,10 @@ gdb*
 ABOUT-NLS
 autom4te*
 build*/*
-depcomp
 insert-header.sin
-install-sh
 libtool
 ltmain.sh
 Makefile
-missing
 po/*quot*
 *stamp
 stamp*
