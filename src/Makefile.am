@@ -12,26 +12,11 @@ proxenet_SOURCES	= main.c main.h \
 	core.c core.h\
 	utils.c utils.h \
 	control-server.c control-server.h \
-	plugin.c plugin.h
+	plugin.c plugin.h \
+	plugin-python.c plugin-python.h \
+	plugin-c.c plugin-c.c \
+	plugin-lua.c plugin-lua.h \
+	plugin-perl.c plugin-perl.h \
+	plugin-ruby.c plugin-ruby.h
 
-
-if _PYTHON_PLUGIN
-proxenet_SOURCES += plugin-python.c plugin-python.h 
-endif
-
-if _C_PLUGIN
-proxenet_SOURCES += plugin-c.c plugin-c.c
-endif
-
-if _HAS_LUA_LIBS_
-proxenet_SOURCES += plugin-lua.c plugin-lua.h
-endif
-
-if _PERL_PLUGIN
-proxenet_SOURCES += plugin-perl.c plugin-perl.h
-endif
-
-if _RUBY_PLUGIN
-proxenet_SOURCES += plugin-ruby.c plugin-ruby.h
-endif
 
