@@ -5,7 +5,7 @@ compiler:
   - gcc
 
 before_script:
-  - sudo apt-get install -qq python-dev liblua5.2-dev libpolarssl-dev
+  - sudo apt-get install -qq python-dev liblua5.2-dev libpolarssl-dev autoconf automake
 
 
 
