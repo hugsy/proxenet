@@ -384,4 +384,4 @@ fi
 
 # ------------------------------[ Generating Makefiles ]------------------------------  
 
-AC_OUTPUT(Makefile src/Makefile man/Makefile)
+AC_OUTPUT([Makefile src/Makefile man/Makefile])
