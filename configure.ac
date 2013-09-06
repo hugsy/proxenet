@@ -8,7 +8,7 @@
 AC_PREREQ([2.69])
 AC_INIT([proxenet], [0.1], [proxenet@pyc.li])
 AC_CONFIG_SRCDIR([src])
-
+AC_CONFIG_MACRO_DIR([m4])
 
 AM_INIT_AUTOMAKE
 
