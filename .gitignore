@@ -19,7 +19,6 @@ autom4te*
 build*/*
 insert-header.sin
 libtool
-ltmain.sh
 Makefile
 po/*quot*
 *stamp
