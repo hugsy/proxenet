@@ -7,7 +7,10 @@ compiler:
 before_script:
   - sudo apt-get install -qq python-dev liblua5.2-dev libpolarssl-dev autoconf automake
 
-script: ./configure && make
+script:
+  - ./autogen.sh
+  - ./configure
+  - make
 
 notifications:
   email:
