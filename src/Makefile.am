@@ -18,5 +18,3 @@ proxenet_SOURCES	= main.c main.h \
 	plugin-lua.c plugin-lua.h \
 	plugin-perl.c plugin-perl.h \
 	plugin-ruby.c plugin-ruby.h
-
-
