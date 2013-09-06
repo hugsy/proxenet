@@ -33,7 +33,7 @@ AC_TYPE_SSIZE_T
 AC_FUNC_MALLOC
 AC_FUNC_REALLOC
 AC_CHECK_FUNCS([memset realpath socket strdup strerror strstr])
-
+AM_PROG_LIBTOOL
 
 # Checks for plugins libraries.
 AC_ARG_ENABLE(python,    [ --disable-python  turn off Python script plugin (default=compiled if found)], enable_python=$enableval, enable_python=yes)
@@ -58,7 +58,7 @@ if test "x$enable_python" = "xyes" ; then
         AC_MSG_WARN([
 *** Python must be installed on your system but python interpreter couldn't be found in path.
 *** Please check that python is in path, or install it with your software package manager.
-*** WeeChat will be built without Python support.])
+*** proxenet will be built without Python support.])
         enable_python="no"
         not_found="$not_found python"
     else
@@ -69,7 +69,7 @@ if test "x$enable_python" = "xyes" ; then
         if test "x$PYTHON_OLD_VERSION" = "xTrue" ; then
             AC_MSG_WARN([
 *** Python >= 2.5 is needed to build Python plugin, version found: $PYTHON_VERSION.
-*** WeeChat will be built without Python support.])
+*** proxenet will be built without Python support.])
             enable_python="no"
             not_found="$not_found python"
         else
@@ -93,7 +93,7 @@ if test "x$enable_python" = "xyes" ; then
                     AC_MSG_WARN([
 *** Python library couldn't be found on your system.
 *** Try to install it with your software package manager.
-*** WeeChat will be built without Python support.])
+*** proxenet will be built without Python support.])
                     enable_python="no"
                     not_found="$not_found python"
                 fi
@@ -101,7 +101,7 @@ if test "x$enable_python" = "xyes" ; then
                 AC_MSG_WARN([
 *** Python header files couldn't be found on your system.
 *** Try to install them with your software package manager.
-*** WeeChat will be built without Python support.])
+*** proxenet will be built without Python support.])
                 enable_python="no"
                 not_found="$not_found python"
             fi
@@ -254,7 +254,7 @@ if test "x$enable_lua" = "xyes" ; then
         AC_MSG_WARN([
 *** Lua (>=5.0) headers and/or librairies couldn't be found on your system.
 *** Try to install liblua, liblualib and liblua-dev with your software package manager.
-*** WeeChat will be built without Lua support.])
+*** proxenet will be built without Lua support.])
         enable_lua="no"
         not_found="$not_found lua"
     else
@@ -285,7 +285,7 @@ if test "x$enable_ruby" = "xyes" ; then
         AC_MSG_WARN([
 *** Ruby must be installed on your system but ruby interpreter couldn't be found in path.
 *** Please check that ruby is in path, or install it with your software package manager.
-*** WeeChat will be built without Ruby support.])
+***  will be built without Ruby support.])
         enable_ruby="no"
         not_found="$not_found ruby"
     else
@@ -295,7 +295,7 @@ if test "x$enable_ruby" = "xyes" ; then
 *** Ruby header files have been found, but they're of the version 1.9.0.
 *** Ruby 1.9.0 is an unstable release and should not be used in production.
 *** Please install Ruby 1.8.x (>= 1.8.6) or >= 1.9.1.
-*** WeeChat will be built without Ruby support.])
+*** proxenet will be built without Ruby support.])
             enable_ruby="no"
             not_found="$not_found ruby"
         else
@@ -309,7 +309,7 @@ if test "x$enable_ruby" = "xyes" ; then
                 AC_MSG_WARN([
 *** Ruby header files couldn't be found on your system.
 *** Try to install them with your software package manager.
-*** WeeChat will be built without Ruby support.])
+*** proxenet will be built without Ruby support.])
                 enable_ruby="no"
                 not_found="$not_found ruby"
             fi
@@ -338,7 +338,7 @@ if test "x$enable_perl" = "xyes" ; then
         AC_MSG_WARN([
 *** Perl must be installed on your system but perl interpreter couldn't be found in path.
 *** Please check that perl is in path, or install it with your software package manager.
-*** WeeChat will be built without Perl support.])
+*** proxenet will be built without Perl support.])
         enable_perl="no"
         not_found="$not_found perl"
     else
@@ -359,7 +359,7 @@ if test "x$enable_perl" = "xyes" ; then
                 AC_MSG_WARN([
 *** Perl library couldn't be found on your system.
 *** Try to install it with your software package manager.
-*** WeeChat will be built without Perl support.])
+*** proxenet will be built without Perl support.])
                 enable_perl="no"
                 not_found="$not_found perl"
             fi
@@ -367,7 +367,7 @@ if test "x$enable_perl" = "xyes" ; then
             AC_MSG_WARN([
 *** Perl headers couldn't be found on your system.
 *** Try to install it with your software package manager.
-*** WeeChat will be built without Perl support.])
+*** proxenet will be built without Perl support.])
             enable_perl="no"
             not_found="$not_found perl"
         fi

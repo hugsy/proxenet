@@ -4563,11 +4563,11 @@ done
         { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING:
 *** Python must be installed on your system but python interpreter couldn't be found in path.
 *** Please check that python is in path, or install it with your software package manager.
-*** WeeChat will be built without Python support." >&5
+*** proxenet will be built without Python support." >&5
 $as_echo "$as_me: WARNING:
 *** Python must be installed on your system but python interpreter couldn't be found in path.
 *** Please check that python is in path, or install it with your software package manager.
-*** WeeChat will be built without Python support." >&2;}
+*** proxenet will be built without Python support." >&2;}
         enable_python="no"
         not_found="$not_found python"
     else
@@ -4578,10 +4578,10 @@ $as_echo "$as_me: WARNING:
         if test "x$PYTHON_OLD_VERSION" = "xTrue" ; then
             { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING:
 *** Python >= 2.5 is needed to build Python plugin, version found: $PYTHON_VERSION.
-*** WeeChat will be built without Python support." >&5
+*** proxenet will be built without Python support." >&5
 $as_echo "$as_me: WARNING:
 *** Python >= 2.5 is needed to build Python plugin, version found: $PYTHON_VERSION.
-*** WeeChat will be built without Python support." >&2;}
+*** proxenet will be built without Python support." >&2;}
             enable_python="no"
             not_found="$not_found python"
         else
@@ -4611,11 +4611,11 @@ $as_echo "found" >&6; }
                     { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING:
 *** Python library couldn't be found on your system.
 *** Try to install it with your software package manager.
-*** WeeChat will be built without Python support." >&5
+*** proxenet will be built without Python support." >&5
 $as_echo "$as_me: WARNING:
 *** Python library couldn't be found on your system.
 *** Try to install it with your software package manager.
-*** WeeChat will be built without Python support." >&2;}
+*** proxenet will be built without Python support." >&2;}
                     enable_python="no"
                     not_found="$not_found python"
                 fi
@@ -4623,11 +4623,11 @@ $as_echo "$as_me: WARNING:
                 { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING:
 *** Python header files couldn't be found on your system.
 *** Try to install them with your software package manager.
-*** WeeChat will be built without Python support." >&5
+*** proxenet will be built without Python support." >&5
 $as_echo "$as_me: WARNING:
 *** Python header files couldn't be found on your system.
 *** Try to install them with your software package manager.
-*** WeeChat will be built without Python support." >&2;}
+*** proxenet will be built without Python support." >&2;}
                 enable_python="no"
                 not_found="$not_found python"
             fi
@@ -5024,11 +5024,11 @@ $as_echo "no" >&6; }
         { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING:
 *** Lua (>=5.0) headers and/or librairies couldn't be found on your system.
 *** Try to install liblua, liblualib and liblua-dev with your software package manager.
-*** WeeChat will be built without Lua support." >&5
+*** proxenet will be built without Lua support." >&5
 $as_echo "$as_me: WARNING:
 *** Lua (>=5.0) headers and/or librairies couldn't be found on your system.
 *** Try to install liblua, liblualib and liblua-dev with your software package manager.
-*** WeeChat will be built without Lua support." >&2;}
+*** proxenet will be built without Lua support." >&2;}
         enable_lua="no"
         not_found="$not_found lua"
     else
@@ -5105,11 +5105,11 @@ done
         { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING:
 *** Ruby must be installed on your system but ruby interpreter couldn't be found in path.
 *** Please check that ruby is in path, or install it with your software package manager.
-*** WeeChat will be built without Ruby support." >&5
+***  will be built without Ruby support." >&5
 $as_echo "$as_me: WARNING:
 *** Ruby must be installed on your system but ruby interpreter couldn't be found in path.
 *** Please check that ruby is in path, or install it with your software package manager.
-*** WeeChat will be built without Ruby support." >&2;}
+***  will be built without Ruby support." >&2;}
         enable_ruby="no"
         not_found="$not_found ruby"
     else
@@ -5119,12 +5119,12 @@ $as_echo "$as_me: WARNING:
 *** Ruby header files have been found, but they're of the version 1.9.0.
 *** Ruby 1.9.0 is an unstable release and should not be used in production.
 *** Please install Ruby 1.8.x (>= 1.8.6) or >= 1.9.1.
-*** WeeChat will be built without Ruby support." >&5
+*** proxenet will be built without Ruby support." >&5
 $as_echo "$as_me: WARNING:
 *** Ruby header files have been found, but they're of the version 1.9.0.
 *** Ruby 1.9.0 is an unstable release and should not be used in production.
 *** Please install Ruby 1.8.x (>= 1.8.6) or >= 1.9.1.
-*** WeeChat will be built without Ruby support." >&2;}
+*** proxenet will be built without Ruby support." >&2;}
             enable_ruby="no"
             not_found="$not_found ruby"
         else
@@ -5139,11 +5139,11 @@ $as_echo_n "checking for Ruby header files... " >&6; }
                 { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING:
 *** Ruby header files couldn't be found on your system.
 *** Try to install them with your software package manager.
-*** WeeChat will be built without Ruby support." >&5
+*** proxenet will be built without Ruby support." >&5
 $as_echo "$as_me: WARNING:
 *** Ruby header files couldn't be found on your system.
 *** Try to install them with your software package manager.
-*** WeeChat will be built without Ruby support." >&2;}
+*** proxenet will be built without Ruby support." >&2;}
                 enable_ruby="no"
                 not_found="$not_found ruby"
             fi
@@ -5218,11 +5218,11 @@ done
         { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING:
 *** Perl must be installed on your system but perl interpreter couldn't be found in path.
 *** Please check that perl is in path, or install it with your software package manager.
-*** WeeChat will be built without Perl support." >&5
+*** proxenet will be built without Perl support." >&5
 $as_echo "$as_me: WARNING:
 *** Perl must be installed on your system but perl interpreter couldn't be found in path.
 *** Please check that perl is in path, or install it with your software package manager.
-*** WeeChat will be built without Perl support." >&2;}
+*** proxenet will be built without Perl support." >&2;}
         enable_perl="no"
         not_found="$not_found perl"
     else
@@ -5247,11 +5247,11 @@ $as_echo "found" >&6; }
                 { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING:
 *** Perl library couldn't be found on your system.
 *** Try to install it with your software package manager.
-*** WeeChat will be built without Perl support." >&5
+*** proxenet will be built without Perl support." >&5
 $as_echo "$as_me: WARNING:
 *** Perl library couldn't be found on your system.
 *** Try to install it with your software package manager.
-*** WeeChat will be built without Perl support." >&2;}
+*** proxenet will be built without Perl support." >&2;}
                 enable_perl="no"
                 not_found="$not_found perl"
             fi
@@ -5259,11 +5259,11 @@ $as_echo "$as_me: WARNING:
             { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING:
 *** Perl headers couldn't be found on your system.
 *** Try to install it with your software package manager.
-*** WeeChat will be built without Perl support." >&5
+*** proxenet will be built without Perl support." >&5
 $as_echo "$as_me: WARNING:
 *** Perl headers couldn't be found on your system.
 *** Try to install it with your software package manager.
-*** WeeChat will be built without Perl support." >&2;}
+*** proxenet will be built without Perl support." >&2;}
             enable_perl="no"
             not_found="$not_found perl"
         fi
