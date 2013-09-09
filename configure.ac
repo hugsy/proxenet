@@ -8,7 +8,6 @@
 AC_INIT([proxenet], [0.1], [proxenet@pyc.li])
 AC_CONFIG_SRCDIR([src])
 AC_CONFIG_HEADERS([config.h])
-AC_CONFIG_AUX_DIR([build-aux])
 AM_INIT_AUTOMAKE([foreign -Wall -Werror])
 
 AC_DEFINE([DEBUG], [], [Enable DEBUG symbols and options])
