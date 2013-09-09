@@ -23,3 +23,5 @@ Makefile
 po/*quot*
 *stamp
 stamp*
+keys/proxenet.key
+keys/proxenet.crt  
