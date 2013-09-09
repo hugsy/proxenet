@@ -5,15 +5,14 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-AC_PREREQ([2.69])
 AC_INIT([proxenet], [0.1], [proxenet@pyc.li])
 AC_CONFIG_SRCDIR([src])
-AC_CONFIG_MACRO_DIR([m4])
+AC_CONFIG_HEADERS([config.h])
+AC_CONFIG_AUX_DIR([build-aux])
+AM_INIT_AUTOMAKE([foreign -Wall -Werror])
 
-AM_INIT_AUTOMAKE
-
-AC_DEFINE(DEBUG)
-# AC_DEFINE(DEBUG_SSL)
+AC_DEFINE([DEBUG], [], [Enable DEBUG symbols and options])
+dnl AC_DEFINE([DEBUG_SSL], [], [Enable SSL specific DEBUG symbols and options])
 
 # Checks for programs.
 AC_PROG_CC(cc clang gcc)
@@ -33,11 +32,11 @@ AC_TYPE_SSIZE_T
 AC_FUNC_MALLOC
 AC_FUNC_REALLOC
 AC_CHECK_FUNCS([memset realpath socket strdup strerror strstr])
-AM_PROG_LIBTOOL
 
 # Checks for plugins libraries.
 AC_ARG_ENABLE(python,    [ --disable-python  turn off Python script plugin (default=compiled if found)], enable_python=$enableval, enable_python=yes)
 AC_ARG_ENABLE(python3,   [ --enable-python3  use Python 3.x instead of Python 2.x (default=off)], enable_python3=$enableval, enable_python3=no)
+AC_ARG_ENABLE(python2,   [ --enable-python2  use Python 2.x (default=on)], enable_python2=$enableval, enable_python2=yes)
 AC_ARG_ENABLE(c,         [ --disable-c       turn off C script plugin (default=on)],enable_lua=$enableval,enable_c=yes)
 AC_ARG_ENABLE(lua,       [ --disable-lua     turn off Lua script plugin (default=compiled if found)],enable_lua=$enableval,enable_lua=yes)
 AC_ARG_ENABLE(ruby,      [ --enable-ruby     turn on Ruby script plugin (default=off)],enable_ruby=$enableval,enable_ruby=no)
@@ -115,13 +114,14 @@ fi
 if test "x$enable_python" = "xyes" ; then
    AC_SUBST(PYTHON_CFLAGS)   
    AC_SUBST(PYTHON_LFLAGS)
-   AC_DEFINE(_PYTHON_PLUGIN)
+   AC_DEFINE([_PYTHON_PLUGIN], [], [Enable Python plugin])
    
-   if test "x$enable_python3" = "xyes" ; then
-      AC_DEFINE(_PYTHON3_)
-   else
-      AC_DEFINE(_PYTHON2_)
-   fi
+   dnl if test "x$enable_python3" = "xyes" ; then
+      AC_DEFINE([_PYTHON3_], [_PYTHON2_], [Use Python3 plugin])
+   dnl else
+      AC_DEFINE([_PYTHON2_] , [], [Use Python2 plugin])
+   dnl fi
+   
 fi
 
 
@@ -147,7 +147,7 @@ fi
 if test "x$enable_c" = "xyes" ; then
    AC_SUBST(C_CFLAGS)   
    AC_SUBST(C_LFLAGS)
-   AC_DEFINE(_C_PLUGIN)
+   AC_DEFINE([_C_PLUGIN], [], [Enable C plugin])
 fi
 
 
@@ -271,7 +271,7 @@ fi
 if test "x$enable_lua" = "xyes" ; then
     AC_SUBST(LUA_CFLAGS)
     AC_SUBST(LUA_LFLAGS)
-    AC_DEFINE(_LUA_PLUGIN)
+    AC_DEFINE([_LUA_PLUGIN], [], [Enable Lua plugin])
 fi
 
 
@@ -324,7 +324,7 @@ fi
 if test "x$enable_ruby" = "xyes" ; then
     AC_SUBST(RUBY_CFLAGS)
     AC_SUBST(RUBY_LFLAGS)
-    AC_DEFINE(_RUBY_PLUGIN)
+    AC_DEFINE([_RUBY_PLUGIN], [], [Enable Ruby plugin])
 fi
 
 
@@ -356,10 +356,7 @@ if test "x$enable_perl" = "xyes" ; then
                 PERL_LFLAGS=`$PERL -MExtUtils::Embed -e ldopts`
                 AC_MSG_RESULT(found)
             else
-                AC_MSG_WARN([
-*** Perl library couldn't be found on your system.
-*** Try to install it with your software package manager.
-*** proxenet will be built without Perl support.])
+                AC_MSG_WARN([Perl libs not found. Disabling Perl plugin support.])
                 enable_perl="no"
                 not_found="$not_found perl"
             fi
@@ -379,7 +376,7 @@ fi
 if test "x$enable_perl" = "xyes" ; then
     AC_SUBST(PERL_CFLAGS)
     AC_SUBST(PERL_LFLAGS)
-    AC_DEFINE(_PERL_PLUGIN)
+    AC_DEFINE([_PERL_PLUGIN], [], [Enable Perl plugin])
 fi
 
 # ------------------------------[ Generating Makefiles ]------------------------------  

@@ -1,3 +1,5 @@
+#include <config.h>
+
 #ifdef _PYTHON_PLUGIN
 
 /*******************************************************************************
@@ -22,18 +24,16 @@
 #include "utils.h"
 #include "plugin-python.h"
 
-#if defined _PYTHON2_
-#define PYTHON_CHECK PyString_Check
-#define PYTHON_ASSTRINGANDSIZE  PyString_AsStringAndSize
-#define PYTHON_FROMSTRING  PyString_FromString
-
-#elif defined _PYTHON3_
+#if defined _PYTHON3_
 #define PYTHON_CHECK PyBytes_Check
 #define PYTHON_FROMSTRING  PyUnicode_FromString
 #define PYTHON_ASSTRINGANDSIZE  PyBytes_AsStringAndSize
 
-#else
-abort();
+# else /* if defined _PYTHON2_ */
+#define PYTHON_CHECK PyString_Check
+#define PYTHON_ASSTRINGANDSIZE  PyString_AsStringAndSize
+#define PYTHON_FROMSTRING  PyString_FromString
+
 #endif
 
 /**

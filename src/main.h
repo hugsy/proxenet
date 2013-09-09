@@ -1,10 +1,17 @@
 #ifndef _MAIN_H
 #define _MAIN_H
 
+#include <config.h>
+
 #include <stdio.h>
 #include "utils.h"
 
+#if defined PACKAGE
+#define PROGNAME 	PACKAGE
+#else
 #define PROGNAME 	"proxenet"
+#endif
+
 #define AUTHOR 		"hugsy < @__hugsy__>"
 #define LICENSE 	"GPLv2"
 
