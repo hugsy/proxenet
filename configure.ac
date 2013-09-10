@@ -35,11 +35,10 @@ AC_CHECK_FUNCS([memset realpath socket strdup strerror strstr])
 # Checks for plugins libraries.
 AC_ARG_ENABLE(python,    [ --disable-python  turn off Python script plugin (default=compiled if found)], enable_python=$enableval, enable_python=yes)
 AC_ARG_ENABLE(python3,   [ --enable-python3  use Python 3.x instead of Python 2.x (default=off)], enable_python3=$enableval, enable_python3=no)
-AC_ARG_ENABLE(python2,   [ --enable-python2  use Python 2.x (default=on)], enable_python2=$enableval, enable_python2=yes)
 AC_ARG_ENABLE(c,         [ --disable-c       turn off C script plugin (default=on)],enable_lua=$enableval,enable_c=yes)
 AC_ARG_ENABLE(lua,       [ --disable-lua     turn off Lua script plugin (default=compiled if found)],enable_lua=$enableval,enable_lua=yes)
-AC_ARG_ENABLE(ruby,      [ --enable-ruby     turn on Ruby script plugin (default=off)],enable_ruby=$enableval,enable_ruby=no)
-AC_ARG_ENABLE(perl,      [ --enable-perl     turn on Ruby script plugin (default=off)],enable_ruby=$enableval,enable_perl=no)
+AC_ARG_ENABLE(ruby,      [ --disable-ruby     turn off Ruby script plugin (default=compiled if found)],enable_ruby=$enableval,enable_ruby=yes)
+AC_ARG_ENABLE(perl,      [ --disable-perl     turn off Ruby script plugin (default=compiled if found)],enable_ruby=$enableval,enable_perl=yes)
 
 
 # ------------------------------[ Python ]------------------------------

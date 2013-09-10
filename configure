@@ -734,7 +734,6 @@ enable_silent_rules
 enable_dependency_tracking
 enable_python
 enable_python3
-enable_python2
 enable_c
 enable_lua
 enable_ruby
@@ -1371,11 +1370,10 @@ Optional Features:
                           speeds up one-time build
  --disable-python  turn off Python script plugin (default=compiled if found)
  --enable-python3  use Python 3.x instead of Python 2.x (default=off)
- --enable-python2  use Python 2.x (default=on)
  --disable-c       turn off C script plugin (default=on)
  --disable-lua     turn off Lua script plugin (default=compiled if found)
- --enable-ruby     turn on Ruby script plugin (default=off)
- --enable-perl     turn on Ruby script plugin (default=off)
+ --disable-ruby     turn off Ruby script plugin (default=compiled if found)
+ --disable-perl     turn off Ruby script plugin (default=compiled if found)
 
 Some influential environment variables:
   CC          C compiler command
@@ -4432,13 +4430,6 @@ else
   enable_python3=no
 fi
 
-# Check whether --enable-python2 was given.
-if test "${enable_python2+set}" = set; then :
-  enableval=$enable_python2; enable_python2=$enableval
-else
-  enable_python2=yes
-fi
-
 # Check whether --enable-c was given.
 if test "${enable_c+set}" = set; then :
   enableval=$enable_c; enable_lua=$enableval
@@ -4457,14 +4448,14 @@ fi
 if test "${enable_ruby+set}" = set; then :
   enableval=$enable_ruby; enable_ruby=$enableval
 else
-  enable_ruby=no
+  enable_ruby=yes
 fi
 
 # Check whether --enable-perl was given.
 if test "${enable_perl+set}" = set; then :
   enableval=$enable_perl; enable_ruby=$enableval
 else
-  enable_perl=no
+  enable_perl=yes
 fi
 
 

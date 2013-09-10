@@ -1,2 +1,1 @@
-man_MANS 	= proxenet.1
-
+man1_MANS = proxenet.man
