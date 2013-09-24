@@ -1,5 +1,3 @@
-#include <config.h>
-
 #ifdef HAVE_LIBLUA5_2
 
 /*******************************************************************************
@@ -18,6 +16,7 @@
 #include "utils.h"
 #include "main.h"
 #include "plugin.h"
+#include "config.h"
 
 
 /**

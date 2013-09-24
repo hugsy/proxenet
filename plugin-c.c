@@ -1,5 +1,3 @@
-#include <config.h>
-
 #ifdef _C_PLUGIN
 
 /*******************************************************************************
@@ -15,6 +13,7 @@
 #include "plugin.h"
 #include "utils.h"
 #include "main.h"
+#include "config.h"
 
 
 /**

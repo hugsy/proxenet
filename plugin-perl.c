@@ -1,5 +1,3 @@
-#include <config.h>
-
 #ifdef _PERL_PLUGIN
 
 /*******************************************************************************
@@ -18,6 +16,7 @@
 #include "plugin-perl.h"
 #include "utils.h"
 #include "main.h"
+#include "config.h"
 
 
 static PerlInterpreter *my_perl;

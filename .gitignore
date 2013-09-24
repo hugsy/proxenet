@@ -19,9 +19,12 @@ autom4te*
 build*/*
 insert-header.sin
 libtool
-Makefile
 po/*quot*
 *stamp
 stamp*
 keys/proxenet.key
 keys/proxenet.crt
+CMakeCache.txt
+CMakeFiles
+cmake_install.cmake
+stamp-h1 

@@ -1,5 +1,3 @@
-#include <config.h>
-
 #ifdef _RUBY_PLUGIN
 
 /*******************************************************************************
@@ -18,6 +16,7 @@
 #include "plugin-ruby.h"
 #include "utils.h"
 #include "main.h"
+#include "config.h"
 
 
 /**

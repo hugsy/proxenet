@@ -12,13 +12,11 @@
 #include <string.h>
 #include <limits.h>
 
-#include <config.h>
-
 #include "core.h"
 #include "utils.h"
 #include "main.h"
 #include "socket.h"
-
+#include "config.h"
 
 
 /**

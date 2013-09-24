@@ -1,5 +1,3 @@
-#include <config.h>
-
 #ifdef _PYTHON_PLUGIN
 
 /*******************************************************************************
@@ -23,6 +21,7 @@
 #include "plugin.h"
 #include "utils.h"
 #include "plugin-python.h"
+#include "config.h"
 
 #if defined _PYTHON3_
 #define PYTHON_CHECK PyBytes_Check
