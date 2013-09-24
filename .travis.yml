@@ -5,9 +5,9 @@ compiler:
   - gcc
 
 before_script:
-  - sudo apt-get install -qq python-dev liblua5.2-dev libpolarssl-dev autoconf automake
+  - sudo apt-get install -qq python-dev liblua5.2-dev libpolarssl-dev cmake
 
-script: ./configure && make
+script: cmake . && make
 
 notifications:
   email:
