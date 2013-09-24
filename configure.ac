@@ -6,8 +6,8 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_INIT([proxenet], [0.1], [proxenet@pyc.li])
-AC_CONFIG_SRCDIR([src])
 AC_CONFIG_HEADERS([config.h])
+AC_CONFIG_FILES([Makefile src/Makefile man/Makefile])
 AM_INIT_AUTOMAKE([foreign -Wall -Werror])
 
 AC_DEFINE([DEBUG], [], [Enable DEBUG symbols and options])
@@ -47,26 +47,21 @@ PYTHON_VERSION=
 
 if test "x$enable_python" = "xyes" ; then
     if test "x$enable_python3" = "xyes" ; then
-        AC_PATH_PROGS(PYTHON, python3.4 python3.3 python3.2 python3.1 python3.0 python3 python2.7 python2.6 python2.5 python2 python)
+        AC_PATH_PROGS(PYTHON, python3.4 python3.3 python3.2 python3.1 python3.0 python3)
     else
-        AC_PATH_PROGS(PYTHON, python2.7 python2.6 python2.5 python2 python)
+        AC_PATH_PROGS(PYTHON, python2.7 python2.6 python2)
     fi
     if test -z $PYTHON ; then
-        AC_MSG_WARN([
-*** Python must be installed on your system but python interpreter couldn't be found in path.
-*** Please check that python is in path, or install it with your software package manager.
-*** proxenet will be built without Python support.])
+        AC_MSG_WARN([Python interpreter not found])
         enable_python="no"
         not_found="$not_found python"
     else
         PYTHON_SYSPREFIX=`$PYTHON -c 'import sys; sys.stdout.write("%s" % sys.prefix)'`
         PYTHON_VERSION=`$PYTHON -c 'import sys; sys.stdout.write(sys.version[[:3]])'`
         PYTHON_INCLUDE=`$PYTHON -c "import sys, distutils.sysconfig, string; sys.stdout.write(distutils.sysconfig.get_config_var('INCLUDEPY'))"`
-        PYTHON_OLD_VERSION=`$PYTHON -c "import sys; sys.stdout.write(str(sys.version_info < (2,5)))"`
+        PYTHON_OLD_VERSION=`$PYTHON -c "import sys; sys.stdout.write(str(sys.version_info < (2,6)))"`
         if test "x$PYTHON_OLD_VERSION" = "xTrue" ; then
-            AC_MSG_WARN([
-*** Python >= 2.5 is needed to build Python plugin, version found: $PYTHON_VERSION.
-*** proxenet will be built without Python support.])
+            AC_MSG_WARN([Python >= 2.6 is needed to build Python plugin])
             enable_python="no"
             not_found="$not_found python"
         else
@@ -87,18 +82,12 @@ if test "x$enable_python" = "xyes" ; then
                    PYTHON_LFLAGS="-L$PYTHON_SYSPREFIX/lib/ $PYTHON_LFLAGS"
                    AC_MSG_RESULT(found)
                 else
-                    AC_MSG_WARN([
-*** Python library couldn't be found on your system.
-*** Try to install it with your software package manager.
-*** proxenet will be built without Python support.])
+                    AC_MSG_WARN([Python library not found])
                     enable_python="no"
                     not_found="$not_found python"
                 fi
             else
-                AC_MSG_WARN([
-*** Python header files couldn't be found on your system.
-*** Try to install them with your software package manager.
-*** proxenet will be built without Python support.])
+                AC_MSG_WARN([Python header files not found])
                 enable_python="no"
                 not_found="$not_found python"
             fi
@@ -134,9 +123,7 @@ if test "x$enable_c" = "xyes" ; then
      fi
      
      if test "$LIBDL_FOUND" != "yes"; then
-     	AC_MSG_ERROR([
-*** "dl" library (dynamic library loader) couldn't be found on your system.
-*** Try to install it with your software package manager.])
+     	AC_MSG_ERROR([`dl` library not be found])
     else
 	enable_c="no"
     fi
@@ -195,13 +182,13 @@ if test "x$enable_lua" = "xyes" ; then
 
     if test "x$LUA_CFLAGS" = "x" -o "x$LUA_LFLAGS" = "x" ; then
         LUACONFIG=""
-        AC_CHECK_PROGS(LUACONFIG, lua-config lua-config51 lua-config5.1 lua-config50 lua-config5.0)
+        AC_CHECK_PROGS(LUACONFIG, lua-config lua-config51 lua-config5.1 lua-config52 lua-config5.2)
         if test "x$LUACONFIG" != "x" ; then
             AC_MSG_CHECKING(for Lua headers and librairies with lua-config)
             echo
             LUA_CFLAGS=`$LUACONFIG --include`
             LUA_LFLAGS=`$LUACONFIG --libs`
-            LUA_VERSION="5.0.x"
+            LUA_VERSION="5.1.x"
         fi
     fi
 
@@ -229,7 +216,7 @@ if test "x$enable_lua" = "xyes" ; then
 
                 AC_CHECK_LIB(lualib$l,luaL_openlib,ac_found_liblua_lib="yes",ac_found_liblua_lib="no")
                 if test "x$ac_found_liblua_lib" = "xyes" ; then
-                    LUA_VERSION="5.0.x"
+                    LUA_VERSION="5.2.x"
 
                     LUA_LFLAGS="$LUA_LFLAGS -llualib$l"
 
@@ -249,10 +236,7 @@ if test "x$enable_lua" = "xyes" ; then
     
     if test "x$LUA_TEST" != "x0" ; then
         AC_MSG_RESULT(no)
-        AC_MSG_WARN([
-*** Lua (>=5.0) headers and/or librairies couldn't be found on your system.
-*** Try to install liblua, liblualib and liblua-dev with your software package manager.
-*** proxenet will be built without Lua support.])
+        AC_MSG_WARN([Lua (> 5.1) librairies not found on your system.])
         enable_lua="no"
         not_found="$not_found lua"
     else
@@ -280,20 +264,13 @@ RUBY_VERSION=
 if test "x$enable_ruby" = "xyes" ; then
     AC_PATH_PROGS(RUBY, ruby1.9.3 ruby1.9.2 ruby1.9.1 ruby1.9 ruby1.8 ruby)
     if test -z $RUBY ; then
-        AC_MSG_WARN([
-*** Ruby must be installed on your system but ruby interpreter couldn't be found in path.
-*** Please check that ruby is in path, or install it with your software package manager.
-***  will be built without Ruby support.])
+        AC_MSG_WARN([Ruby not installed])
         enable_ruby="no"
         not_found="$not_found ruby"
     else
         RUBY_VERSION=`$RUBY -rrbconfig -e "puts RbConfig::CONFIG[['ruby_version']]"`
         if test "$RUBY_VERSION" = "1.9.0"; then
-            AC_MSG_WARN([
-*** Ruby header files have been found, but they're of the version 1.9.0.
-*** Ruby 1.9.0 is an unstable release and should not be used in production.
-*** Please install Ruby 1.8.x (>= 1.8.6) or >= 1.9.1.
-*** proxenet will be built without Ruby support.])
+            AC_MSG_WARN([Incorrect Ruby header files])
             enable_ruby="no"
             not_found="$not_found ruby"
         else
@@ -304,10 +281,7 @@ if test "x$enable_ruby" = "xyes" ; then
                 M_RUBY_VERSION=`$RUBY -rrbconfig -e "puts RbConfig::CONFIG[['ruby_version']].gsub(/\./, '')[[0,3]]"`
                 RUBY_CFLAGS="-I$RUBY_INCLUDE/ -I$RUBY_INCLUDE/$RUBY_ARCH -DRUBY_VERSION=$M_RUBY_VERSION"
             else
-                AC_MSG_WARN([
-*** Ruby header files couldn't be found on your system.
-*** Try to install them with your software package manager.
-*** proxenet will be built without Ruby support.])
+                AC_MSG_WARN([Ruby header files not found])
                 enable_ruby="no"
                 not_found="$not_found ruby"
             fi
@@ -333,10 +307,7 @@ PERL_VERSION=
 if test "x$enable_perl" = "xyes" ; then
     AC_PATH_PROGS(PERL, perl perl5)
     if test -z $PERL ; then
-        AC_MSG_WARN([
-*** Perl must be installed on your system but perl interpreter couldn't be found in path.
-*** Please check that perl is in path, or install it with your software package manager.
-*** proxenet will be built without Perl support.])
+        AC_MSG_WARN([Perl not installed])
         enable_perl="no"
         not_found="$not_found perl"
     else
@@ -359,10 +330,7 @@ if test "x$enable_perl" = "xyes" ; then
                 not_found="$not_found perl"
             fi
         else
-            AC_MSG_WARN([
-*** Perl headers couldn't be found on your system.
-*** Try to install it with your software package manager.
-*** proxenet will be built without Perl support.])
+            AC_MSG_WARN([Perl headers not found])
             enable_perl="no"
             not_found="$not_found perl"
         fi
@@ -379,4 +347,4 @@ fi
 
 # ------------------------------[ Generating Makefiles ]------------------------------  
 
-AC_OUTPUT([Makefile src/Makefile man/Makefile])
+AC_OUTPUT

@@ -585,7 +585,6 @@ PACKAGE_STRING='proxenet 0.1'
 PACKAGE_BUGREPORT='proxenet@pyc.li'
 PACKAGE_URL=''
 
-ac_unique_file="src"
 # Factoring default headers for most tests.
 ac_includes_default="\
 #include <stdio.h>
@@ -2222,8 +2221,9 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-
 ac_config_headers="$ac_config_headers config.h"
+
+ac_config_files="$ac_config_files Makefile src/Makefile man/Makefile"
 
 am__api_version='1.13'
 
@@ -4466,7 +4466,7 @@ PYTHON_VERSION=
 
 if test "x$enable_python" = "xyes" ; then
     if test "x$enable_python3" = "xyes" ; then
-        for ac_prog in python3.4 python3.3 python3.2 python3.1 python3.0 python3 python2.7 python2.6 python2.5 python2 python
+        for ac_prog in python3.4 python3.3 python3.2 python3.1 python3.0 python3
 do
   # Extract the first word of "$ac_prog", so it can be a program name with args.
 set dummy $ac_prog; ac_word=$2
@@ -4512,7 +4512,7 @@ fi
 done
 
     else
-        for ac_prog in python2.7 python2.6 python2.5 python2 python
+        for ac_prog in python2.7 python2.6 python2
 do
   # Extract the first word of "$ac_prog", so it can be a program name with args.
 set dummy $ac_prog; ac_word=$2
@@ -4559,28 +4559,18 @@ done
 
     fi
     if test -z $PYTHON ; then
-        { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING:
-*** Python must be installed on your system but python interpreter couldn't be found in path.
-*** Please check that python is in path, or install it with your software package manager.
-*** proxenet will be built without Python support." >&5
-$as_echo "$as_me: WARNING:
-*** Python must be installed on your system but python interpreter couldn't be found in path.
-*** Please check that python is in path, or install it with your software package manager.
-*** proxenet will be built without Python support." >&2;}
+        { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Python interpreter not found" >&5
+$as_echo "$as_me: WARNING: Python interpreter not found" >&2;}
         enable_python="no"
         not_found="$not_found python"
     else
         PYTHON_SYSPREFIX=`$PYTHON -c 'import sys; sys.stdout.write("%s" % sys.prefix)'`
         PYTHON_VERSION=`$PYTHON -c 'import sys; sys.stdout.write(sys.version[:3])'`
         PYTHON_INCLUDE=`$PYTHON -c "import sys, distutils.sysconfig, string; sys.stdout.write(distutils.sysconfig.get_config_var('INCLUDEPY'))"`
-        PYTHON_OLD_VERSION=`$PYTHON -c "import sys; sys.stdout.write(str(sys.version_info < (2,5)))"`
+        PYTHON_OLD_VERSION=`$PYTHON -c "import sys; sys.stdout.write(str(sys.version_info < (2,6)))"`
         if test "x$PYTHON_OLD_VERSION" = "xTrue" ; then
-            { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING:
-*** Python >= 2.5 is needed to build Python plugin, version found: $PYTHON_VERSION.
-*** proxenet will be built without Python support." >&5
-$as_echo "$as_me: WARNING:
-*** Python >= 2.5 is needed to build Python plugin, version found: $PYTHON_VERSION.
-*** proxenet will be built without Python support." >&2;}
+            { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Python >= 2.6 is needed to build Python plugin" >&5
+$as_echo "$as_me: WARNING: Python >= 2.6 is needed to build Python plugin" >&2;}
             enable_python="no"
             not_found="$not_found python"
         else
@@ -4607,26 +4597,14 @@ $as_echo "found" >&6; }
                    { $as_echo "$as_me:${as_lineno-$LINENO}: result: found" >&5
 $as_echo "found" >&6; }
                 else
-                    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING:
-*** Python library couldn't be found on your system.
-*** Try to install it with your software package manager.
-*** proxenet will be built without Python support." >&5
-$as_echo "$as_me: WARNING:
-*** Python library couldn't be found on your system.
-*** Try to install it with your software package manager.
-*** proxenet will be built without Python support." >&2;}
+                    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Python library not found" >&5
+$as_echo "$as_me: WARNING: Python library not found" >&2;}
                     enable_python="no"
                     not_found="$not_found python"
                 fi
             else
-                { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING:
-*** Python header files couldn't be found on your system.
-*** Try to install them with your software package manager.
-*** proxenet will be built without Python support." >&5
-$as_echo "$as_me: WARNING:
-*** Python header files couldn't be found on your system.
-*** Try to install them with your software package manager.
-*** proxenet will be built without Python support." >&2;}
+                { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Python header files not found" >&5
+$as_echo "$as_me: WARNING: Python header files not found" >&2;}
                 enable_python="no"
                 not_found="$not_found python"
             fi
@@ -4718,9 +4696,7 @@ fi
      fi
 
      if test "$LIBDL_FOUND" != "yes"; then
-     	as_fn_error $? "
-*** \"dl\" library (dynamic library loader) couldn't be found on your system.
-*** Try to install it with your software package manager." "$LINENO" 5
+     	as_fn_error $? "\`dl\` library not be found" "$LINENO" 5
     else
 	enable_c="no"
     fi
@@ -4823,7 +4799,7 @@ $as_echo_n "checking for Lua headers and librairies with pkg-config... " >&6; }
 
     if test "x$LUA_CFLAGS" = "x" -o "x$LUA_LFLAGS" = "x" ; then
         LUACONFIG=""
-        for ac_prog in lua-config lua-config51 lua-config5.1 lua-config50 lua-config5.0
+        for ac_prog in lua-config lua-config51 lua-config5.1 lua-config52 lua-config5.2
 do
   # Extract the first word of "$ac_prog", so it can be a program name with args.
 set dummy $ac_prog; ac_word=$2
@@ -4871,7 +4847,7 @@ $as_echo_n "checking for Lua headers and librairies with lua-config... " >&6; }
             echo
             LUA_CFLAGS=`$LUACONFIG --include`
             LUA_LFLAGS=`$LUACONFIG --libs`
-            LUA_VERSION="5.0.x"
+            LUA_VERSION="5.1.x"
         fi
     fi
 
@@ -5000,7 +4976,7 @@ else
 fi
 
                 if test "x$ac_found_liblua_lib" = "xyes" ; then
-                    LUA_VERSION="5.0.x"
+                    LUA_VERSION="5.2.x"
 
                     LUA_LFLAGS="$LUA_LFLAGS -llualib$l"
 
@@ -5022,14 +4998,8 @@ $as_echo_n "checking for Lua compiling and linking... " >&6; }
     if test "x$LUA_TEST" != "x0" ; then
         { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
-        { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING:
-*** Lua (>=5.0) headers and/or librairies couldn't be found on your system.
-*** Try to install liblua, liblualib and liblua-dev with your software package manager.
-*** proxenet will be built without Lua support." >&5
-$as_echo "$as_me: WARNING:
-*** Lua (>=5.0) headers and/or librairies couldn't be found on your system.
-*** Try to install liblua, liblualib and liblua-dev with your software package manager.
-*** proxenet will be built without Lua support." >&2;}
+        { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Lua (> 5.0) librairies not found on your system." >&5
+$as_echo "$as_me: WARNING: Lua (> 5.0) librairies not found on your system." >&2;}
         enable_lua="no"
         not_found="$not_found lua"
     else
@@ -5104,29 +5074,15 @@ fi
 done
 
     if test -z $RUBY ; then
-        { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING:
-*** Ruby must be installed on your system but ruby interpreter couldn't be found in path.
-*** Please check that ruby is in path, or install it with your software package manager.
-***  will be built without Ruby support." >&5
-$as_echo "$as_me: WARNING:
-*** Ruby must be installed on your system but ruby interpreter couldn't be found in path.
-*** Please check that ruby is in path, or install it with your software package manager.
-***  will be built without Ruby support." >&2;}
+        { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Ruby not installed" >&5
+$as_echo "$as_me: WARNING: Ruby not installed" >&2;}
         enable_ruby="no"
         not_found="$not_found ruby"
     else
         RUBY_VERSION=`$RUBY -rrbconfig -e "puts RbConfig::CONFIG['ruby_version']"`
         if test "$RUBY_VERSION" = "1.9.0"; then
-            { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING:
-*** Ruby header files have been found, but they're of the version 1.9.0.
-*** Ruby 1.9.0 is an unstable release and should not be used in production.
-*** Please install Ruby 1.8.x (>= 1.8.6) or >= 1.9.1.
-*** proxenet will be built without Ruby support." >&5
-$as_echo "$as_me: WARNING:
-*** Ruby header files have been found, but they're of the version 1.9.0.
-*** Ruby 1.9.0 is an unstable release and should not be used in production.
-*** Please install Ruby 1.8.x (>= 1.8.6) or >= 1.9.1.
-*** proxenet will be built without Ruby support." >&2;}
+            { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Incorrect Ruby header files" >&5
+$as_echo "$as_me: WARNING: Incorrect Ruby header files" >&2;}
             enable_ruby="no"
             not_found="$not_found ruby"
         else
@@ -5138,14 +5094,8 @@ $as_echo_n "checking for Ruby header files... " >&6; }
                 M_RUBY_VERSION=`$RUBY -rrbconfig -e "puts RbConfig::CONFIG['ruby_version'].gsub(/\./, '')[0,3]"`
                 RUBY_CFLAGS="-I$RUBY_INCLUDE/ -I$RUBY_INCLUDE/$RUBY_ARCH -DRUBY_VERSION=$M_RUBY_VERSION"
             else
-                { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING:
-*** Ruby header files couldn't be found on your system.
-*** Try to install them with your software package manager.
-*** proxenet will be built without Ruby support." >&5
-$as_echo "$as_me: WARNING:
-*** Ruby header files couldn't be found on your system.
-*** Try to install them with your software package manager.
-*** proxenet will be built without Ruby support." >&2;}
+                { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Ruby header files not found" >&5
+$as_echo "$as_me: WARNING: Ruby header files not found" >&2;}
                 enable_ruby="no"
                 not_found="$not_found ruby"
             fi
@@ -5218,14 +5168,8 @@ fi
 done
 
     if test -z $PERL ; then
-        { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING:
-*** Perl must be installed on your system but perl interpreter couldn't be found in path.
-*** Please check that perl is in path, or install it with your software package manager.
-*** proxenet will be built without Perl support." >&5
-$as_echo "$as_me: WARNING:
-*** Perl must be installed on your system but perl interpreter couldn't be found in path.
-*** Please check that perl is in path, or install it with your software package manager.
-*** proxenet will be built without Perl support." >&2;}
+        { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Perl not installed" >&5
+$as_echo "$as_me: WARNING: Perl not installed" >&2;}
         enable_perl="no"
         not_found="$not_found perl"
     else
@@ -5253,14 +5197,8 @@ $as_echo "$as_me: WARNING: Perl libs not found. Disabling Perl plugin support." 
                 not_found="$not_found perl"
             fi
         else
-            { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING:
-*** Perl headers couldn't be found on your system.
-*** Try to install it with your software package manager.
-*** proxenet will be built without Perl support." >&5
-$as_echo "$as_me: WARNING:
-*** Perl headers couldn't be found on your system.
-*** Try to install it with your software package manager.
-*** proxenet will be built without Perl support." >&2;}
+            { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Perl headers not found" >&5
+$as_echo "$as_me: WARNING: Perl headers not found" >&2;}
             enable_perl="no"
             not_found="$not_found perl"
         fi
@@ -5278,8 +5216,6 @@ $as_echo "#define _PERL_PLUGIN /**/" >>confdefs.h
 fi
 
 # ------------------------------[ Generating Makefiles ]------------------------------
-
-ac_config_files="$ac_config_files Makefile src/Makefile man/Makefile"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -6007,10 +5943,10 @@ for ac_config_target in $ac_config_targets
 do
   case $ac_config_target in
     "config.h") CONFIG_HEADERS="$CONFIG_HEADERS config.h" ;;
-    "depfiles") CONFIG_COMMANDS="$CONFIG_COMMANDS depfiles" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
     "src/Makefile") CONFIG_FILES="$CONFIG_FILES src/Makefile" ;;
     "man/Makefile") CONFIG_FILES="$CONFIG_FILES man/Makefile" ;;
+    "depfiles") CONFIG_COMMANDS="$CONFIG_COMMANDS depfiles" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;
   esac
@@ -6736,4 +6672,3 @@ if test -n "$ac_unrecognized_opts" && test "$enable_option_checking" != no; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: unrecognized options: $ac_unrecognized_opts" >&5
 $as_echo "$as_me: WARNING: unrecognized options: $ac_unrecognized_opts" >&2;}
 fi
-
