@@ -37,7 +37,7 @@
 #include "plugin-perl.h"
 #endif
 
-#ifdef HAVE_LIBLUA5_2
+#ifdef _LUA_PLUGIN
 #include "plugin-lua.h"
 #endif
 
@@ -50,7 +50,7 @@ static pthread_t threads[MAX_THREADS];
 /**
  *
  */
-int get_new_request_id()
+static int get_new_request_id()
 {
 	int rid;
 
@@ -181,7 +181,7 @@ void proxenet_initialize_plugins()
 				break;
 #endif
 
-#ifdef HAVE_LIBLUA5_2
+#ifdef _LUA_PLUGIN
 			case _LUA_:
 				if (proxenet_lua_initialize_vm(plugin) < 0) {
 					plugin->state = INACTIVE;
@@ -254,7 +254,7 @@ void proxenet_destroy_plugins_vm()
 				break;
 #endif				
 
-#ifdef HAVE_LIBLUA5_2
+#ifdef _LUA_PLUGIN
 			case _LUA_:
 				proxenet_lua_destroy_vm(p);
 				break;
@@ -309,15 +309,15 @@ int proxenet_toggle_plugin(int plugin_id)
 /**
  *
  */
-char* proxenet_apply_plugins(long id, char* data, size_t* data_size, char type)
+static char* proxenet_apply_plugins(request_t *request)
 {
 	plugin_t *p;
 	char *new_data, *old_data;
-	char* (*plugin_function)(plugin_t*, long, char*, size_t*, int) = NULL;
+	char* (*plugin_function)(plugin_t*, request_t*) = NULL;
 
 	
 	old_data = NULL;
-	new_data = data;     
+	new_data = request->data;
 	
 	for (p=plugins_list; p!=NULL; p=p->next) {  
 		
@@ -350,7 +350,7 @@ char* proxenet_apply_plugins(long id, char* data, size_t* data_size, char type)
 				break;
 #endif	  
 
-#ifdef HAVE_LIBLUA5_2
+#ifdef _LUA_PLUGIN
 			case _LUA_:
 				plugin_function = proxenet_lua_plugin;
 				break;
@@ -362,14 +362,16 @@ char* proxenet_apply_plugins(long id, char* data, size_t* data_size, char type)
 		}
 
 		old_data = new_data;
-		new_data = (*plugin_function)(p, id, old_data, data_size, type);
 		
-		if (new_data!=old_data) {
+		new_data = (*plugin_function)(p, request);
+		
+		if (new_data) {
 			/*
 			 * If new_data is different, it means a new buffer was allocated by
 			 * (*plugin_function)(). The old_data can then be free-ed.
 			 */
 			proxenet_xfree(old_data);
+			
 		} else {
 			/* Otherwise, use the old_data, which is only the original data */
 			new_data = old_data;
@@ -389,7 +391,6 @@ void proxenet_process_http_request(sock_t server_socket)
 	sock_t client_socket;
 	char *http_request, *http_response;
 	int retcode, rid;
-	size_t length;
 	fd_set rfds;
 	struct timespec ts;
 	ssl_context_t ssl_context;
@@ -441,6 +442,9 @@ void proxenet_process_http_request(sock_t server_socket)
 		if( FD_ISSET(server_socket, &rfds ) ) {
 			
 			int n = -1;
+			request_t req;
+
+			proxenet_xzero(&req, sizeof(request_t));
 			
 			if(is_ssl) {
 				n = proxenet_read_all(server_socket,
@@ -493,18 +497,25 @@ void proxenet_process_http_request(sock_t server_socket)
 				rid = get_new_request_id();
 			
 			/* hook request with all plugins in plugins_list  */
-			length = (size_t) n;
-			http_request = proxenet_apply_plugins(rid, http_request, &length, REQUEST);
+			req.id     = rid;
+			req.type   = REQUEST;
+			req.data   = http_request;
+			req.size   = n;
+			req.is_ssl = is_ssl;
+
+			
+			/* length = (size_t) n; */
+			http_request = proxenet_apply_plugins(&req);
 			
 #ifdef DEBUG
-			xlog(LOG_DEBUG, "[%d] Sending %d bytes (%s)\n", rid, length, (is_ssl)?"SSL":"PLAIN");
+			xlog(LOG_DEBUG, "[%d] Sending %d bytes (%s)\n", req.id, req.size, (req.is_ssl)?"SSL":"PLAIN");
 #endif
 			/* send modified data */
 			if (is_ssl) {
-				retcode = proxenet_ssl_write(client_socket, http_request, length,
+				retcode = proxenet_ssl_write(client_socket, http_request, req.size,
 							     &(ssl_context.client.context));
 			} else {
-				retcode = proxenet_write(client_socket, http_request, length);
+				retcode = proxenet_write(client_socket, http_request, req.size);
 			}
 			
 			proxenet_xfree(http_request);
@@ -522,6 +533,7 @@ void proxenet_process_http_request(sock_t server_socket)
 		/* is there data from remote server to proxy ? */
 		if( client_socket > 0 && FD_ISSET(client_socket, &rfds ) ) {
 			int n = -1;
+			request_t res;
 			
 			if (is_ssl)
 				n = proxenet_read_all(client_socket, &http_response, &ssl_context.client.context);
@@ -537,14 +549,19 @@ void proxenet_process_http_request(sock_t server_socket)
 
 			
 			/* execute response hooks */
-			length = (size_t) n;
-			http_response = proxenet_apply_plugins(rid, http_response, &length, RESPONSE);
+			res.id     = rid;
+			res.type   = RESPONSE;
+			res.data   = http_response;
+			res.size   = n;
+			res.is_ssl = is_ssl;
+
+			http_response = proxenet_apply_plugins(&res);
 
 			/* send modified data to client */
 			if (is_ssl)
-				retcode = proxenet_ssl_write(server_socket, http_response, length, &ssl_context.server.context);
+				retcode = proxenet_ssl_write(server_socket, http_response, res.size, &ssl_context.server.context);
 			else
-				retcode = proxenet_write(server_socket, http_response, length);
+				retcode = proxenet_write(server_socket, http_response, res.size);
 			
 			if (retcode < 0) {
 				xlog(LOG_ERROR, "[%d] %s\n", rid, "proxy->client: write failed");
@@ -618,7 +635,7 @@ static void* process_thread_job(void* arg)
 /**
  *
  */
-bool is_thread_active(int idx)
+static inline bool is_thread_active(int idx)
 {
 	return active_threads_bitmask & (1<<idx); 
 }
@@ -641,7 +658,7 @@ unsigned int get_active_threads_size()
 /**
  *
  */
-int proxenet_start_new_thread(sock_t conn, int tnum, pthread_t* thread, pthread_attr_t* tattr)
+static int proxenet_start_new_thread(sock_t conn, int tnum, pthread_t* thread, pthread_attr_t* tattr)
 {
 	tinfo_t* tinfo;
 	void* tfunc;
@@ -660,7 +677,7 @@ int proxenet_start_new_thread(sock_t conn, int tnum, pthread_t* thread, pthread_
 /**
  *
  */
-void purge_zombies()
+static void purge_zombies()
 {
 	/* simple threads heartbeat based on pthread_kill response */
 	int i, retcode;
@@ -689,7 +706,7 @@ void purge_zombies()
 /**
  *
  */
-void kill_zombies() 
+static void kill_zombies() 
 {
 	int i, retcode;
 	

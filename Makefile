@@ -71,7 +71,7 @@ TEST_ARGS		= 	-4 -vvvv -t 10 -b 0.0.0.0 -p 8000
 
 
 # Compile rules
-.PHONY : all check-syntax clean keys tags purge test check-required check-plugins
+.PHONY : all check-syntax clean keys tags purge test check-required check-plugins check-python check-lua check-ruby check-perl leaks
 
 .c.o :
 	@echo "[+] CC $< -> $@"
@@ -83,11 +83,11 @@ $(BIN): $(OBJECTS)
 	@echo "[+] LINK with $(LDFLAGS)"
 	@$(CC) $(CFLAGS) -o $@ $(OBJECTS) $(LIB) $(LDFLAGS)
 
-purge:
+clean:
 	@echo "[+] RM objects"
 	@rm -fr $(OBJECTS) ./core-$(BIN)-*
 
-clean: purge
+purge: clean
 	@echo "[+] RM $(BIN)"
 	@rm -fr $(BIN)
 
@@ -99,14 +99,16 @@ check-required: check-polarssl check-dl
 check-plugins: check-python check-lua check-ruby check-perl
 
 check-polarssl:
-	@echo -e "int main(){return 0;}">_a.c;$(CC) _a.c -lpolarssl || (echo "[-] Missing required 'polarssl' library"; rm -fr _a.c && exit 1)
+	@echo -n "[+] Looking for required 'polarssl' library ... "
+	@echo -e "int main(){return 0;}">_a.c;$(CC) _a.c -lpolarssl || (echo "not found"; rm -fr _a.c && exit 1)
 	@rm -fr _a.c a.out
-	@echo "[+] 'polarssl' library found"
+	@echo "found"
 
 check-dl:
-	@echo -e "int main(){return 0;}">_a.c; $(CC) _a.c -ldl || (echo "[-] Missing required 'dl' library"; rm -fr _a.c && exit 1)
+	@echo -n "[+] Looking for required 'dl' library ... "
+	@echo -e "int main(){return 0;}">_a.c; $(CC) _a.c -ldl || (echo "not found"; rm -fr _a.c && exit 1)
 	@rm -fr _a.c a.out
-	@echo "[+] 'dl' library found"
+	@echo "found"
 	$(eval DEFINES += -D_C_PLUGIN )
 	$(eval LDFLAGS += -ldl )
 
@@ -168,11 +170,8 @@ stable: clean
 	|gzip > /tmp/${PROGNAME}-${PROGVERS}.tgz
 
 # Tests
-check-syntax:
-	$(CC) $(CFLAGS) -fsyntax-only $(CHK_SOURCES)
-
 test: clean $(BIN)
 	./$(BIN) $(TEST_ARGS)
 
-valgrind: $(BIN)
+leaks: $(BIN)
 	valgrind -v --track-origins=yes --leak-check=full --show-reachable=yes ./$(BIN) $(TEST_ARGS)

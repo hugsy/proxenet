@@ -39,7 +39,7 @@
 /**
  *
  */
-int proxenet_python_append_path(interpreter_t *interpreter)
+static int proxenet_python_append_path(interpreter_t *interpreter)
 {
 	PyObject *pPath, *pAddPath;
 	int retcode = 0;
@@ -127,7 +127,7 @@ int proxenet_python_destroy_vm(plugin_t* plugin)
 /**
  *
  */
-int proxenet_python_initialize_function(plugin_t* plugin, char type) 
+int proxenet_python_initialize_function(plugin_t* plugin, req_t type) 
 {
 	char*	module_name;
 	size_t 	module_name_len;
@@ -207,7 +207,7 @@ int proxenet_python_initialize_function(plugin_t* plugin, char type)
 /**
  *
  */
-char* proxenet_python_execute_function(PyObject* pFuncRef, long rid, char* request_str, size_t* request_size)
+static char* proxenet_python_execute_function(PyObject* pFuncRef, request_t *request)
 {
 	PyObject *pArgs, *pResult;
 	char *buffer, *result;
@@ -218,9 +218,9 @@ char* proxenet_python_execute_function(PyObject* pFuncRef, long rid, char* reque
 	len = -1;
 
 #if _PYTHON_MAJOR_ == 3
-	pArgs = Py_BuildValue("iy", rid, request_str);
+	pArgs = Py_BuildValue("iy", request->id, request->data);
 #else
-	pArgs = Py_BuildValue("is", rid, request_str);
+	pArgs = Py_BuildValue("is", request->id, request->data);
 #endif
 	if (!pArgs) {
 		xlog(LOG_ERROR, "%s\n", "Failed to build args");
@@ -244,7 +244,9 @@ char* proxenet_python_execute_function(PyObject* pFuncRef, long rid, char* reque
 		} else {
 			result = (char*) proxenet_xmalloc(len+1);
 			result = memcpy(result, buffer, len);
-			*request_size = len;
+			
+			request->size = len;
+			request->data = result;
 		}
 		
 	} else {
@@ -280,15 +282,15 @@ void proxenet_python_unlock_vm(interpreter_t *interpreter)
 /**
  * 
  */
-char* proxenet_python_plugin(plugin_t* plugin, long rid, char* request, size_t* request_size, int type)
+char* proxenet_python_plugin(plugin_t* plugin, request_t* request)
 {	
 	char *dst_buf = NULL;
 	PyObject *pFunc = NULL;
-	bool is_request = (type==REQUEST) ? true : false;
+	bool is_request = (request->type==REQUEST) ? true : false;
 	interpreter_t *interpreter = plugin->interpreter;
 	
 	if (!interpreter->ready)
-		return request;
+		return NULL;
 
 	proxenet_python_lock_vm(interpreter);
        
@@ -297,17 +299,14 @@ char* proxenet_python_plugin(plugin_t* plugin, long rid, char* request, size_t* 
 	else
 		pFunc = (PyObject*) plugin->post_function;
 
-	dst_buf = proxenet_python_execute_function(pFunc, rid, request, request_size);
+	dst_buf = proxenet_python_execute_function(pFunc, request);
 	if (!dst_buf) {
 		xlog(LOG_ERROR,
 		     "[%s] Error while executing plugin on %s\n",
 		     plugin->name,
 		     is_request ? "request" : "response");
-		
-		dst_buf = request;
 	}
 	
-
 	proxenet_python_unlock_vm(interpreter);
 	
 	return dst_buf;

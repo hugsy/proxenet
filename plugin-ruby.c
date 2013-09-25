@@ -118,7 +118,7 @@ int proxenet_ruby_destroy_vm(plugin_t* plugin)
 /**
  *
  */
-int proxenet_ruby_initialize_function(plugin_t* plugin, int type)
+int proxenet_ruby_initialize_function(plugin_t* plugin, req_t type)
 {
 	
 	/* checks */
@@ -170,7 +170,7 @@ int proxenet_ruby_initialize_function(plugin_t* plugin, int type)
 /**
  *
  */
-char* proxenet_ruby_execute_function(interpreter_t* interpreter, ID rFunc, long rid, char* request_str, size_t* request_size)
+static char* proxenet_ruby_execute_function(interpreter_t* interpreter, ID rFunc, request_t* request)
 {
 	char *buf, *data;
 	int buflen;
@@ -179,8 +179,8 @@ char* proxenet_ruby_execute_function(interpreter_t* interpreter, ID rFunc, long 
 	/* build args */
 	rVM = (VALUE)interpreter->vm;
 
-	rArgs[0] = INT2FIX(rid);
-	rArgs[1] = rb_str_new2(request_str);
+	rArgs[0] = INT2FIX(request->id);
+	rArgs[1] = rb_str_new2(request->data);
 	
 	/* function call */
 	rRet = rb_funcall2(rVM, rFunc, 2, rArgs); 
@@ -200,7 +200,9 @@ char* proxenet_ruby_execute_function(interpreter_t* interpreter, ID rFunc, long 
 	
 	data = proxenet_xmalloc(buflen + 1);
 	memcpy(data, buf, buflen);
-	*request_size = buflen;
+
+	request->data = data;
+	request->size = buflen;
 	
 	return data;
 }
@@ -209,7 +211,7 @@ char* proxenet_ruby_execute_function(interpreter_t* interpreter, ID rFunc, long 
 /**
  *
  */
-void proxenet_ruby_lock_vm(interpreter_t *interpreter)
+static void proxenet_ruby_lock_vm(interpreter_t *interpreter)
 {
 	pthread_mutex_lock(&interpreter->mutex);
 }
@@ -218,7 +220,7 @@ void proxenet_ruby_lock_vm(interpreter_t *interpreter)
 /**
  *
  */
-void proxenet_ruby_unlock_vm(interpreter_t *interpreter)
+static void proxenet_ruby_unlock_vm(interpreter_t *interpreter)
 {
 	pthread_mutex_unlock(&interpreter->mutex);
 }
@@ -227,21 +229,21 @@ void proxenet_ruby_unlock_vm(interpreter_t *interpreter)
 /**
  * 
  */
-char* proxenet_ruby_plugin(plugin_t* plugin, long rid, char* request, size_t* request_size, int type)
+char* proxenet_ruby_plugin(plugin_t* plugin, request_t* request)
 {
 	char* buf = NULL;
 	interpreter_t *interpreter = plugin->interpreter;
 	ID rFunc;
 	
-	if (type == REQUEST)
+	if (request->type == REQUEST)
 		rFunc = (ID) plugin->pre_function;
 	else 
 		rFunc = (ID) plugin->post_function;
 
 	proxenet_ruby_lock_vm(interpreter);
-		buf = proxenet_ruby_execute_function(interpreter, rFunc, rid, request, request_size);
+	buf = proxenet_ruby_execute_function(interpreter, rFunc, request);
 	proxenet_ruby_unlock_vm(interpreter);
-	
+
 	return buf;
 }
 

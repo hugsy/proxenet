@@ -89,7 +89,7 @@ int proxenet_lua_destroy_vm(plugin_t* plugin)
 /**
  *
  */
-char* proxenet_lua_execute_function(interpreter_t* interpreter, long rid, char* request, size_t* request_size, int type)
+static char* proxenet_lua_execute_function(interpreter_t* interpreter, request_t *request)
 {
 	const char *lRet;
 	char *buf;
@@ -97,13 +97,13 @@ char* proxenet_lua_execute_function(interpreter_t* interpreter, long rid, char* 
 
 	lua_interpreter = (lua_State*) interpreter->vm;
 	
-	if (type == REQUEST)
+	if (request->type == REQUEST)
 		lua_getglobal(lua_interpreter, CFG_REQUEST_PLUGIN_FUNCTION);
 	else
 		lua_getglobal(lua_interpreter, CFG_RESPONSE_PLUGIN_FUNCTION);
 	
-	lua_pushnumber(lua_interpreter, rid);
-	lua_pushlstring(lua_interpreter, request, *request_size);
+	lua_pushnumber(lua_interpreter, request->id);
+	lua_pushlstring(lua_interpreter, request->data, request->size);
 	lua_call(lua_interpreter, 2, 1);
 	lRet = lua_tostring(lua_interpreter, -1);
 	if (!lRet)
@@ -113,14 +113,14 @@ char* proxenet_lua_execute_function(interpreter_t* interpreter, long rid, char* 
 	if (!buf)
 		return NULL;
 	
-	*request_size = strlen(buf);
+	request->size = strlen(buf);
 	return buf;
 }
 
 /**
  *
  */
-void proxenet_lua_lock_vm(interpreter_t *interpreter)
+static void proxenet_lua_lock_vm(interpreter_t *interpreter)
 {
 	pthread_mutex_lock(&interpreter->mutex);
 }
@@ -129,7 +129,7 @@ void proxenet_lua_lock_vm(interpreter_t *interpreter)
 /**
  *
  */
-void proxenet_lua_unlock_vm(interpreter_t *interpreter)
+static void proxenet_lua_unlock_vm(interpreter_t *interpreter)
 {
 	pthread_mutex_unlock(&interpreter->mutex);
 }
@@ -137,16 +137,16 @@ void proxenet_lua_unlock_vm(interpreter_t *interpreter)
 /**
  * 
  */
-char* proxenet_lua_plugin(plugin_t* plugin, long rid, char* request, size_t* request_size, int type)
+char* proxenet_lua_plugin(plugin_t* plugin, request_t *request)
 {
 	char* buf = NULL;
 	interpreter_t *interpreter = plugin->interpreter;
 
 	proxenet_lua_lock_vm(interpreter);
-	buf = proxenet_lua_execute_function(interpreter, rid, request, request_size, type);
+	buf = proxenet_lua_execute_function(interpreter, request);
 	proxenet_lua_unlock_vm(interpreter);
 	
 	return buf;
 }
 
-#endif /* HAVE_LIBLUA5_2 */
+#endif /* _LUA_PLUGIN */

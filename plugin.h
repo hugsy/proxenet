@@ -60,7 +60,7 @@ const static UNUSED char* supported_plugins_str[] = {
 	"Perl",
 #endif
 
-#ifdef HAVE_LIBLUA5_2
+#ifdef _LUA_PLUGIN
 	"Lua",
 #endif
 	
@@ -92,14 +92,21 @@ const static UNUSED char* plugins_extensions_str[] = {
   NULL
 };
 
+#define MAX_VMS 5
 
-enum {
+typedef enum {
 	REQUEST	 = 0,
 	RESPONSE = 1
-};
+} req_t;
 
-#define MAX_VMS 5
-	
+typedef struct _request_type {
+		long id;
+		req_t type;
+		char* data;
+		size_t size;
+		bool is_ssl;
+} request_t;
+
 typedef struct _interpreter_type {
 		unsigned short id;
 		supported_plugins_t type;

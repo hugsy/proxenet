@@ -33,7 +33,6 @@ int proxenet_c_initialize_vm(plugin_t* plugin)
 		return -1;
 	}
 
-
 	interpreter = dlopen(pathname, RTLD_NOW);
 	if (!interpreter) {
 		xlog(LOG_CRITICAL,"[C] %s\n", dlerror());
@@ -76,7 +75,7 @@ int proxenet_c_destroy_vm(plugin_t* plugin)
 /**
  *
  */
-int proxenet_c_initialize_function(plugin_t* plugin, int type)
+int proxenet_c_initialize_function(plugin_t* plugin, req_t type)
 {
 	void *interpreter;
 
@@ -117,23 +116,23 @@ int proxenet_c_initialize_function(plugin_t* plugin, int type)
 /**
  *
  */
-char* proxenet_c_plugin(plugin_t *plugin, unsigned long request_id, char *request, size_t* request_size, int type)
+char* proxenet_c_plugin(plugin_t *plugin, request_t *request)
 {
 	char* (*plugin_function)(unsigned long, char*);
 	char *bufres;
 
 	bufres = NULL;
 	
-	if (type == REQUEST)
+	if (request->type == REQUEST)
 		plugin_function = plugin->pre_function;
 	else
 		plugin_function = plugin->post_function;
 
-	bufres = (*plugin_function)(request_id, request);
+	bufres = (*plugin_function)(request->id, request->data);
 	if(!bufres)
-		return request;
+		return NULL;
 
-	*request_size = strlen(bufres);
+	request->size = strlen(bufres);
 	
 	return bufres;
 }

@@ -42,18 +42,12 @@ plugin_t 	*plugins_list;  /* points to first plugin */
 
 void		proxenet_delete_once_plugins();
 void		proxenet_init_once_plugins(int, char**, char**);	
-int		get_new_request_id();
 int 		proxenet_start();
 unsigned int	get_active_threads_size();
-bool 		is_thread_active(int);
 int		proxenet_toggle_plugin(int);
-char* 		proxenet_apply_plugins(long, char*, size_t*, char);
 void 		proxenet_destroy_plugins_vm();
 int 		proxenet_initialize_plugins_list();
 void 		proxenet_initialize_plugins();
-int 		proxenet_start_new_thread(sock_t, int, pthread_t*, pthread_attr_t*);
-void 		kill_zombies();
-void 		purge_zombies();
 void 		xloop(sock_t, sock_t);
 
 #endif /* _CORE_H */
