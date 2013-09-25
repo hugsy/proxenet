@@ -23,7 +23,7 @@ typedef enum __supported_plugins_t {
 	_PERL_,
 #endif
 
-#ifdef HAVE_LIBLUA5_2
+#ifdef _LUA_PLUGIN
 	_LUA_,
 #endif
 	
@@ -33,9 +33,9 @@ typedef enum __supported_plugins_t {
 
 const static UNUSED char* supported_plugins_str[] = {
 #ifdef _PYTHON_PLUGIN
-	#if defined _PYTHON2_
+	#if _PYTHON_MAJOR_ == 2
 	"Python2",
-	#elif defined _PYTHON3_
+	#elif _PYTHON_MAJOR_ == 3
 	"Python3",
 	#else
 	"Unknown Python version (incorrect build?)",
@@ -47,9 +47,9 @@ const static UNUSED char* supported_plugins_str[] = {
 #endif
 	
 #ifdef _RUBY_PLUGIN
-	#if defined _RUBY18_
+	#if _RUBY_MINOR_ == 8
 	"Ruby 1.8",
-	#elif defined _RUBY19_
+	#elif _RUBY_MINOR_ == 9
 	"Ruby 1.9",
 	#else
 	"Unknown Ruby version (incorrect build?)",
@@ -85,7 +85,7 @@ const static UNUSED char* plugins_extensions_str[] = {
 	".pl",
 #endif
 
-#ifdef HAVE_LIBLUA5_2
+#ifdef _LUA_PLUGIN
 	".lua",
 #endif
 	

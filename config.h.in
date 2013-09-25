@@ -1,4 +1,0 @@
-#define PROGNAME        "@PACKAGE_NAME@"
-#define VERSION         "@PACKAGE_VERSION@"
-#define AUTHOR 		"@PACKAGE_AUTHOR@"
-#define LICENSE 	"@PACKAGE_LICENSE@"

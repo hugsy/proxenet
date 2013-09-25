@@ -1,4 +1,4 @@
-#ifdef HAVE_LIBLUA5_2
+#ifdef _LUA_PLUGIN
 
 
 int 	proxenet_lua_initialize_vm(plugin_t*);

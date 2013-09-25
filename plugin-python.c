@@ -21,18 +21,17 @@
 #include "plugin.h"
 #include "utils.h"
 #include "plugin-python.h"
-#include "config.h"
 
-#if defined _PYTHON3_
+#if _PYTHON_MAJOR_ == 3
 #define PYTHON_CHECK PyBytes_Check
 #define PYTHON_FROMSTRING PyUnicode_FromString
 #define PYTHON_ASSTRINGANDSIZE PyBytes_AsStringAndSize
 
 # else /* if defined _PYTHON2_ */
-/* #define PYTHON_CHECK PyString_Check */
-/* #define PYTHON_ASSTRINGANDSIZE  PyString_AsStringAndSize */
-#define PYTHON_CHECK PyByteArray_Check
-#define PYTHON_ASSTRINGANDSIZE PyByteArray_AsString
+#define PYTHON_CHECK PyString_Check
+#define PYTHON_ASSTRINGANDSIZE  PyString_AsStringAndSize
+/* #define PYTHON_CHECK PyByteArray_Check */
+/* #define PYTHON_ASSTRINGANDSIZE PyByteArray_AsString */
 #define PYTHON_FROMSTRING  PyString_FromString
 
 #endif
@@ -218,7 +217,7 @@ char* proxenet_python_execute_function(PyObject* pFuncRef, long rid, char* reque
 	result = buffer = NULL;
 	len = -1;
 
-#ifdef _PYTHON3_
+#if _PYTHON_MAJOR_ == 3
 	pArgs = Py_BuildValue("iy", rid, request_str);
 #else
 	pArgs = Py_BuildValue("is", rid, request_str);

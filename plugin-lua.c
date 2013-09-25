@@ -1,4 +1,4 @@
-#ifdef HAVE_LIBLUA5_2
+#ifdef _LUA_PLUGIN
 
 /*******************************************************************************
  *
@@ -16,7 +16,6 @@
 #include "utils.h"
 #include "main.h"
 #include "plugin.h"
-#include "config.h"
 
 
 /**

@@ -13,7 +13,6 @@
 #include "plugin.h"
 #include "utils.h"
 #include "main.h"
-#include "config.h"
 
 
 /**

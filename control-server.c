@@ -10,7 +10,6 @@
 #include "core.h"
 #include "socket.h"
 #include "utils.h"
-#include "config.h"
 
 #define BUFSIZE 1024
 

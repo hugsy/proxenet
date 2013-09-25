@@ -16,7 +16,6 @@
 #include "utils.h"
 #include "main.h"
 #include "socket.h"
-#include "config.h"
 
 
 /**

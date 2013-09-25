@@ -7,7 +7,9 @@ compiler:
 before_script:
   - sudo apt-get install -qq python-dev liblua5.2-dev libpolarssl-dev cmake
 
-script: cmake . && make
+script: make
+
+after_script: ./proxenet --help
 
 notifications:
   email:

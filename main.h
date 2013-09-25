@@ -1,8 +1,6 @@
 #ifndef _MAIN_H
 #define _MAIN_H
 
-#include "config.h"
-
 #include <stdio.h>
 #include "utils.h"
 

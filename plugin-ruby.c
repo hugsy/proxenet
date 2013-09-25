@@ -16,7 +16,6 @@
 #include "plugin-ruby.h"
 #include "utils.h"
 #include "main.h"
-#include "config.h"
 
 
 /**
@@ -45,9 +44,9 @@ int proxenet_ruby_load_file(plugin_t* plugin)
 	proxenet_xzero(pathname, pathname_len + 1);
 	snprintf(pathname, pathname_len, "%s/%s", cfg->plugins_path, filename);
 
-#if defined _RUBY19_
+#if _RUBY_MINOR_ == 9
 	rb_protect(proxenet_ruby_require_cb, (VALUE) pathname, &res);
-#elif defined _RUBY18_
+#elif _RUBY_MINOR_ == 8
 	rb_protect(proxenet_ruby_require_cb, (VALUE) pathname, &res);
 #else
 	abort();
@@ -83,15 +82,13 @@ int proxenet_ruby_initialize_vm(plugin_t* plugin)
 	/* init vm */
 	ruby_init();
 	
-#if defined _RUBY19_
+#if _RUBY_MINOR_ == 9
 #ifdef DEBUG
 	xlog(LOG_DEBUG, "%s\n", "Using Ruby 1.9 C API");
 #endif
-	/* luke : not great, but temporary until I get rb_vm_top_self working */
 	interpreter->vm = (void*) rb_cObject;
 
-#elif defined _RUBY18_
-	
+#elif RUBY_MINOR_ == 8
 #ifdef DEBUG
 	xlog(LOG_DEBUG, "%s\n", "Using Ruby 1.8 C API");
 #endif
