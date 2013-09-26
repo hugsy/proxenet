@@ -249,9 +249,18 @@ ssize_t proxenet_ssl_ioctl(int (*func)(), void *buf, size_t count, proxenet_ssl_
 
 		if (retcode < 0) {
 			char ssl_strerror[128] = {0, };
-			error_strerror(retcode, ssl_strerror, 127);
-			xlog(LOG_ERROR, "SSL I/O got %#x: %s\n", -retcode, ssl_strerror);
-			return -1;
+			
+			switch(retcode) {
+				case POLARSSL_ERR_SSL_PEER_CLOSE_NOTIFY :
+					/* acceptable case */
+					retcode = 0;
+					break;
+					
+				default:
+					error_strerror(retcode, ssl_strerror, 127);
+					xlog(LOG_ERROR, "SSL I/O got %#x: %s\n", -retcode, ssl_strerror);
+					return -1;
+			}
 		}
 		
 	} while (true);

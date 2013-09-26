@@ -235,9 +235,6 @@ static char* proxenet_python_execute_function(PyObject* pFuncRef, request_t *req
 	
 	if (PyBytes_Check(pResult)) {
 		ret = PyBytes_AsStringAndSize(pResult, &buffer, &len);
-#ifdef DEBUG
-		xlog(LOG_DEBUG, "[%d] got buf len %d\n", request->id, len);
-#endif
 		if (ret<0) {
 			PyErr_Print();
 			result = NULL;
