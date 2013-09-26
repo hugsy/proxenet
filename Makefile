@@ -97,6 +97,7 @@ check-polarssl:
 	@echo -e "int main(int a,char** b){\nreturn 0;\n}">_a.c;$(CC) _a.c -lpolarssl || (echo "not found"; rm -fr _a.c && exit 1)
 	@rm -fr _a.c a.out
 	@echo "found"
+	$(eval LDFLAGS += -lpolarssl )
 
 check-dl:
 	@echo -n "[+] Looking for required 'dl' library ... "
