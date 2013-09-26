@@ -37,7 +37,10 @@ int proxenet_lua_load_file(plugin_t* plugin)
 	proxenet_xzero(pathname, pathname_len + 1);
 	snprintf(pathname, pathname_len, "%s/%s", cfg->plugins_path, filename);
 	
-	luaL_dofile(lua_interpreter, pathname);
+	if (luaL_dofile(lua_interpreter, pathname)) {
+		xlog(LOG_ERROR, "Failed to load '%s'\n", pathname);
+		return -1;
+	}
 	
 	return 0;
 }
