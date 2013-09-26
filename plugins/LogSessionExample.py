@@ -1,6 +1,6 @@
 import sqlite3
 
-SQLPATH = "/home/hugsy/http_session.log"
+SQLPATH = "./http_session.log"
 conn, cur = (None, None)
 BUILD_TABLE_SQL = """CREATE TABLE requests (id INTEGER, request BLOB, inserted TIMESTAMP DEFAULT CURRENT_TIMESTAMPDATE);"""
 BUILD_TABLE_SQL+= """CREATE TABLE responses (id INTEGER, response BLOB, inserted TIMESTAMP DEFAULT CURRENT_TIMESTAMPDATE);"""
@@ -15,7 +15,7 @@ def proxenet_request_hook(request_id, request):
         cur.execute(REQ_SQL, request_id, request)
         conn.commit()
         
-    return str(r)
+    return request
 
     
 def proxenet_response_hook(response_id, response):

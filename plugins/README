@@ -8,3 +8,5 @@ To be executed, a script must :
 Priority corresponds to the place the plugin will be inserted in the plugin
 list. proxenet scheduler won't make any difference between plugins running with
 a same level of priority.
+
+Example scripts have been provided in this directory and can be used as helpers.
