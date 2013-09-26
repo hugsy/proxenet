@@ -27,12 +27,6 @@ CFLAGS          =       -O2 -Wall $(DEFINES) $(INC) -pthread
 LIB		= 	-L/lib
 
 
-# SSL 
-INC		+=	-Ipolarssl/include
-LIB		+= 	-Lpolarssl/library
-LDFLAGS		+=	-lpolarssl
-
-
 # DEBUG
 ifeq ($(DEBUG), 1)
 DBGFLAGS        =       -ggdb -DDEBUG
@@ -100,13 +94,13 @@ check-plugins: check-python check-lua check-ruby check-perl
 
 check-polarssl:
 	@echo -n "[+] Looking for required 'polarssl' library ... "
-	@echo -e "int main(){return 0;}">_a.c;$(CC) _a.c -lpolarssl || (echo "not found"; rm -fr _a.c && exit 1)
+	@echo -e "int main(int a,char** b){\nreturn 0;\n}">_a.c;$(CC) _a.c -lpolarssl || (echo "not found"; rm -fr _a.c && exit 1)
 	@rm -fr _a.c a.out
 	@echo "found"
 
 check-dl:
 	@echo -n "[+] Looking for required 'dl' library ... "
-	@echo -e "int main(){return 0;}">_a.c; $(CC) _a.c -ldl || (echo "not found"; rm -fr _a.c && exit 1)
+	@echo -e "int main(int a,char** b){\nreturn 0;\n}">_a.c; $(CC) _a.c -ldl || (echo "not found"; rm -fr _a.c && exit 1)
 	@rm -fr _a.c a.out
 	@echo "found"
 	$(eval DEFINES += -D_C_PLUGIN )
