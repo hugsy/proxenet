@@ -507,7 +507,8 @@ void proxenet_process_http_request(sock_t server_socket)
 			http_request = proxenet_apply_plugins(&req);
 			
 #ifdef DEBUG
-			xlog(LOG_DEBUG, "[%d] Sending %d bytes (%s)\n", req.id, req.size, (req.http_infos.is_ssl)?"SSL":"PLAIN");
+			xlog(LOG_DEBUG, "[%d] Sending %d bytes (%s)\n", req.id, req.size,
+			     (req.http_infos.is_ssl)?"SSL":"PLAIN");
 #endif
 			/* send modified data */
 			if (is_ssl) {

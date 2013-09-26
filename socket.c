@@ -234,7 +234,9 @@ int proxenet_read_all(sock_t sock, char** ptr, proxenet_ssl_context_t* ssl)
 	char *data, *current_offset;  
 		
 	total_bytes_read = 0;
-	current_offset = NULL;	
+	current_offset = NULL;
+	*ptr = NULL;
+	
 	data = (char*)proxenet_xmalloc(malloced_size+1);
 	
 	while (true) {
@@ -270,7 +272,7 @@ int proxenet_read_all(sock_t sock, char** ptr, proxenet_ssl_context_t* ssl)
 		}
 
 		break;
-	} 
+	}
 	
 	if (total_bytes_read == 0) {
 #ifdef DEBUG

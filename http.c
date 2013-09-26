@@ -131,10 +131,10 @@ bool is_valid_http_request(char* request)
 {
 	size_t old_reqlen = -1;
 	size_t new_reqlen = -1;
-	char* old_ptr = NULL;
-	char* new_ptr = NULL;
+	char *old_ptr, *new_ptr;
 	int i = -1;
 
+	old_ptr = new_ptr = NULL;
 	old_ptr = strstr(request, "http://");
 	if (old_ptr) {
 		new_ptr = old_ptr + 7;

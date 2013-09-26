@@ -23,15 +23,9 @@
 #include "plugin-python.h"
 
 #if _PYTHON_MAJOR_ == 3
-#define PYTHON_CHECK PyBytes_Check
 #define PYTHON_FROMSTRING PyUnicode_FromString
-#define PYTHON_ASSTRINGANDSIZE PyBytes_AsStringAndSize
 
 # else /* if defined _PYTHON2_ */
-#define PYTHON_CHECK PyString_Check
-#define PYTHON_ASSTRINGANDSIZE  PyString_AsStringAndSize
-/* #define PYTHON_CHECK PyByteArray_Check */
-/* #define PYTHON_ASSTRINGANDSIZE PyByteArray_AsString */
 #define PYTHON_FROMSTRING  PyString_FromString
 
 #endif
@@ -221,7 +215,7 @@ static char* proxenet_python_execute_function(PyObject* pFuncRef, request_t *req
 #if _PYTHON_MAJOR_ == 3
 	pArgs = Py_BuildValue("iyy", request->id, request->data, uri);
 #else
-	pArgs = Py_BuildValue("iss", request->id, request->data, uri);
+	pArgs = Py_BuildValue("is#s", request->id, request->data, request->size, uri);
 #endif
 	
 	proxenet_xfree(uri);
@@ -238,12 +232,15 @@ static char* proxenet_python_execute_function(PyObject* pFuncRef, request_t *req
 		PyErr_Print();
 		return result;
 	}
-
-
-	if (PYTHON_CHECK(pResult)) {
-		ret = PYTHON_ASSTRINGANDSIZE(pResult, &buffer, &len);
-		if (ret < 0) {
+	
+	if (PyBytes_Check(pResult)) {
+		ret = PyBytes_AsStringAndSize(pResult, &buffer, &len);
+#ifdef DEBUG
+		xlog(LOG_DEBUG, "[%d] got buf len %d\n", request->id, len);
+#endif
+		if (ret<0) {
 			PyErr_Print();
+			result = NULL;
 			
 		} else {
 			result = (char*) proxenet_xmalloc(len+1);
@@ -252,7 +249,7 @@ static char* proxenet_python_execute_function(PyObject* pFuncRef, request_t *req
 			request->size = len;
 			request->data = result;
 		}
-		
+				
 	} else {
 		xlog(LOG_ERROR, "%s\n", "Incorrect return type (not string)");
 		result = NULL;
