@@ -213,15 +213,19 @@ static char* proxenet_python_execute_function(PyObject* pFuncRef, request_t *req
 	char *buffer, *result;
 	int ret;
 	Py_ssize_t len;
-
+	char *uri = get_request_full_uri(request);
+	
 	result = buffer = NULL;
 	len = -1;
 
 #if _PYTHON_MAJOR_ == 3
-	pArgs = Py_BuildValue("iy", request->id, request->data);
+	pArgs = Py_BuildValue("iyy", request->id, request->data, uri);
 #else
-	pArgs = Py_BuildValue("is", request->id, request->data);
+	pArgs = Py_BuildValue("iss", request->id, request->data, uri);
 #endif
+	
+	proxenet_xfree(uri);
+		
 	if (!pArgs) {
 		xlog(LOG_ERROR, "%s\n", "Failed to build args");
 		PyErr_Print();
@@ -255,6 +259,7 @@ static char* proxenet_python_execute_function(PyObject* pFuncRef, request_t *req
 	}
 	
 	Py_DECREF(pResult);
+	Py_DECREF(pArgs);
 	
 	return result;
 }
@@ -263,7 +268,7 @@ static char* proxenet_python_execute_function(PyObject* pFuncRef, request_t *req
 /**
  *
  */
-void proxenet_python_lock_vm(interpreter_t *interpreter)
+static void proxenet_python_lock_vm(interpreter_t *interpreter)
 {
 	pthread_mutex_lock(&interpreter->mutex);
 
@@ -273,7 +278,7 @@ void proxenet_python_lock_vm(interpreter_t *interpreter)
 /**
  *
  */
-void proxenet_python_unlock_vm(interpreter_t *interpreter)
+static void proxenet_python_unlock_vm(interpreter_t *interpreter)
 {
 	pthread_mutex_unlock(&interpreter->mutex);
 }

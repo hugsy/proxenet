@@ -1,13 +1,11 @@
 #ifndef _SSL_H
 #define _SSL_H
 
-#include "socket.h"
-#include "main.h"
-#include "utils.h"
-
 #include <polarssl/ssl.h>
 #include <polarssl/entropy.h>
 #include <polarssl/ctr_drbg.h>
+
+#include "main.h"
 
 typedef ssl_context proxenet_ssl_context_t;
 typedef x509_cert proxenet_ssl_cert_t;
@@ -27,7 +25,8 @@ typedef struct __ssl_context_t {
 		ssl_atom_t server;
 } ssl_context_t;
 
-
+#include "socket.h"
+#include "utils.h"
 
 void proxenet_ssl_free_certificate(proxenet_ssl_cert_t* ssl_cert);
 	

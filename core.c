@@ -396,6 +396,9 @@ void proxenet_process_http_request(sock_t server_socket)
 	ssl_context_t ssl_context;
 	bool is_ssl;
 	sigset_t emptyset;
+	request_t req;
+	
+	proxenet_xzero(&req, sizeof(request_t));
 	
 	rid = 0;
 	client_socket = retcode =-1;
@@ -442,10 +445,7 @@ void proxenet_process_http_request(sock_t server_socket)
 		if( FD_ISSET(server_socket, &rfds ) ) {
 			
 			int n = -1;
-			request_t req;
 
-			proxenet_xzero(&req, sizeof(request_t));
-			
 			if(is_ssl) {
 				n = proxenet_read_all(server_socket,
 						      &http_request,
@@ -460,9 +460,11 @@ void proxenet_process_http_request(sock_t server_socket)
 			if (n <= 0) 
 				break;
 			
-			/* is connection to server not established ? */
+			/* is connection to server not established ? -> new request */
 			if (client_socket < 0) {
-				retcode = create_http_socket(http_request, &server_socket, &client_socket, &ssl_context);
+				proxenet_xzero(&req, sizeof(request_t));
+				
+				retcode = create_http_socket(http_request, &server_socket, &client_socket, &ssl_context, &req);
 				if (retcode < 0) {
 					xlog(LOG_ERROR, "[%d] Failed to create %s->server socket\n", rid, PROGNAME);
 					proxenet_xfree(http_request);
@@ -501,14 +503,11 @@ void proxenet_process_http_request(sock_t server_socket)
 			req.type   = REQUEST;
 			req.data   = http_request;
 			req.size   = n;
-			req.is_ssl = is_ssl;
 
-			
-			/* length = (size_t) n; */
 			http_request = proxenet_apply_plugins(&req);
 			
 #ifdef DEBUG
-			xlog(LOG_DEBUG, "[%d] Sending %d bytes (%s)\n", req.id, req.size, (req.is_ssl)?"SSL":"PLAIN");
+			xlog(LOG_DEBUG, "[%d] Sending %d bytes (%s)\n", req.id, req.size, (req.http_infos.is_ssl)?"SSL":"PLAIN");
 #endif
 			/* send modified data */
 			if (is_ssl) {
@@ -517,7 +516,7 @@ void proxenet_process_http_request(sock_t server_socket)
 			} else {
 				retcode = proxenet_write(client_socket, http_request, req.size);
 			}
-			
+
 			proxenet_xfree(http_request);
 
 			if (retcode < 0) {
@@ -533,7 +532,8 @@ void proxenet_process_http_request(sock_t server_socket)
 		/* is there data from remote server to proxy ? */
 		if( client_socket > 0 && FD_ISSET(client_socket, &rfds ) ) {
 			int n = -1;
-			request_t res;
+
+			/* proxenet_xzero(&res, sizeof(request_t)); */
 			
 			if (is_ssl)
 				n = proxenet_read_all(client_socket, &http_response, &ssl_context.client.context);
@@ -547,21 +547,19 @@ void proxenet_process_http_request(sock_t server_socket)
 			if (n <= 0)
 				break;
 
+			/* update request data structure */
+			req.type   = RESPONSE;
+			req.data   = http_response;
+			req.size   = n;
 			
 			/* execute response hooks */
-			res.id     = rid;
-			res.type   = RESPONSE;
-			res.data   = http_response;
-			res.size   = n;
-			res.is_ssl = is_ssl;
-
-			http_response = proxenet_apply_plugins(&res);
+			http_response = proxenet_apply_plugins(&req);
 
 			/* send modified data to client */
 			if (is_ssl)
-				retcode = proxenet_ssl_write(server_socket, http_response, res.size, &ssl_context.server.context);
+				retcode = proxenet_ssl_write(server_socket, http_response, req.size, &ssl_context.server.context);
 			else
-				retcode = proxenet_write(server_socket, http_response, res.size);
+				retcode = proxenet_write(server_socket, http_response, req.size);
 			
 			if (retcode < 0) {
 				xlog(LOG_ERROR, "[%d] %s\n", rid, "proxy->client: write failed");
@@ -577,7 +575,12 @@ void proxenet_process_http_request(sock_t server_socket)
 		
 	}  /* end for(;;) { select() } */
 
-
+	if (req.id) {
+			proxenet_xfree(req.http_infos.method);
+			proxenet_xfree(req.http_infos.hostname);
+			proxenet_xfree(req.http_infos.request_uri);
+	}
+	
 	/* close client socket */
 	if (client_socket > 0) {
 		if (ssl_context.client.is_valid) {
@@ -716,7 +719,8 @@ static void kill_zombies()
 		
 		retcode = pthread_join(threads[i], NULL);
 		if (retcode) {
-			xlog(LOG_ERROR, "xloop: failed to join Thread-%d: %s\n",i);
+			xlog(LOG_ERROR, "xloop: failed to join Thread-%d: %s\n", i, strerror(retcode));
+#ifdef DEBUG
 			switch(retcode) {
 				case EDEADLK:
 					xlog(LOG_ERROR, "%s\n", "Deadlock detected");
@@ -731,7 +735,7 @@ static void kill_zombies()
 					xlog(LOG_ERROR, "Unknown errcode %d\n", retcode);
 					break;
 			}
-			
+#endif			
 		} else {
 			xlog(LOG_DEBUG, "Thread-%d finished\n", i);
 		}

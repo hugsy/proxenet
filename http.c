@@ -16,11 +16,33 @@
 
 /**
  *
+ */
+static void generic_http_error_page(sock_t sock, char* msg)
+{
+	char* html_header = "<html><body><h1>proxenet error page</h1><br/>";
+	char* html_footer = "</body></html>";
+	
+	if (write(sock, html_header, strlen(html_header)) < 0) {
+		xlog(LOG_ERROR, "%s\n", "Failed to write error HTML header");
+	}
+	
+	if(write(sock, msg, strlen(msg)) < 0){
+		xlog(LOG_ERROR, "%s\n", "Failed to write error HTML page");
+	}
+	
+	if(write(sock, html_footer, strlen(html_footer)) < 0){
+		xlog(LOG_ERROR, "%s\n", "Failed to write error HTML footer");
+	}
+}
+
+
+/**
+ *
  * request MUST be like
  * METHOD proto://hostname[:port][/location][?param=value....] HTTP/X.Y\r\n
  * cf. RFC2616
  */
-bool get_url_information(char* request, http_request_t* http)
+static bool get_url_information(char* request, http_request_t* http)
 { 
 	char *start_pos, *cur_pos, *end_pos;
 	unsigned int str_len;
@@ -98,16 +120,6 @@ bool get_url_information(char* request, http_request_t* http)
 		*(http->request_uri) = '/';
 	}
 	
-	
-#ifdef DEBUG
-	xlog(LOG_DEBUG, "URL: %s %s://%s:%d%s\n",
-	     http->method,
-	     http->proto,
-	     http->hostname,
-	     http->port,
-	     http->request_uri);
-#endif 
-	
 	return true;
 }
 
@@ -152,27 +164,29 @@ bool is_valid_http_request(char* request)
  * request to other proxy.
  * 
  */
-int create_http_socket(char* http_request, sock_t* server_sock, sock_t* client_sock, ssl_context_t* ssl_ctx) 
+int create_http_socket(char* http_request, sock_t* server_sock, sock_t* client_sock, ssl_context_t* ssl_ctx, request_t* req) 
 {
 	int retcode;
 	char *host, *port;
 	char sport[6] = {0, };
-	http_request_t http_infos = { .method = NULL,
-				      .proto = NULL,
-				      .is_ssl = false,
-				      .hostname = NULL,
-				      .port = 0,
-				      .request_uri = NULL };
+	http_request_t* http_infos = &req->http_infos;
 	bool use_proxy = (cfg->proxy.host != NULL) ;
 
 	/* get target from string and establish client socket to dest */
-	if (get_url_information(http_request, &http_infos) == false) {
+	if (get_url_information(http_request, http_infos) == false) {
 		xlog(LOG_ERROR, "%s\n", "Failed to extract valid parameters from URL.");
 		return -1;
 	}
 
-	ssl_ctx->use_ssl = http_infos.is_ssl;
-	snprintf(sport, 5, "%u", http_infos.port);
+	
+#ifdef DEBUG
+	char* full_uri = get_request_full_uri(req);
+	xlog(LOG_DEBUG, "URL: %s\n", full_uri);
+	proxenet_xfree(full_uri);
+#endif
+	
+	ssl_ctx->use_ssl = http_infos->is_ssl;
+	snprintf(sport, 5, "%u", http_infos->port);
 
 	/* do we forward to another proxy ? */
 	if (use_proxy) {
@@ -180,7 +194,7 @@ int create_http_socket(char* http_request, sock_t* server_sock, sock_t* client_s
 		port = cfg->proxy.port;
 		
 	} else {
-		host = http_infos.hostname;
+		host = http_infos->hostname;
 		port = sport;
 	}
 	
@@ -197,7 +211,7 @@ int create_http_socket(char* http_request, sock_t* server_sock, sock_t* client_s
 		*client_sock = retcode;
 		
 		/* if ssl, set up ssl interception */
-		if (http_infos.is_ssl) {
+		if (http_infos->is_ssl) {
 
 			if (use_proxy) {
 				char *connect_buf = NULL;
@@ -206,38 +220,33 @@ int create_http_socket(char* http_request, sock_t* server_sock, sock_t* client_s
 				retcode = proxenet_write(*client_sock, http_request, strlen(http_request) );
 				if (retcode < 0) {
 					xlog(LOG_ERROR, "%s failed to CONNECT to proxy\n", PROGNAME);
-					retcode = -1;
-					goto http_sock_end;
+					return -1;
 				}
 
 				/* read response */
 				retcode = proxenet_read_all(*client_sock, &connect_buf, NULL);
 				if (retcode < 0) {
 					xlog(LOG_ERROR, "%s Failed to read from proxy\n", PROGNAME);
-					retcode = -1;
-					goto http_sock_end;
+					return -1;
 				}
 
 				/* expect HTTP 200 */
 				if (   (strncmp(connect_buf, "HTTP/1.0 200", 12) != 0) 
 				    && (strncmp(connect_buf, "HTTP/1.1 200", 12) != 0)) {
 					xlog(LOG_ERROR, "%s->proxy: bad response %s\n", PROGNAME, connect_buf);
-					retcode = -1;
-					goto http_sock_end;
+					return -1;
 				}
 			}
 
 			/* 1. set up proxy->server ssl session */ 
 			if(proxenet_ssl_init_client_context(&(ssl_ctx->client)) < 0) {
-				retcode = -1;
-				goto http_sock_end;
+				return -1;
 			}
 			
 			proxenet_ssl_wrap_socket(&(ssl_ctx->client.context), client_sock);
 			if (proxenet_ssl_handshake(&(ssl_ctx->client.context)) < 0) {
 				xlog(LOG_ERROR, "%s->server: handshake\n", PROGNAME);
-				retcode = -1;
-				goto http_sock_end;
+				return -1;
 			}
 
 #ifdef DEBUG
@@ -246,22 +255,19 @@ int create_http_socket(char* http_request, sock_t* server_sock, sock_t* client_s
 			if (proxenet_write(*server_sock,
 					   "HTTP/1.0 200 Connection established\r\n\r\n",
 					   39) < 0){
-				retcode = -1;
-				goto http_sock_end;
+				return -1;
 			}
 
 			/* 2. set up proxy->browser ssl session  */
 			if(proxenet_ssl_init_server_context(&(ssl_ctx->server)) < 0) {
-				retcode = -1;
-				goto http_sock_end;
+				return -1;
 			}
 
 			proxenet_ssl_wrap_socket(&(ssl_ctx->server.context), server_sock);
 			if (proxenet_ssl_handshake(&(ssl_ctx->server.context)) < 0) {
 				xlog(LOG_ERROR, "handshake %s->client '%s:%d' failed\n",
-				     PROGNAME, http_infos.hostname, http_infos.port);
-				retcode = -1;
-				goto http_sock_end;
+				     PROGNAME, http_infos->hostname, http_infos->port);
+				return -1;
 			}
 
 #ifdef DEBUG
@@ -270,10 +276,6 @@ int create_http_socket(char* http_request, sock_t* server_sock, sock_t* client_s
 		}
 	}
 	
-http_sock_end:
-	proxenet_xfree(http_infos.method);
-	proxenet_xfree(http_infos.hostname);
-	proxenet_xfree(http_infos.request_uri);
 	
 	return retcode;
 }
@@ -282,20 +284,25 @@ http_sock_end:
 /**
  *
  */
-void generic_http_error_page(sock_t sock, char* msg)
+char* get_request_full_uri(request_t* req)
 {
-	char* html_header = "<html><body><h1>proxenet error page</h1><br/>";
-	char* html_footer = "</body></html>";
-	
-	if (write(sock, html_header, strlen(html_header)) < 0) {
-		xlog(LOG_ERROR, "%s\n", "Failed to write error HTML header");
-	}
-	
-	if(write(sock, msg, strlen(msg)) < 0){
-		xlog(LOG_ERROR, "%s\n", "Failed to write error HTML page");
-	}
-	
-	if(write(sock, html_footer, strlen(html_footer)) < 0){
-		xlog(LOG_ERROR, "%s\n", "Failed to write error HTML footer");
-	}
+	char* uri;
+	http_request_t* http_infos = &req->http_infos;
+	size_t len;
+
+	if (!req || !http_infos)
+			return NULL;
+
+	http_infos = &req->http_infos;
+	len = strlen("https://") + strlen(http_infos->hostname) + strlen(":") + strlen("65535");
+	len+= strlen(http_infos->request_uri);
+	uri = (char*)proxenet_xmalloc(len+1);
+
+	snprintf(uri, len, "%s://%s:%d%s",
+		 http_infos->is_ssl?"https":"http",
+		 http_infos->hostname,
+		 http_infos->port,
+		 http_infos->request_uri);
+
+	return uri;	
 }

@@ -5,7 +5,6 @@
 
 #include "utils.h"
 
-
 typedef enum __supported_plugins_t {
 #ifdef _PYTHON_PLUGIN
 	_PYTHON_,
@@ -94,6 +93,16 @@ const static UNUSED char* plugins_extensions_str[] = {
 
 #define MAX_VMS 5
 
+typedef struct _http_request_fields 
+{
+	  char* method;
+	  char* proto;
+	  bool is_ssl;
+	  char* hostname;
+	  unsigned short port;
+	  char* request_uri;
+} http_request_t ;
+
 typedef enum {
 	REQUEST	 = 0,
 	RESPONSE = 1
@@ -104,7 +113,7 @@ typedef struct _request_type {
 		req_t type;
 		char* data;
 		size_t size;
-		bool is_ssl;
+		http_request_t http_infos;
 } request_t;
 
 typedef struct _interpreter_type {
@@ -133,6 +142,7 @@ typedef struct _plugin_type {
 		
 } plugin_t;
 
+#include "http.h"
 
 int	proxenet_create_list_plugins(char*);
 int 	proxenet_plugin_list_size();

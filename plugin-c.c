@@ -10,9 +10,9 @@
 #include <string.h>
 #include <alloca.h>
 
-#include "plugin.h"
 #include "utils.h"
 #include "main.h"
+#include "plugin.h"
 
 
 /**
