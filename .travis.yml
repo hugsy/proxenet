@@ -8,7 +8,7 @@ before_script:
   - sudo apt-get update
   - sudo apt-get install -qq python-dev liblua5.2-dev libpolarssl-dev 
 
-script: make
+script: make FORCE_RUBY18=1
 
 after_script: ./proxenet --help
 
