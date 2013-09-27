@@ -5,6 +5,7 @@ compiler:
   - gcc
 
 before_script:
+  - sudo apt-get update
   - sudo apt-get install -qq python-dev liblua5.2-dev libpolarssl-dev ruby-dev
 
 script: make
