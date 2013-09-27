@@ -51,10 +51,10 @@ endif
 
 ifeq ($(FORCE_RUBY18), 1) 
 RUBY_VERSION		=	ruby-1.8
-RUBY_MINOR		=	8
+RUBY_MINOR			=	8
 else # ruby1.9 API is compatible with ruby2
 RUBY_VERSION		=	ruby-1.9
-RUBY_MINOR		=	9
+RUBY_MINOR			=	9
 endif
 
 LUA_VERSION		=	lua5.2
@@ -69,13 +69,13 @@ TEST_ARGS		= 	-4 -vvvv -t 10 -b 0.0.0.0 -p 8000
 
 .c.o :
 	@echo "[+] CC $< -> $@"
-	$(CC) $(CFLAGS) -c -o $@ $<
+	@$(CC) $(CFLAGS) -c -o $@ $<
 
 all :  check-required check-plugins $(BIN)
 
 $(BIN): $(OBJECTS) 
 	@echo "[+] LINK with $(LDFLAGS)"
-	$(CC) $(CFLAGS) -o $@ $(OBJECTS) $(LIB) $(LDFLAGS)
+	@$(CC) $(CFLAGS) -o $@ $(OBJECTS) $(LIB) $(LDFLAGS)
 
 clean:
 	@echo "[+] RM objects"
