@@ -14,7 +14,7 @@ supports plugins in the following languages :
 
 (Maybe more to come)
 
-Check the project Wiki for all details !
+Check the project Wiki for all details!
 
 
 ## Current status
@@ -24,14 +24,14 @@ Check the project Wiki for all details !
 ### The best of both world ?
 
 Some people might miss the beautiful interface some other GUI-friendly proxies
-provide. So be it ! Plug `proxenet` as a relay behind your favorite `Burp`,
-`Zap`, `Proxystrike`, `abrupt`, etc. and enjoy the show !
+provide. So be it! Plug `proxenet` as a relay behind your favorite `Burp`,
+`Zap`, `Proxystrike`, `abrupt`, etc. and enjoy the show!
 
 
 ## Write-Your-Own-Plugins
 
 It is a fact that writing extension for `Burps` is a pain, and other tools only
-provides plugins (when they do) in the language they were written in.
+provide plugins (when they do) in the language they were written in.
 So the basic core idea behind `proxenet` is to allow pentesters to **easily**
 interact with their HTTP requests/responses in their favorite high-level
 language. 
@@ -46,10 +46,10 @@ Implemented with C API in :
 - Lua 5.2
 
 
-## What's next ?
+## What's next?
 
 There are heaps and heaps of bugs, crashes, etc., so I am working on fixing that to
-provide more stability (please tell me your bugs/patches !)
-Many many many other features to come as well through plugins ! 
+provide more stability (please tell me your bugs/patches!)
+Many many many other features to come as well through plugins!
 
-Want to get more ? Fork it, patch it, push it !!
+Want to get more? Fork it, patch it, push it!
