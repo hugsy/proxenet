@@ -4,27 +4,27 @@
 # 
 #
 
-PROGNAME	=	\"proxenet\"
-AUTHOR		= 	\"hugsy\"
-LICENSE		=	\"GPLv2\"
+PROGNAME		=	\"proxenet\"
+AUTHOR			= 	\"hugsy\"
+LICENSE			=	\"GPLv2\"
 VERSION_MAJOR	= 	0
 VERSION_MINOR	= 	1
-VERSION_REL	=	git
+VERSION_REL		=	git
 VERSION         =       \"$(VERSION_MAJOR).$(VERSION_MINOR)-$(VERSION_REL)\"
 ARCH            =       $(shell uname)
 DEBUG           =       1
-DEBUG_SSL	=       0
+DEBUG_SSL		=       0
 
 CC              =       cc
 BIN             =       proxenet
 DEFINES         =       -DPROGNAME=$(PROGNAME) -DVERSION=$(VERSION) -DAUTHOR=$(AUTHOR) -DLICENSE=$(LICENSE)
-HARDEN		=	-Wl,-z,relro -fstack-protector-all
+HARDEN			=	-Wl,-z,relro -fstack-protector-all
 LDFLAGS         =       $(HARDEN) -lpthread 
-SRC		=	$(wildcard *.c)
+SRC				=	$(wildcard *.c)
 OBJECTS         =       $(patsubst %.c, %.o, $(SRC))
 INC             =       -I/usr/include -pthread
 CFLAGS          =       -O2 -Wall $(DEFINES) $(INC) -pthread
-LIB		= 	-L/lib
+LIB				= 	-L/lib
 
 
 # DEBUG
@@ -69,13 +69,13 @@ TEST_ARGS		= 	-4 -vvvv -t 10 -b 0.0.0.0 -p 8000
 
 .c.o :
 	@echo "[+] CC $< -> $@"
-	@$(CC) $(CFLAGS) -c -o $@ $<
+	$(CC) $(CFLAGS) -c -o $@ $<
 
 all :  check-required check-plugins $(BIN)
 
 $(BIN): $(OBJECTS) 
 	@echo "[+] LINK with $(LDFLAGS)"
-	@$(CC) $(CFLAGS) -o $@ $(OBJECTS) $(LIB) $(LDFLAGS)
+	$(CC) $(CFLAGS) -o $@ $(OBJECTS) $(LIB) $(LDFLAGS)
 
 clean:
 	@echo "[+] RM objects"
