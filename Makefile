@@ -109,7 +109,7 @@ check-dl:
 
 check-python:
 	@echo -n "[+] Looking for '$(PYTHON_VERSION)' ... "
-ifeq ($(strip $(shell pkg-config --libs $(PYTHON_VERSION) >/dev/null 2>&1 && echo ok)), ok) 
+ifeq ($(strip $(shell pkg-config --cflags --libs $(PYTHON_VERSION) >/dev/null 2>&1 && echo ok)), ok) 
 	@echo "found"
 	$(eval DEFINES += -D_PYTHON_PLUGIN -D_PYTHON_MAJOR_=$(PYTHON_MAJOR) )
 	$(eval LDFLAGS += $(shell pkg-config --libs $(PYTHON_VERSION)) )
@@ -120,7 +120,7 @@ endif
 
 check-lua:
 	@echo -n "[+] Looking for '$(LUA_VERSION)' ... "
-ifeq ($(strip $(shell pkg-config --libs $(LUA_VERSION) >/dev/null 2>&1 && echo ok)), ok)
+ifeq ($(strip $(shell pkg-config --cflags --libs $(LUA_VERSION) >/dev/null 2>&1 && echo ok)), ok)
 	@echo "found"
 	$(eval DEFINES += -D_LUA_PLUGIN )
 	$(eval LDFLAGS += $(shell pkg-config --libs $(LUA_VERSION)) )
@@ -131,7 +131,7 @@ endif
 
 check-ruby:
 	@echo -n "[+] Looking for '$(RUBY_VERSION)' ... "
-ifeq ($(strip $(shell pkg-config --libs $(RUBY_VERSION) > /dev/null 2>&1  && echo ok)), ok)
+ifeq ($(strip $(shell pkg-config --cflags --libs $(RUBY_VERSION) > /dev/null 2>&1  && echo ok)), ok)
 	@echo "found"
 	$(eval DEFINES += -D_RUBY_PLUGIN -D_RUBY_MINOR_=$(RUBY_MINOR))
 	$(eval LDFLAGS += $(shell pkg-config --libs $(RUBY_VERSION)) )
@@ -142,7 +142,7 @@ endif
 
 check-perl:
 	@echo -n "[+] Looking for '$(PERL_VERSION)' ... "
-ifeq ( $(strip $(shell pkg-config --libs $(PERL_VERSION) >/dev/null 2>&1 && echo ok)), ok)
+ifeq ( $(strip $(shell pkg-config --cflags --libs $(PERL_VERSION) >/dev/null 2>&1 && echo ok)), ok)
 	@echo "found"
 	$(eval DEFINES += -D_PERL_PLUGIN)
 	$(eval LDFLAGS += $(shell pkg-config --libs $(PERL_VERSION)) )
