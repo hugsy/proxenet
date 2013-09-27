@@ -6,7 +6,7 @@ compiler:
 
 before_script:
   - sudo apt-get update
-  - sudo apt-get install -qq python-dev liblua5.2-dev libpolarssl-dev 
+  - sudo apt-get install -qq python-dev liblua5.2-dev libpolarssl-dev ruby-dev libruby1.9.1 libruby1.8
 
 script: make FORCE_RUBY18=1
 
