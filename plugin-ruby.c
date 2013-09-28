@@ -174,26 +174,30 @@ static char* proxenet_ruby_execute_function(interpreter_t* interpreter, ID rFunc
 {
 	char *buf, *data;
 	int buflen;
-	VALUE rArgs[2], rRet, rVM;
+	VALUE rArgs[3], rRet, rVM;
+	char *uri;
+
+	uri = get_request_full_uri(request);
+	if (!uri)
+		return NULL;
 	
 	/* build args */
 	rVM = (VALUE)interpreter->vm;
 
 	rArgs[0] = INT2FIX(request->id);
 	rArgs[1] = rb_str_new2(request->data);
+	rArgs[2] = rb_str_new2(uri);
 	
 	/* function call */
-	rRet = rb_funcall2(rVM, rFunc, 2, rArgs); 
+	rRet = rb_funcall2(rVM, rFunc, 3, rArgs); 
 	if (!rRet) {
 		xlog(LOG_ERROR, "%s\n", "Function call failed");
-		return NULL;
+		data = NULL;
+		goto call_end;
 	}
 	
-	/* todo catch TypeError except */
-	/* rb_ary_push(rArgs, rRet); */
-	/* rb_ary_push(rArgs, T_STRING); */
-	/* rb_protect(rb_check_type, rArgs, &err); */
-
+	rb_check_type(rRet, T_STRING);
+	
 	/* copy result to exploitable buffer */
 	buf = RSTRING_PTR(rRet);
 	buflen = RSTRING_LEN(rRet);
@@ -204,6 +208,8 @@ static char* proxenet_ruby_execute_function(interpreter_t* interpreter, ID rFunc
 	request->data = data;
 	request->size = buflen;
 	
+call_end:
+	proxenet_xfree(uri);
 	return data;
 }
 

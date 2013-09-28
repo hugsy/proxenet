@@ -114,6 +114,8 @@ static char* proxenet_lua_execute_function(interpreter_t* interpreter, request_t
 	lua_pushnumber(lua_interpreter, request->id);
 	lua_pushlstring(lua_interpreter, request->data, request->size);
 	lua_pushlstring(lua_interpreter, uri, strlen(uri));
+
+	proxenet_xfree(uri);
 	
 	lua_call(lua_interpreter, 2, 1);
 	lRet = lua_tolstring(lua_interpreter, -1, &len);
