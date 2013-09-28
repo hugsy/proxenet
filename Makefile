@@ -142,7 +142,7 @@ endif
 
 check-perl:
 	@echo -n "[+] Looking for '$(PERL_VERSION)' ... "
-ifeq ( $(strip $(shell pkg-config --cflags --libs $(PERL_VERSION) >/dev/null 2>&1 && echo ok)), ok)
+ifeq ($(strip $(shell pkg-config --cflags --libs $(PERL_VERSION) >/dev/null 2>&1 && echo ok)), ok)
 	@echo "found"
 	$(eval DEFINES += -D_PERL_PLUGIN)
 	$(eval LDFLAGS += $(shell pkg-config --libs $(PERL_VERSION)) )
