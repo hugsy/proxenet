@@ -577,7 +577,7 @@ void proxenet_process_http_request(sock_t server_socket)
 	if (req.id) {
 			proxenet_xfree(req.http_infos.method);
 			proxenet_xfree(req.http_infos.hostname);
-			proxenet_xfree(req.http_infos.request_uri);
+			proxenet_xfree(req.http_infos.uri);
 	}
 	
 	/* close client socket */

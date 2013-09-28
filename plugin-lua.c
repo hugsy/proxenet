@@ -97,7 +97,13 @@ static char* proxenet_lua_execute_function(interpreter_t* interpreter, request_t
 	const char *lRet;
 	char *buf;
 	lua_State* lua_interpreter;
+	size_t len;
+	char *uri;
 
+	uri = get_request_full_uri(request);
+	if (!uri)
+		return NULL;
+	
 	lua_interpreter = (lua_State*) interpreter->vm;
 	
 	if (request->type == REQUEST)
@@ -107,8 +113,10 @@ static char* proxenet_lua_execute_function(interpreter_t* interpreter, request_t
 	
 	lua_pushnumber(lua_interpreter, request->id);
 	lua_pushlstring(lua_interpreter, request->data, request->size);
+	lua_pushlstring(lua_interpreter, uri, strlen(uri));
+	
 	lua_call(lua_interpreter, 2, 1);
-	lRet = lua_tostring(lua_interpreter, -1);
+	lRet = lua_tolstring(lua_interpreter, -1, &len);
 	if (!lRet)
 		return NULL;
 	
@@ -116,7 +124,7 @@ static char* proxenet_lua_execute_function(interpreter_t* interpreter, request_t
 	if (!buf)
 		return NULL;
 	
-	request->size = strlen(buf);
+	request->size = len;
 	return buf;
 }
 

@@ -100,7 +100,7 @@ typedef struct _http_request_fields
 	  bool is_ssl;
 	  char* hostname;
 	  unsigned short port;
-	  char* request_uri;
+	  char* uri;
 } http_request_t ;
 
 typedef enum {
