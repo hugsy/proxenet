@@ -283,11 +283,9 @@ int proxenet_read_all(sock_t sock, char** ptr, proxenet_ssl_context_t* ssl)
 	}
 
 	*ptr = (char*)proxenet_xrealloc(data, total_bytes_read+1);
-	if(!*ptr) {
-		xlog(LOG_ERROR, "%s\n", "Failed to trim buffer");
-		total_bytes_read = 0;
-		proxenet_xfree(data);
-		return -1;
-	}
+#ifdef DEBUG
+	xlog(LOG_DEBUG, "Truncating buffer to %d bytes\n", total_bytes_read+1);
+#endif
+	
 	return total_bytes_read;
 }

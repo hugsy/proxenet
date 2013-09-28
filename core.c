@@ -534,8 +534,6 @@ void proxenet_process_http_request(sock_t server_socket)
 		if( client_socket > 0 && FD_ISSET(client_socket, &rfds ) ) {
 			int n = -1;
 
-			/* proxenet_xzero(&res, sizeof(request_t)); */
-			
 			if (is_ssl)
 				n = proxenet_read_all(client_socket, &http_response, &ssl_context.client.context);
 			else
@@ -579,7 +577,7 @@ void proxenet_process_http_request(sock_t server_socket)
 	if (req.id) {
 			proxenet_xfree(req.http_infos.method);
 			proxenet_xfree(req.http_infos.hostname);
-			proxenet_xfree(req.http_infos.request_uri);
+			proxenet_xfree(req.http_infos.uri);
 	}
 	
 	/* close client socket */

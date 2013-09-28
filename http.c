@@ -110,14 +110,14 @@ static bool get_url_information(char* request, http_request_t* http)
 		for(;*cur_pos!='/' && cur_pos<end_pos;cur_pos++);
 	}
 	
-	/* get request_uri (no need to parse) */
+	/* get uri (no need to parse) */
 	str_len = end_pos - cur_pos;
 	if (str_len > 0) {
-		http->request_uri = (char*) proxenet_xmalloc(str_len+1);
-		memcpy(http->request_uri, cur_pos, str_len);
+		http->uri = (char*) proxenet_xmalloc(str_len+1);
+		memcpy(http->uri, cur_pos, str_len);
 	} else {
-		http->request_uri = (char*) proxenet_xmalloc(2);
-		*(http->request_uri) = '/';
+		http->uri = (char*) proxenet_xmalloc(2);
+		*(http->uri) = '/';
 	}
 	
 	return true;
@@ -295,14 +295,14 @@ char* get_request_full_uri(request_t* req)
 
 	http_infos = &req->http_infos;
 	len = strlen("https://") + strlen(http_infos->hostname) + strlen(":") + strlen("65535");
-	len+= strlen(http_infos->request_uri);
+	len+= strlen(http_infos->uri);
 	uri = (char*)proxenet_xmalloc(len+1);
 
 	snprintf(uri, len, "%s://%s:%d%s",
 		 http_infos->is_ssl?"https":"http",
 		 http_infos->hostname,
 		 http_infos->port,
-		 http_infos->request_uri);
+		 http_infos->uri);
 
 	return uri;	
 }

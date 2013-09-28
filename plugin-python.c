@@ -24,11 +24,14 @@
 
 #if _PYTHON_MAJOR_ == 3
 #define PYTHON_FROMSTRING PyUnicode_FromString
-
+#define PYTHON_VALUE_FORMAT "iy#y"
+	
 # else /* if defined _PYTHON2_ */
 #define PYTHON_FROMSTRING  PyString_FromString
+#define PYTHON_VALUE_FORMAT "is#s"
 
 #endif
+
 
 /**
  *
@@ -212,11 +215,7 @@ static char* proxenet_python_execute_function(PyObject* pFuncRef, request_t *req
 	result = buffer = NULL;
 	len = -1;
 
-#if _PYTHON_MAJOR_ == 3
-	pArgs = Py_BuildValue("iyy", request->id, request->data, uri);
-#else
-	pArgs = Py_BuildValue("is#s", request->id, request->data, request->size, uri);
-#endif
+	pArgs = Py_BuildValue(PYTHON_VALUE_FORMAT, request->id, request->data, request->size, uri);
 	
 	proxenet_xfree(uri);
 		
