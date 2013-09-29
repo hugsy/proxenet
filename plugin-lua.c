@@ -122,7 +122,7 @@ static char* proxenet_lua_execute_function(interpreter_t* interpreter, request_t
 	if (!lRet)
 		return NULL;
 	
-	buf = proxenet_xstrdup(lRet);
+	buf = proxenet_xstrdup(lRet, len);
 	if (!buf)
 		return NULL;
 	

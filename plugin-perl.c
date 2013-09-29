@@ -230,7 +230,7 @@ void proxenet_perl_unlock_vm(interpreter_t *interpreter)
 /**
  * 
  */
-char* proxenet_perl_plugin(plugin_t* plugin, long rid, char* request, size_t* request_size, int type)
+char* proxenet_perl_plugin(plugin_t* plugin, request_t* request)
 {
 	interpreter_t *interpreter; 
 	const char *function_name;
@@ -240,13 +240,13 @@ char* proxenet_perl_plugin(plugin_t* plugin, long rid, char* request, size_t* re
 	if (!interpreter->ready)
 		return NULL;
 
-	if (type == REQUEST)
+	if (request->type == REQUEST)
 		function_name = plugin->pre_function;
 	else 
 		function_name = plugin->post_function;
 
 	proxenet_perl_lock_vm(interpreter);
-	buf = proxenet_perl_execute_function(plugin, function_name, rid, request, request_size);
+	buf = proxenet_perl_execute_function(plugin, function_name, request->id, request->data, &request->size);
 	proxenet_perl_unlock_vm(interpreter);
 
 	return buf;

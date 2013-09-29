@@ -172,7 +172,7 @@ void proxenet_initialize_plugins()
 
 #ifdef _PERL_PLUGIN
 			case _PERL_:
-				if (proxenet_perl_initialize_vm(plugin) < 0) { // TODO voir pour retirer le plugin de la liste, non ?
+				if (proxenet_perl_initialize_vm(plugin) < 0) {
 					plugin->state = INACTIVE;
 					plugin->type = -1;
 					xlog(LOG_ERROR, "%s\n", "Failed to init Perl VM");
@@ -282,6 +282,7 @@ int proxenet_toggle_plugin(int plugin_id)
 		
 		if (plugin->id == plugin_id) {
 			switch (plugin->state){
+				
 				case INACTIVE:
 					plugin->state = ACTIVE;
 					break;
@@ -312,12 +313,12 @@ int proxenet_toggle_plugin(int plugin_id)
 static char* proxenet_apply_plugins(request_t *request)
 {
 	plugin_t *p;
-	char *new_data, *old_data;
+	char *old_data;
 	char* (*plugin_function)(plugin_t*, request_t*) = NULL;
 
 	
 	old_data = NULL;
-	new_data = request->data;
+// 	new_data = request->data;
 	
 	for (p=plugins_list; p!=NULL; p=p->next) {  
 		
@@ -361,11 +362,11 @@ static char* proxenet_apply_plugins(request_t *request)
 				continue;
 		}
 
-		old_data = new_data;
+		old_data = request->data;
 		
-		new_data = (*plugin_function)(p, request);
+		request->data = (*plugin_function)(p, request);
 		
-		if (new_data) {
+		if (request->data) {
 			/*
 			 * If new_data is different, it means a new buffer was allocated by
 			 * (*plugin_function)(). The old_data can then be free-ed.
@@ -374,11 +375,11 @@ static char* proxenet_apply_plugins(request_t *request)
 			
 		} else {
 			/* Otherwise, use the old_data, which is only the original data */
-			new_data = old_data;
+			request->data = old_data;
 		}
 	}
 	
-	return new_data;
+	return request->data;
 }
 
 
