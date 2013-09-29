@@ -190,10 +190,7 @@ void proxenet_print_plugins_list()
 	char *list_str;
 
 	list_str = proxenet_build_plugins_list();
-	sem_wait(&tty_semaphore);
 	xlog(LOG_INFO, "%s", list_str);
-	fflush(cfg->logfile_fd);
-	sem_post(&tty_semaphore);
 	proxenet_xfree(list_str);
 }
 
