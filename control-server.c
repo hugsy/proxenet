@@ -35,7 +35,7 @@ void quit_cmd(sock_t fd, char *options, unsigned int nb_options)
 {
 	char *msg = "Leaving gracefully\n";
 	proxenet_write(fd, (void*)msg, strlen(msg));
-	proxenet_state = INACTIVE;
+	proxy_state = INACTIVE;
 
 	return;
 }
@@ -70,12 +70,12 @@ void help_cmd(sock_t fd, char *options, unsigned int nb_options)
 void pause_cmd(sock_t fd, char *options, unsigned int nb_options)
 {
 	char *msg;
-	if (proxenet_state==SLEEPING) {
+	if (proxy_state==SLEEPING) {
 		msg = "sleep-mode -> 0\n";
-		proxenet_state = ACTIVE;
+		proxy_state = ACTIVE;
 	} else {
 		msg = "sleep-mode -> 1\n";
-		proxenet_state = SLEEPING;
+		proxy_state = SLEEPING;
 	}
 
 	xlog(LOG_INFO, "%s", msg);
@@ -171,7 +171,7 @@ void reload_cmd(sock_t fd, char *options, unsigned int nb_options)
 		return;
 	}
 
-	proxenet_state = SLEEPING;
+	proxy_state = SLEEPING;
 	
 	proxenet_destroy_plugins_vm();
 	proxenet_delete_list_plugins();
@@ -179,13 +179,13 @@ void reload_cmd(sock_t fd, char *options, unsigned int nb_options)
 	if( proxenet_initialize_plugins_list() < 0) {
 		msg = "Failed to reinitilize plugins";
 		proxenet_write(fd, (void*)msg, strlen(msg));
-		proxenet_state = INACTIVE;
+		proxy_state = INACTIVE;
 		return;
 	}
 
 	proxenet_initialize_plugins();
 
-	proxenet_state = ACTIVE;
+	proxy_state = ACTIVE;
 
 	msg = "Plugins list successfully reloaded\n";
 	proxenet_write(fd, (void*)msg, strlen(msg));

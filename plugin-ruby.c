@@ -12,6 +12,7 @@
 #include <string.h>
 #include <ruby.h>
 
+#include "core.h"
 #include "plugin.h"
 #include "plugin-ruby.h"
 #include "utils.h"

@@ -12,11 +12,11 @@
 #include <string.h>
 #include <alloca.h>
 
+#include "core.h"
 #include "plugin.h"
 #include "plugin-perl.h"
 #include "utils.h"
 #include "main.h"
-#include "config.h"
 
 
 static PerlInterpreter *my_perl;

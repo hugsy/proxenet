@@ -17,6 +17,7 @@
 #include <alloca.h>
 #include <pthread.h>
 
+#include "core.h"
 #include "main.h"
 #include "plugin.h"
 #include "utils.h"

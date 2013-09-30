@@ -7,6 +7,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
+#include "core.h"
 #include "utils.h"
 #include "socket.h"
 #include "http.h"

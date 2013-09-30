@@ -4,6 +4,7 @@
 #include <pthread.h>
 
 #include "utils.h"
+#include "core.h"
 
 typedef enum __supported_plugins_t {
 #ifdef _PYTHON_PLUGIN
@@ -134,7 +135,7 @@ typedef struct _plugin_type {
 		supported_plugins_t type;
 		unsigned short priority;
 		struct _plugin_type* next;
-		unsigned char state;
+		proxenet_state state;
 
 		interpreter_t *interpreter;
 		void *pre_function;

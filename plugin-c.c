@@ -10,6 +10,7 @@
 #include <string.h>
 #include <alloca.h>
 
+#include "core.h"
 #include "utils.h"
 #include "main.h"
 #include "plugin.h"

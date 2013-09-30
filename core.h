@@ -6,7 +6,6 @@
 
 #include "main.h"
 #include "socket.h"
-#include "plugin.h"
 
 #define HTTP_TIMEOUT_SOCK 5    /* in seconds, used for select() call in thread */
 #define MAX_VERBOSE_LEVEL 4
@@ -16,6 +15,15 @@
 #define FD_SETSIZE             256
 #endif
 
+
+typedef enum proxenet_states {
+	INACTIVE, 	/* initial state */
+	SLEEPING,	/* <-- means not to treat new request */
+	ACTIVE,		/* rock'n roll */
+} proxenet_state;
+
+
+#include "plugin.h"
 
 typedef struct thread_info {
 		pthread_t thread_id;
@@ -27,14 +35,7 @@ typedef struct thread_info {
 } tinfo_t;
 
 
-enum proxenet_states {
-	INACTIVE = 0x00, 	/* first state */
-	SLEEPING,		/* <-- means not to treat new request */
-	ACTIVE,			/* rock'n roll */
-};
-
-
-unsigned short 	proxenet_state;
+proxenet_state 	proxy_state;
 unsigned long 	active_threads_bitmask;
 sem_t 		tty_semaphore;
 plugin_t 	*plugins_list;  /* points to first plugin */

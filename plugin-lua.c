@@ -13,6 +13,7 @@
 #include <alloca.h>
 #include <string.h>
 
+#include "core.h"
 #include "utils.h"
 #include "main.h"
 #include "plugin.h"

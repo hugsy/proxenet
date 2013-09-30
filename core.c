@@ -295,6 +295,9 @@ int proxenet_toggle_plugin(int plugin_id)
 				case ACTIVE:
 					plugin->state = INACTIVE;
 					break;
+
+				default:
+					break;
 			}
 			
 			xlog(LOG_INFO,
@@ -816,10 +819,10 @@ void xloop(sock_t sock, sock_t ctl_sock)
 	}
 
 	/* proxenet is now running :) */
-	proxenet_state = ACTIVE;
+	proxy_state = ACTIVE;
 	
 	/* big loop  */
-	while (proxenet_state != INACTIVE) {
+	while (proxy_state != INACTIVE) {
 		conn = -1;
 		retcode = -1;	
 		
@@ -843,7 +846,7 @@ void xloop(sock_t sock, sock_t ctl_sock)
 		if (retcode < 0) {
 			if (errno != EINTR) {
 				xlog(LOG_ERROR, "[main] pselect() returned %d: %s\n", retcode, strerror(errno));
-				proxenet_state = INACTIVE;
+				proxy_state = INACTIVE;
 				break;
 			} else {
 				continue;
@@ -853,11 +856,11 @@ void xloop(sock_t sock, sock_t ctl_sock)
 		if (retcode == 0)
 			continue;
 
-		if (proxenet_state == INACTIVE)
+		if (proxy_state == INACTIVE)
 			break;
 		
 		/* event on the listening socket -> new request */
-		if( FD_ISSET(sock, &sock_set) && proxenet_state != SLEEPING) {
+		if( FD_ISSET(sock, &sock_set) && proxy_state != SLEEPING) {
 #ifdef DEBUG
 			xlog(LOG_DEBUG, "%s\n", "Incoming listening event");
 #endif
@@ -957,8 +960,8 @@ void sighandler(int signum)
 		
 		case SIGTERM: 
 		case SIGINT:
-			if (proxenet_state != INACTIVE) 
-				proxenet_state = INACTIVE;
+			if (proxy_state != INACTIVE)
+				proxy_state = INACTIVE;
 			
 			cfg->try_exit++;
 			xlog(LOG_INFO, "%s, %d/%d\n", "Trying to leave", cfg->try_exit, cfg->try_exit_max);
@@ -1033,7 +1036,7 @@ int proxenet_start()
 	initialize_sigmask(&saction);
 
 	plugins_list = NULL;
-	proxenet_state = INACTIVE;
+	proxy_state = INACTIVE;
 	active_threads_bitmask = 0;
 	
 	/* set up plugins */

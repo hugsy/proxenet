@@ -293,7 +293,9 @@ int count_initialized_plugins_by_type(int type)
 	plugin_t* p;
 	
 	for(p=plugins_list; p!=NULL; p=p->next)
-		if (p->type==type && p->interpreter!=NULL) i++;
+		if (p->type  ==type &&
+		    p->state == ACTIVE &&
+		    p->interpreter!=NULL) i++;
 	
 	return i;
 }
