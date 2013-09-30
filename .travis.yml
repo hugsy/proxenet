@@ -6,9 +6,9 @@ compiler:
 
 before_script:
   - sudo apt-get update
-  - sudo apt-get install -qq python-dev liblua5.2-dev libpolarssl-dev ruby-dev libruby1.9.1 libruby1.8
+  - sudo apt-get install -qq python-dev liblua5.2-dev libpolarssl-dev ruby-dev libruby1.9.1 libruby1.8 libperl-dev
 
-script: make FORCE_RUBY18=1
+script: PKG_CONFIG_PATH=`pwd`/pc/ make FORCE_RUBY18=1
 
 after_script: ./proxenet --help
 

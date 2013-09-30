@@ -1,0 +1,13 @@
+V=5.16
+R=5.16.3
+prefix=/usr/lib
+libdir=${prefix}/
+includedir=${prefix}/perl/5.14.2/CORE/
+
+Name: Perl
+Description: An old but still used language
+Version: ${R}
+Requires:
+Libs: -L${libdir} -lperl
+Cflags: -I${includedir}
+
