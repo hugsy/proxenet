@@ -142,7 +142,10 @@ void proxenet_delete_list_plugins()
 	}
 	
 	plugins_list = NULL;
+	
+#ifdef DEBUG
 	xlog(LOG_DEBUG, "%s\n", "Deleted all plugins");
+#endif
 }
 
 

@@ -323,10 +323,8 @@ static char* proxenet_apply_plugins(request_t *request)
 	plugin_t *p;
 	char *old_data;
 	char* (*plugin_function)(plugin_t*, request_t*) = NULL;
-
 	
 	old_data = NULL;
-// 	new_data = request->data;
 	
 	for (p=plugins_list; p!=NULL; p=p->next) {  
 		
@@ -408,7 +406,7 @@ void proxenet_process_http_request(sock_t server_socket)
 	request_t req;
 	
 	proxenet_xzero(&req, sizeof(request_t));
-	
+
 	rid = 0;
 	client_socket = retcode =-1;
 	proxenet_xzero(&ssl_context, sizeof(ssl_context_t));
@@ -506,13 +504,19 @@ void proxenet_process_http_request(sock_t server_socket)
 			/* got a request, get a request id */
 			if (!rid) 
 				rid = get_new_request_id();
-			
-			/* hook request with all plugins in plugins_list  */
+
+			/* filling new request structure */
 			req.id     = rid;
 			req.type   = REQUEST;
 			req.data   = http_request;
 			req.size   = n;
 
+			xlog(LOG_INFO, "New request %d to '%s:%d'\n",
+			     req.id,
+			     req.http_infos.hostname,
+			     req.http_infos.port);
+			
+			/* hook request with all plugins in plugins_list  */
 			http_request = proxenet_apply_plugins(&req);
 			
 #ifdef DEBUG
@@ -583,6 +587,7 @@ void proxenet_process_http_request(sock_t server_socket)
 		
 	}  /* end for(;;) { select() } */
 
+	
 	if (req.id) {
 			proxenet_xfree(req.http_infos.method);
 			proxenet_xfree(req.http_infos.hostname);
