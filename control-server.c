@@ -89,10 +89,10 @@ void pause_cmd(sock_t fd, char *options, unsigned int nb_options)
  */
 void info_cmd(sock_t fd, char *options, unsigned int nb_options)
 {
-	char msg[1024] = {0, };
+	char msg[BUFSIZE] = {0, };
 	char *msg2 = NULL;
 	
-	snprintf(msg, 1024,
+	snprintf(msg, BUFSIZE,
 		 "Infos:\n"
 		 "- Listening interface: %s/%s\n"
 		 "- Supported IP version: %s\n"
@@ -134,23 +134,23 @@ void info_cmd(sock_t fd, char *options, unsigned int nb_options)
  */
 void verbose_cmd(sock_t fd, char *options, unsigned int nb_options)
 {
-	char msg[1024] = {0, };
+	char msg[BUFSIZE] = {0, };
 	char *ptr;
 	int n;
 
 	ptr = strtok(options, " \n");
 	if (!ptr){
-		n = snprintf(msg, 1024, "Verbose level is at %d\n", cfg->verbose);
+		n = snprintf(msg, BUFSIZE, "Verbose level is at %d\n", cfg->verbose);
 		proxenet_write(fd, (void*)msg, n);
 		return;
 	}
 
 	if (strcmp(ptr, "inc")==0 && cfg->verbose<MAX_VERBOSE_LEVEL)
-		n = snprintf(msg, 1024, "Verbose level is now %d\n", ++cfg->verbose);
+		n = snprintf(msg, BUFSIZE, "Verbose level is now %d\n", ++cfg->verbose);
 	else if (strcmp(ptr, "dec")==0 && cfg->verbose>0)
-		n = snprintf(msg, 1024, "Verbose level is now %d\n", --cfg->verbose);
+		n = snprintf(msg, BUFSIZE, "Verbose level is now %d\n", --cfg->verbose);
 	else
-		n = snprintf(msg, 1024, "Invalid action\n Syntax\n verbose (inc|dec)\n");
+		n = snprintf(msg, BUFSIZE, "Invalid action\n Syntax\n verbose (inc|dec)\n");
 
 	proxenet_write(fd, (void*)msg, n);
 
@@ -199,7 +199,7 @@ void reload_cmd(sock_t fd, char *options, unsigned int nb_options)
  */
 void threads_cmd(sock_t fd, char *options, unsigned int nb_options)
 {
-	char msg[1024] = {0, };
+	char msg[BUFSIZE] = {0, };
 	char *ptr;
 	int n;
 
@@ -215,11 +215,11 @@ void threads_cmd(sock_t fd, char *options, unsigned int nb_options)
 	}
 
 	if (strcmp(ptr, "inc")==0 && cfg->nb_threads<MAX_THREADS)
-		n = snprintf(msg, 1024, "Nb threads level is now %d\n", ++cfg->nb_threads);
+		n = snprintf(msg, BUFSIZE, "Nb threads level is now %d\n", ++cfg->nb_threads);
 	else if (strcmp(ptr, "dec")==0 && cfg->nb_threads>1)
-		n = snprintf(msg, 1024, "Nb threads level is now %d\n", --cfg->nb_threads);
+		n = snprintf(msg, BUFSIZE, "Nb threads level is now %d\n", --cfg->nb_threads);
 	else
-		n = snprintf(msg, 1024, "Invalid action\n Syntax\n threads (inc|dec)\n");
+		n = snprintf(msg, BUFSIZE, "Invalid action\n Syntax\n threads (inc|dec)\n");
 
 	proxenet_write(fd, (void*)msg, n);
 	
@@ -232,13 +232,13 @@ void threads_cmd(sock_t fd, char *options, unsigned int nb_options)
  */
 void plugin_cmd(sock_t fd, char *options, unsigned int nb_options)
 {
-	char msg[1024] = {0, };
+	char msg[BUFSIZE] = {0, };
 	char *ptr, *plist_str;
 	int n, res;
 	
 	ptr = strtok(options, " \n");
 	if (!ptr){
-		n = snprintf(msg, 1024, "Invalid action\nSyntax\n plugin [list]|[toggle <num>]\n");
+		n = snprintf(msg, BUFSIZE, "Invalid action\nSyntax\n plugin [list]|[toggle <num>]\n");
 		proxenet_write(fd, (void*)msg, n);
 		return;
 	}
@@ -257,13 +257,13 @@ void plugin_cmd(sock_t fd, char *options, unsigned int nb_options)
 		n = atoi(ptr);
 		if (0 < n && n <= proxenet_plugin_list_size() ) {
 			res = proxenet_toggle_plugin(n);
-			n = snprintf(msg, 1024, "Plugin %d is now %sACTIVE\n", n, res?"":"IN");
+			n = snprintf(msg, BUFSIZE, "Plugin %d is now %sACTIVE\n", n, res?"":"IN");
 			proxenet_write(fd, (void*)msg, n);
 			return;
 		}
 	}
 	
-	n = snprintf(msg, 1024, "Invalid action\nSyntax\n plugin [list]|[toggle <num>]\n");
+	n = snprintf(msg, BUFSIZE, "Invalid action\nSyntax\n plugin [list]|[toggle <num>]\n");
 	proxenet_write(fd, (void*)msg, n);
 	return;
 }
