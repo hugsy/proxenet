@@ -1,3 +1,8 @@
+#ifdef _PYTHON_PLUGIN
+/* Python2 API specificity : http://docs.python.org/2/c-api/intro.html#includes */
+#include <Python.h>
+#endif
+
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <sys/types.h>
