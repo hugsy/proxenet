@@ -253,8 +253,7 @@ ssize_t proxenet_ssl_ioctl(int (*func)(), void *buf, size_t count, proxenet_ssl_
 			switch(retcode) {
 				case POLARSSL_ERR_SSL_PEER_CLOSE_NOTIFY :
 					/* acceptable case */
-					retcode = 0;
-					break;
+					return 0;
 					
 				default:
 					error_strerror(retcode, ssl_strerror, 127);

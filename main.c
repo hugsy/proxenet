@@ -86,7 +86,7 @@ void help(char* argv0)
 	       "Released under: %s\n\n"
 	       "Compiled with support for :\n",
 	       AUTHOR, LICENSE);
-
+	
 	i = 0;
 	while (true) {
 		plugin_name = supported_plugins_str[i];
@@ -101,6 +101,14 @@ void help(char* argv0)
 
 	if (i==0)
 		printf("\t[-] "RED"No support for plugin"NOCOLOR"\n");
+
+#ifdef DEBUG
+	printf("\t[+] "BLUE"Proxenet DEBUG symbols"NOCOLOR"\n");
+#endif
+
+#ifdef DEBUG_SSL
+	printf("\t[+] "BLUE"PolarSSL DEBUG symbols"NOCOLOR"\n");
+#endif
 	
 	usage(EXIT_SUCCESS);
 }
