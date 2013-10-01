@@ -25,7 +25,7 @@ static PerlInterpreter *my_perl;
 /**
  *
  */
-int proxenet_perl_load_file(plugin_t* plugin)
+static int proxenet_perl_load_file(plugin_t* plugin)
 {
 	char *pathname = NULL;
 	size_t pathlen = 0;
@@ -59,9 +59,14 @@ int proxenet_perl_load_file(plugin_t* plugin)
 	nb_res = eval_sv(sv_2mortal(sv), G_EVAL);
 	
 	if (nb_res != 1) {
-		xlog(LOG_ERROR, "[Perl] Invalid number of response returned while loading '%s' (got %d, expected 1)\n", pathname, nb_res);
+		xlog(LOG_ERROR, 
+		     "[Perl] Invalid number of response returned while loading '%s' (got %d, expected 1)\n",
+		     pathname,
+		     nb_res);
+		
 	} else if (SvTRUE(ERRSV)) {
 		xlog(LOG_ERROR, "[Perl] Eval error for '%s': %s\n", pathname, SvPV_nolen(ERRSV));
+		
 	} else {
 		/* Get the package name from the package (which should follow the convention...) */
 		package_sv = get_sv("package", 0);
@@ -167,7 +172,7 @@ int proxenet_perl_destroy_vm(plugin_t* plugin)
 /**
  *
  */
-char* proxenet_perl_execute_function(plugin_t* plugin, const char* fname, long rid, char* request_str, size_t* request_size)
+static char* proxenet_perl_execute_function(plugin_t* plugin, const char* fname, long rid, char* request_str, size_t* request_size)
 {
 	dSP;
 	char *res, *data;
@@ -212,7 +217,7 @@ char* proxenet_perl_execute_function(plugin_t* plugin, const char* fname, long r
 /**
  *
  */
-void proxenet_perl_lock_vm(interpreter_t *interpreter)
+static void proxenet_perl_lock_vm(interpreter_t *interpreter)
 {
 	pthread_mutex_lock(&interpreter->mutex);
 }
@@ -221,7 +226,7 @@ void proxenet_perl_lock_vm(interpreter_t *interpreter)
 /**
  *
  */
-void proxenet_perl_unlock_vm(interpreter_t *interpreter)
+static void proxenet_perl_unlock_vm(interpreter_t *interpreter)
 {
 	pthread_mutex_unlock(&interpreter->mutex);
 }
