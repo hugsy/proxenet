@@ -150,7 +150,7 @@ bool is_valid_http_request(char** request, size_t* request_len)
 	
 	new_ptr = index(new_ptr, '/');
 	if (!new_ptr) {
-		xlog(LOG_ERROR, "Cannot find path (must not be implicit)\n");
+		xlog(LOG_ERROR, "%s\n", "Cannot find path (must not be implicit)");
 		return false;
 	}
 	
