@@ -165,8 +165,8 @@ stable: clean
 	|gzip > /tmp/${PROGNAME}-${PROGVERS}.tgz
 
 # Tests
-test: clean $(BIN)
+test: clean all
 	./$(BIN) $(TEST_ARGS)
 
-leaks: $(BIN)
+leaks: all
 	valgrind -v --track-origins=yes --leak-check=full --show-reachable=yes ./$(BIN) $(TEST_ARGS)
