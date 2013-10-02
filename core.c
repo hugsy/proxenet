@@ -451,7 +451,7 @@ void proxenet_process_http_request(sock_t server_socket)
 		/* is there data from web browser to proxy ? */
 		if( FD_ISSET(server_socket, &rfds ) ) {
 			
-			int n = -1;
+			size_t n = -1;
 
 			if(is_ssl) {
 				n = proxenet_read_all(server_socket,
@@ -485,6 +485,7 @@ void proxenet_process_http_request(sock_t server_socket)
 #endif
 						proxenet_xfree(http_request);
 						continue;
+						
 					} else {
 						xlog(LOG_ERROR, "[%d] Failed to establish interception\n", rid);
 						proxenet_xfree(http_request);
@@ -495,7 +496,7 @@ void proxenet_process_http_request(sock_t server_socket)
 
 			/* check if request is valid  */
 			if (!is_ssl && !cfg->proxy.host) {
-				if (!is_valid_http_request(http_request)) {
+				if (!is_valid_http_request(&http_request, &n)) {
 					proxenet_xfree(http_request);
 					break;
 				}

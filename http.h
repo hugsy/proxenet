@@ -11,7 +11,7 @@
 #define HTTP_RESPONSE_INIT_SIZE 1024
 
 int create_http_socket(char*, sock_t*, sock_t*, ssl_context_t*, request_t*); 
-bool is_valid_http_request(char*);
+bool is_valid_http_request(char**, size_t*);
 char* get_request_full_uri(request_t*);
 
 #endif /* _HTTP_H */

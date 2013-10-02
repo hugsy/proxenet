@@ -128,33 +128,39 @@ static bool get_url_information(char* request, http_request_t* http)
 /**
  *
  */
-bool is_valid_http_request(char* request) 
+bool is_valid_http_request(char** request, size_t* request_len) 
 {
-	size_t old_reqlen = -1;
-	size_t new_reqlen = -1;
+	size_t new_request_len = -1;
 	char *old_ptr, *new_ptr;
 	int i = -1;
 
 	old_ptr = new_ptr = NULL;
-	old_ptr = strstr(request, "http://");
+	old_ptr = strstr(*request, "http://");
 	if (old_ptr) {
 		new_ptr = old_ptr + 7;
 	} else {
-		old_ptr = strstr(request, "https://");
+		old_ptr = strstr(*request, "https://");
 		if (old_ptr) {
 			new_ptr = old_ptr + 8;
 		} else {
-			xlog(LOG_ERROR, "Cannot find protocol (http|https) in request:\n%s\n", request);
+			xlog(LOG_ERROR, "Cannot find protocol (http|https) in request:\n%s\n", *request);
 			return false;
 		}
 	}
 	
 	new_ptr = index(new_ptr, '/');
-	old_reqlen = strlen(request) - (old_ptr-request);
-	new_reqlen = old_reqlen  - (new_ptr-old_ptr);
+	if (!new_ptr) {
+		xlog(LOG_ERROR, "Cannot find path (must not be implicit)\n");
+		return false;
+	}
 	
-	for (i=0; i<new_reqlen; i++) *(old_ptr+i) = *(new_ptr+i);
-	for (i=new_reqlen; i<old_reqlen; i++) *(old_ptr+i) = '\0';
+	new_request_len = *request_len  - (new_ptr-old_ptr);
+	
+	for (i=0; i<new_request_len; i++)
+		*(old_ptr+i) = *(new_ptr+i);
+	
+	*request = proxenet_xrealloc(*request, new_request_len);
+	*request_len = new_request_len;
 	
 	return true;
 }
