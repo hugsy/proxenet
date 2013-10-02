@@ -7,7 +7,7 @@ BUILD_TABLE_SQL+= """CREATE TABLE responses (id INTEGER, response BLOB, inserted
 REQ_SQL = """INSERT INTO requests (id, request) VALUES (?, ?)"""
 RES_SQL = """INSERT INTO responses (id, response) VALUES (?, ?)"""
 
-def proxenet_request_hook(request_id, request):
+def proxenet_request_hook(request_id, request, uri):
     conn = sqlite3.connect(SQLPATH)
     if conn:
         cur = conn.Cursor()
@@ -18,7 +18,7 @@ def proxenet_request_hook(request_id, request):
     return request
 
     
-def proxenet_response_hook(response_id, response):
+def proxenet_response_hook(response_id, response, uri):
     if conn:
         cur.execute(RES_SQL, response_id, response)
         conn.commit()

@@ -6,14 +6,14 @@
  */
 #include <stdio.h>
 
-char* proxenet_request_hook(unsigned long request_id, char *request)
+char* proxenet_request_hook(unsigned long request_id, char *request, char* uri)
 {
 	printf("Hello from C hook, request-%lu\n", request_id);
 	return request;
 }
 
 
-char* proxenet_response_hook(unsigned long response_id, char *response)
+char* proxenet_response_hook(unsigned long response_id, char *response, char* uri)
 {
 	printf("Hello from C hook, response-%lu\n", response_id);
 	return response;

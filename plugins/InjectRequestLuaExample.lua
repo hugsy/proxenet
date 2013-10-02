@@ -2,14 +2,14 @@
 -- $ lua -e 'RunTests = true;' script.lua
 --
 
-function proxenet_request_hook (request_id, request)
+function proxenet_request_hook (request_id, request, uri)
     local CRLF = "\r\n"
     return string.gsub(request,
 			CRLF..CRLF,
 			CRLF .. "X-Lua-Injected: proxenet" .. CRLF..CRLF)
 end
 
-function proxenet_response_hook (response_id, response)
+function proxenet_response_hook (response_id, response, uri)
 	return response
 end
 

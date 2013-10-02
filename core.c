@@ -750,9 +750,12 @@ static void kill_zombies()
 					break;
 			}
 #endif			
-		} else {
+		}
+#ifdef DEBUG		
+		else {
 			xlog(LOG_DEBUG, "Thread-%d finished\n", i);
 		}
+#endif
 	}
 }
 

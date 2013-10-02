@@ -4,7 +4,7 @@ package InjectRequest;
 
 
 sub proxenet_request_hook {
-    my ($rid, $req) = @_;
+    my ($rid, $req, $uri) = @_;
     $crlf = "\r\n";
     $end = $crlf . $crlf;
     
@@ -13,7 +13,7 @@ sub proxenet_request_hook {
 }
 
 sub proxenet_response_hook {
-    my ($rid, $res) = @_;
+    my ($rid, $res, $uri) = @_;
     return $res;
 }
 

@@ -56,12 +56,12 @@ def intercept(rid, text, title):
     app.exec_()
     return str(win.data)
     
-def proxenet_request_hook(request_id, request):
+def proxenet_request_hook(request_id, request, uri):
     data = intercept(request_id, request.replace(pimp.CRLF, "\x0a"), "Intercepting request")
     data = data.replace("\x0a", pimp.CRLF)
     return data
 
-def proxenet_response_hook(response_id, response):
+def proxenet_response_hook(response_id, response, uri):
     # data = intercept(response_id, response.replace(pimp.CRLF, "\x0a"), "Intercepting response")
     # data = data.replace("\x0a", pimp.CRLF)
     data = response
