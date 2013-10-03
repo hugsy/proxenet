@@ -102,6 +102,7 @@ typedef struct _http_request_fields
 	  char* hostname;
 	  unsigned short port;
 	  char* uri;
+	  char* version;		
 } http_request_t ;
 
 typedef enum {

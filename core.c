@@ -396,19 +396,19 @@ static char* proxenet_apply_plugins(request_t *request)
 void proxenet_process_http_request(sock_t server_socket)
 {
 	sock_t client_socket;
-	char *http_request, *http_response;
-	int retcode, rid;
+	/* char *http_response; */
+	request_t req;
+	int retcode;
 	fd_set rfds;
 	struct timespec ts;
 	ssl_context_t ssl_context;
 	bool is_ssl;
 	sigset_t emptyset;
-	request_t req;
+	size_t n;
+	
+	client_socket = retcode = n =-1;
 	
 	proxenet_xzero(&req, sizeof(request_t));
-
-	rid = 0;
-	client_socket = retcode =-1;
 	proxenet_xzero(&ssl_context, sizeof(ssl_context_t));
 
 	/* wait for any event on sockets */
@@ -418,9 +418,6 @@ void proxenet_process_http_request(sock_t server_socket)
 			xlog(LOG_ERROR, "%s\n", "Sock browser->proxy died unexpectedly");
 			break;
 		}
-		
-		http_request  = NULL;
-		http_response = NULL;
 		
 		ts.tv_sec  = HTTP_TIMEOUT_SOCK;
 		ts.tv_nsec = 0;
@@ -449,76 +446,82 @@ void proxenet_process_http_request(sock_t server_socket)
 		is_ssl = ssl_context.use_ssl;
 		
 		/* is there data from web browser to proxy ? */
-		if( FD_ISSET(server_socket, &rfds ) ) {
+		if( FD_ISSET(server_socket, &rfds ) ) {	
+			n = - 1;
 			
-			size_t n = -1;
-
 			if(is_ssl) {
 				n = proxenet_read_all(server_socket,
-						      &http_request,
+						      &req.data,
 						      &(ssl_context.server.context));
 			} else {
-				n = proxenet_read_all(server_socket, &http_request, NULL);
+				n = proxenet_read_all(server_socket, &req.data, NULL);
 			}
 #ifdef DEBUG
-			xlog(LOG_DEBUG, "[%d] Got %dB from client (%s)\n", rid, n, (is_ssl)?"SSL":"PLAIN");
+			xlog(LOG_DEBUG, "[%d] Got %dB from client (%s)\n", req.id, n, (is_ssl)?"SSL":"PLAIN");
 #endif
 			
 			if (n <= 0) 
 				break;
+
+			req.size = n;
 			
 			/* is connection to server not established ? -> new request */
 			if (client_socket < 0) {
-				proxenet_xzero(&req, sizeof(request_t));
-				
-				retcode = create_http_socket(http_request, &server_socket, &client_socket, &ssl_context, &req);
+
+				/* filling new request structure */
+				req.id     = get_new_request_id();
+				req.type   = REQUEST;
+			
+				retcode = create_http_socket(&req, &server_socket, &client_socket, &ssl_context);
 				if (retcode < 0) {
-					xlog(LOG_ERROR, "[%d] Failed to create %s->server socket\n", rid, PROGNAME);
-					proxenet_xfree(http_request);
+					xlog(LOG_ERROR, "[%d] Failed to create %s->server socket\n", req.id, PROGNAME);
+					proxenet_xfree(req.data);
+					client_socket = -1;
 					break;
 				}
 
 				if (ssl_context.use_ssl) {
 					if (ssl_context.server.is_valid && ssl_context.client.is_valid) {
 #ifdef DEBUG
-						xlog(LOG_DEBUG, "[%d] SSL interception established\n", rid);
+						xlog(LOG_DEBUG, "[%d] SSL interception established\n", req.id);
 #endif
-						proxenet_xfree(http_request);
+						proxenet_xfree(req.data);
 						continue;
 						
 					} else {
-						xlog(LOG_ERROR, "[%d] Failed to establish interception\n", rid);
-						proxenet_xfree(http_request);
+						xlog(LOG_ERROR, "[%d] Failed to establish interception\n", req.id);
+						proxenet_xfree(req.data);
+						client_socket = -1;
 						break;
 					}
 				}
 			}
 
 			/* check if request is valid  */
-			if (!is_ssl && !cfg->proxy.host) {
-				if (!is_valid_http_request(&http_request, &n)) {
-					proxenet_xfree(http_request);
-					break;
+			if (!cfg->proxy.host) {
+				if (!is_ssl) {
+					if (!is_valid_http_request(&req.data, &req.size)) {
+							proxenet_xfree(req.data);
+							client_socket = -1;
+							break;
+					}
+				} else {
+					set_https_infos(&req);
 				}
 			}
-			
-			/* got a request, get a request id */
-			if (!rid) 
-				rid = get_new_request_id();
 
-			/* filling new request structure */
-			req.id     = rid;
-			req.type   = REQUEST;
-			req.data   = http_request;
-			req.size   = n;
 
-			xlog(LOG_INFO, "New request %d to '%s:%d'\n",
-			     req.id,
-			     req.http_infos.hostname,
-			     req.http_infos.port);
+			if (cfg->verbose)
+				xlog(LOG_INFO, "New %s request %d to '%s://%s:%d%s'\n",
+				     req.http_infos.method,
+				     req.id,
+				     req.http_infos.proto,
+				     req.http_infos.hostname,
+				     req.http_infos.port,
+				     req.http_infos.uri);
 			
 			/* hook request with all plugins in plugins_list  */
-			http_request = proxenet_apply_plugins(&req);
+			req.data = proxenet_apply_plugins(&req);
 			
 #ifdef DEBUG
 			xlog(LOG_DEBUG, "[%d] Sending %d bytes (%s)\n", req.id, req.size,
@@ -526,18 +529,18 @@ void proxenet_process_http_request(sock_t server_socket)
 #endif
 			/* send modified data */
 			if (is_ssl) {
-				retcode = proxenet_ssl_write(client_socket, http_request, req.size,
+				retcode = proxenet_ssl_write(client_socket, req.data, req.size,
 							     &(ssl_context.client.context));
 			} else {
-				retcode = proxenet_write(client_socket, http_request, req.size);
+				retcode = proxenet_write(client_socket, req.data, req.size);
 			}
 
-			proxenet_xfree(http_request);
+			proxenet_xfree(req.data);
 
 			if (retcode < 0) {
-				xlog(LOG_ERROR, "[%d] %s\n", rid, "Failed to write to server");
-				if (rid)
-					rid = 0;
+				xlog(LOG_ERROR, "[%d] %s\n", req.id, "Failed to write to server");
+				if (req.id)
+					req.id = 0;
 				break;
 			}
 			
@@ -546,15 +549,15 @@ void proxenet_process_http_request(sock_t server_socket)
 		
 		/* is there data from remote server to proxy ? */
 		if( client_socket > 0 && FD_ISSET(client_socket, &rfds ) ) {
-			int n = -1;
+			n = -1;
 
 			if (is_ssl)
-				n = proxenet_read_all(client_socket, &http_response, &ssl_context.client.context);
+				n = proxenet_read_all(client_socket, &req.data, &ssl_context.client.context);
 			else
-				n = proxenet_read_all(client_socket, &http_response, NULL);
+				n = proxenet_read_all(client_socket, &req.data, NULL);
 			
 #ifdef DEBUG
-			xlog(LOG_DEBUG, "[%d] Got %dB from server\n", rid, n);
+			xlog(LOG_DEBUG, "[%d] Got %dB from server\n", req.id, n);
 #endif
 			
 			if (n <= 0)
@@ -562,37 +565,33 @@ void proxenet_process_http_request(sock_t server_socket)
 
 			/* update request data structure */
 			req.type   = RESPONSE;
-			req.data   = http_response;
 			req.size   = n;
 			
 			/* execute response hooks */
-			http_response = proxenet_apply_plugins(&req);
+			req.data = proxenet_apply_plugins(&req);
 
 			/* send modified data to client */
 			if (is_ssl)
-				retcode = proxenet_ssl_write(server_socket, http_response, req.size, &ssl_context.server.context);
+				retcode = proxenet_ssl_write(server_socket, req.data, req.size, &ssl_context.server.context);
 			else
-				retcode = proxenet_write(server_socket, http_response, req.size);
+				retcode = proxenet_write(server_socket, req.data, req.size);
 			
 			if (retcode < 0) {
-				xlog(LOG_ERROR, "[%d] %s\n", rid, "proxy->client: write failed");
+				xlog(LOG_ERROR, "[%d] %s\n", req.id, "proxy->client: write failed");
 			}
 			
-			proxenet_xfree(http_response);
+			proxenet_xfree(req.data);
 
-			/* reset request id for this thread */
-			if (rid)
-				rid = 0;
-			
 		}  /* end FD_ISSET(data_from_server) */
 		
 	}  /* end for(;;) { select() } */
 
 	
 	if (req.id) {
-			proxenet_xfree(req.http_infos.method);
-			proxenet_xfree(req.http_infos.hostname);
-			proxenet_xfree(req.http_infos.uri);
+		proxenet_xfree(req.http_infos.method);
+		proxenet_xfree(req.http_infos.hostname);
+		proxenet_xfree(req.http_infos.uri);
+		proxenet_xfree(req.http_infos.version);
 	}
 	
 	/* close client socket */
@@ -617,7 +616,7 @@ void proxenet_process_http_request(sock_t server_socket)
 			close_socket(server_socket);
 		}
 	}
-	
+
 	/* and that's all folks */
 	return;
 }

@@ -120,7 +120,16 @@ static bool get_url_information(char* request, http_request_t* http)
 		http->uri = (char*) proxenet_xmalloc(2);
 		*(http->uri) = '/';
 	}
-	
+
+	/* get version */
+	cur_pos+= str_len + 1;
+	end_pos = index(cur_pos, '\r');
+	if (!end_pos)
+		return false;
+	str_len = end_pos - cur_pos;
+	http->version = (char*) proxenet_xmalloc(str_len+1);
+	memcpy(http->version, cur_pos, str_len);
+		
 	return true;
 }
 
@@ -145,7 +154,7 @@ bool is_valid_http_request(char** request, size_t* request_len)
 		} else {
 			xlog(LOG_ERROR, "Cannot find protocol (http|https) in request:\n%s\n", *request);
 			return false;
-		}
+		} 
 	}
 	
 	new_ptr = index(new_ptr, '/');
@@ -167,11 +176,53 @@ bool is_valid_http_request(char** request, size_t* request_len)
 
 
 /**
+ *
+ */
+void set_https_infos(request_t *req) {
+	char *ptr, *buf;
+	char c;
+
+	buf = req->data;
+	
+	/* method  */
+	ptr = index(buf, ' ');
+	if (!ptr) return;
+	c = *ptr;
+	*ptr = '\0';
+	proxenet_xfree(req->http_infos.method);
+	req->http_infos.method = strdup(buf);
+	*ptr = c;
+
+	buf = ptr+1;
+	
+	/* path */
+	ptr = index(buf, ' ');
+	if (!ptr) return;
+	c = *ptr;
+	*ptr = '\0';
+	proxenet_xfree(req->http_infos.uri);
+	req->http_infos.uri = strdup(buf);
+	*ptr = c;
+
+	buf = ptr+1;
+
+	/* version */
+	ptr = index(req->data, '\r');
+	if (!ptr) return;
+	c = *ptr;
+	*ptr = '\0';
+	req->http_infos.version = strdup(buf);
+	*ptr = c;
+	
+}
+
+
+/**
  * Establish a connection from proxenet -> server. If proxy forwarding configured, then process
  * request to other proxy.
  * 
  */
-int create_http_socket(char* http_request, sock_t* server_sock, sock_t* client_sock, ssl_context_t* ssl_ctx, request_t* req) 
+int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock, ssl_context_t* ssl_ctx) 
 {
 	int retcode;
 	char *host, *port;
@@ -180,7 +231,7 @@ int create_http_socket(char* http_request, sock_t* server_sock, sock_t* client_s
 	bool use_proxy = (cfg->proxy.host != NULL) ;
 
 	/* get target from string and establish client socket to dest */
-	if (get_url_information(http_request, http_infos) == false) {
+	if (get_url_information(req->data, http_infos) == false) {
 		xlog(LOG_ERROR, "%s\n", "Failed to extract valid parameters from URL.");
 		return -1;
 	}
@@ -224,7 +275,7 @@ int create_http_socket(char* http_request, sock_t* server_sock, sock_t* client_s
 				char *connect_buf = NULL;
 				
 				/* 0. set up proxy->proxy ssl session (i.e. forward CONNECT request) */ 
-				retcode = proxenet_write(*client_sock, http_request, strlen(http_request) );
+				retcode = proxenet_write(*client_sock, req->data, req->size);
 				if (retcode < 0) {
 					xlog(LOG_ERROR, "%s failed to CONNECT to proxy\n", PROGNAME);
 					return -1;
@@ -240,7 +291,10 @@ int create_http_socket(char* http_request, sock_t* server_sock, sock_t* client_s
 				/* expect HTTP 200 */
 				if (   (strncmp(connect_buf, "HTTP/1.0 200", 12) != 0) 
 				    && (strncmp(connect_buf, "HTTP/1.1 200", 12) != 0)) {
-					xlog(LOG_ERROR, "%s->proxy: bad response %s\n", PROGNAME, connect_buf);
+					xlog(LOG_ERROR, "%s->proxy: bad HTTP version\n", PROGNAME);
+					if (cfg->verbose)
+							xlog(LOG_ERROR, "Received %s\n", connect_buf);
+					
 					return -1;
 				}
 			}
@@ -257,7 +311,9 @@ int create_http_socket(char* http_request, sock_t* server_sock, sock_t* client_s
 			}
 
 #ifdef DEBUG
-			xlog(LOG_DEBUG, "%s %d %d\n", "SSL handshake with server done", *client_sock, *server_sock);
+			xlog(LOG_DEBUG, "%s %d %d\n", "SSL handshake with server done",
+			     *client_sock,
+			     *server_sock);
 #endif
 			if (proxenet_write(*server_sock,
 					   "HTTP/1.0 200 Connection established\r\n\r\n",
