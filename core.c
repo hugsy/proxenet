@@ -206,6 +206,9 @@ void proxenet_initialize_plugins()
 				break;
 		}
 		
+		if (cfg->verbose > 1)
+			xlog(LOG_INFO, "Successfully initialiazed '%s'\n", plugin->filename);
+
 		prec_plugin = plugin;
 		plugin = plugin->next;
 		continue;
@@ -217,11 +220,15 @@ delete_plugin:
 		} else {
 			plugins_list = plugin->next;
 		}
-		
+
+		if (cfg->verbose > 1)
+			xlog(LOG_ERROR, "Removing '%s' from plugin list\n", plugin->filename);
+
 		next_plugin = plugin->next;
 		proxenet_free_plugin(plugin);
 		plugin = next_plugin;
 	}
+	
 }
 
 
@@ -511,14 +518,22 @@ void proxenet_process_http_request(sock_t server_socket)
 			}
 
 
-			if (cfg->verbose)
-				xlog(LOG_INFO, "New %s request %d to '%s://%s:%d%s'\n",
-				     req.http_infos.method,
+			if (cfg->verbose) {
+				xlog(LOG_INFO, "New request %d to '%s:%d'\n",
 				     req.id,
-				     req.http_infos.proto,
 				     req.http_infos.hostname,
-				     req.http_infos.port,
-				     req.http_infos.uri);
+				     req.http_infos.port);
+				
+				if (cfg->verbose > 1)
+					xlog(LOG_INFO, "%s %s://%s:%d%s %s\n",
+					     req.http_infos.method,
+					     req.http_infos.proto,
+					     req.http_infos.hostname,
+					     req.http_infos.port,
+					     req.http_infos.uri,
+					     req.http_infos.version);
+					     
+			}
 			
 			/* hook request with all plugins in plugins_list  */
 			req.data = proxenet_apply_plugins(&req);
