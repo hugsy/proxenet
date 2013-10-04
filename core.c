@@ -791,7 +791,7 @@ int proxenet_initialize_plugins_list()
 		xlog(LOG_INFO, "%s\n", "Plugins loaded");
 		if (cfg->verbose > 1) {
 			xlog(LOG_INFO, "%d plugin(s) found\n", proxenet_plugin_list_size());
-			proxenet_print_plugins_list();
+			proxenet_print_plugins_list(-1);
 		}
 	}
 	

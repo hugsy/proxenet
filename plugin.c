@@ -156,7 +156,7 @@ void proxenet_remove_all_plugins()
 /**
  *
  */
-static bool proxenet_build_plugins_list(char *list_str, int list_len)
+static bool proxenet_build_plugins_list(char *list_str, int *list_len)
 {
 	plugin_t *p;
 	char *ptr;
@@ -182,11 +182,13 @@ static bool proxenet_build_plugins_list(char *list_str, int list_len)
 		if (n<0)
 			break;
 
-		if ((ptr - list_str + 128) > list_len) {
+		if ((ptr - list_str + 128) > *list_len) {
 			xlog(LOG_ERROR, "%s\n", "Overflow detected");
 			return false;
 		}
 	}
+
+	*list_len = n;
 
 	return true;
 }
@@ -203,15 +205,16 @@ void proxenet_print_plugins_list(int fd)
 	list_len = 2048;
 	list_str = (char*)alloca(list_len);
 		
-	if (!proxenet_build_plugins_list(list_str, list_len)) 
+	if (!proxenet_build_plugins_list(list_str, &list_len)) 
 		return;
-		
-	if (fd==1)
+
+	if (fd<0)
 		xlog(LOG_INFO, "%s", list_str);
-	else
+	else {
 		proxenet_write(fd, list_str, list_len);
+		proxenet_write(fd, "\n", 1);
+	}
 	
-	proxenet_xfree(list_str);
 }
 
 
