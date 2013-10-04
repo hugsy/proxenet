@@ -90,37 +90,34 @@ void pause_cmd(sock_t fd, char *options, unsigned int nb_options)
 void info_cmd(sock_t fd, char *options, unsigned int nb_options)
 {
 	char msg[BUFSIZE] = {0, };
-	char *msg2 = NULL;
+	int n;
 	
-	snprintf(msg, BUFSIZE,
-		 "Infos:\n"
-		 "- Listening interface: %s/%s\n"
-		 "- Supported IP version: %s\n"
-		 "- Logging to %s\n"
-		 "- Running/Max threads: %d/%d\n"
-		 "- SSL private key: %s\n"
-		 "- SSL certificate: %s\n"
-		 "- Proxy: %s [%s]\n"
-		 "- Plugins directory: %s\n"
-		 , 
-		 cfg->iface, cfg->port,
-		 (cfg->ip_version==AF_INET)? "IPv4": (cfg->ip_version==AF_INET6)?"IPv6": "ANY",
-		 (cfg->logfile)?cfg->logfile:"stdout",
-		 get_active_threads_size(), cfg->nb_threads,
-		 cfg->keyfile,
-		 cfg->certfile,
-		 cfg->proxy.host ? cfg->proxy.host : "None",
-		 cfg->proxy.host ? cfg->proxy.port : "direct",
-		 cfg->plugins_path  
-		);
+	n = snprintf(msg, BUFSIZE,
+		     "Infos:\n"
+		     "- Listening interface: %s/%s\n"
+		     "- Supported IP version: %s\n"
+		     "- Logging to %s\n"
+		     "- Running/Max threads: %d/%d\n"
+		     "- SSL private key: %s\n"
+		     "- SSL certificate: %s\n"
+		     "- Proxy: %s [%s]\n"
+		     "- Plugins directory: %s\n"
+		     , 
+		     cfg->iface, cfg->port,
+		     (cfg->ip_version==AF_INET)? "IPv4": (cfg->ip_version==AF_INET6)?"IPv6": "ANY",
+		     (cfg->logfile)?cfg->logfile:"stdout",
+		     get_active_threads_size(), cfg->nb_threads,
+		     cfg->keyfile,
+		     cfg->certfile,
+		     cfg->proxy.host ? cfg->proxy.host : "None",
+		     cfg->proxy.host ? cfg->proxy.port : "direct",
+		     cfg->plugins_path  
+		    );
 
-	proxenet_write(fd, (void*)msg, strlen(msg));
+	proxenet_write(fd, (void*)msg, n);
 	
 	if (proxenet_plugin_list_size()) {
-		msg2 = proxenet_build_plugins_list();
-		proxenet_write(fd, (void*)msg2, strlen(msg2));
-		proxenet_xfree(msg2);
-
+		proxenet_print_plugins_list(fd);
 	} else {
 		proxenet_write(fd, (void*)"No plugin loaded\n", 17);
 	}
@@ -174,7 +171,7 @@ void reload_cmd(sock_t fd, char *options, unsigned int nb_options)
 	proxy_state = SLEEPING;
 	
 	proxenet_destroy_plugins_vm();
-	proxenet_delete_list_plugins();
+	proxenet_remove_all_plugins();
 
 	if( proxenet_initialize_plugins_list() < 0) {
 		msg = "Failed to reinitilize plugins";
@@ -233,7 +230,7 @@ void threads_cmd(sock_t fd, char *options, unsigned int nb_options)
 void plugin_cmd(sock_t fd, char *options, unsigned int nb_options)
 {
 	char msg[BUFSIZE] = {0, };
-	char *ptr, *plist_str;
+	char *ptr;
 	int n, res;
 	
 	ptr = strtok(options, " \n");
@@ -244,9 +241,7 @@ void plugin_cmd(sock_t fd, char *options, unsigned int nb_options)
 	}
 
 	if (strcmp(ptr, "list") == 0) {
-		plist_str = proxenet_build_plugins_list();
-		proxenet_write(fd, (void*)plist_str, strlen(plist_str));
-		proxenet_xfree(plist_str);
+		proxenet_print_plugins_list(fd);
 		return;
 		
 	} else if (strcmp(ptr, "toggle") == 0) {

@@ -18,12 +18,13 @@ DEBUG_SSL		=       0
 CC			=       cc
 BIN		  	=       proxenet
 DEFINES			=       -DPROGNAME=$(PROGNAME) -DVERSION=$(VERSION) -DAUTHOR=$(AUTHOR) -DLICENSE=$(LICENSE)
-HARDEN			=	-Wl,-z,relro -fstack-protector-all
-LDFLAGS			=       $(HARDEN) -lpthread 
+CHARDEN			=	-fstack-protector-all 
+LHARDEN			=	-Wl,-z,relro
+LDFLAGS			=       -lpthread $(LHARDEN)
 SRC			=	$(wildcard *.c)
 OBJECTS         	=       $(patsubst %.c, %.o, $(SRC))
 INC			=      	-I/usr/include -pthread
-CFLAGS			=	-O2 -Wall $(DEFINES) $(INC) -pthread
+CFLAGS			=	-O2 -Wall $(DEFINES) $(INC) -pthread $(CHARDEN)
 LIB			= 	-L/lib
 
 

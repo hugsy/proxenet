@@ -225,7 +225,7 @@ delete_plugin:
 			xlog(LOG_ERROR, "Removing '%s' from plugin list\n", plugin->filename);
 
 		next_plugin = plugin->next;
-		proxenet_free_plugin(plugin);
+		proxenet_remove_plugin(plugin);
 		plugin = next_plugin;
 	}
 	
@@ -403,7 +403,6 @@ static char* proxenet_apply_plugins(request_t *request)
 void proxenet_process_http_request(sock_t server_socket)
 {
 	sock_t client_socket;
-	/* char *http_response; */
 	request_t req;
 	int retcode;
 	fd_set rfds;
@@ -534,13 +533,17 @@ void proxenet_process_http_request(sock_t server_socket)
 					     req.http_infos.version);
 					     
 			}
-			
+
+#ifdef DEBUG
+			xlog(LOG_DEBUG, "[%d] Sending buffer %d bytes (%s) - pre-plugins\n",
+			     req.id, req.size, (req.http_infos.is_ssl)?"SSL":"PLAIN");
+#endif
 			/* hook request with all plugins in plugins_list  */
 			req.data = proxenet_apply_plugins(&req);
 			
 #ifdef DEBUG
-			xlog(LOG_DEBUG, "[%d] Sending %d bytes (%s)\n", req.id, req.size,
-			     (req.http_infos.is_ssl)?"SSL":"PLAIN");
+			xlog(LOG_DEBUG, "[%d] Sending buffer %d bytes (%s) - post-plugins\n",
+			     req.id, req.size, (req.http_infos.is_ssl)?"SSL":"PLAIN");
 #endif
 			/* send modified data */
 			if (is_ssl) {
@@ -1076,7 +1079,7 @@ int proxenet_start()
 	xloop(listening_socket, control_socket);
 	
 	/* clean context */
-	proxenet_delete_list_plugins();
+	proxenet_remove_all_plugins();
 	
 	close_socket(listening_socket);
 	close_socket(control_socket);

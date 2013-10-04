@@ -7,6 +7,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <dirent.h>
+#include <alloca.h>
 
 #include "core.h"
 #include "utils.h"
@@ -111,7 +112,7 @@ int proxenet_plugin_list_size()
 /**
  * 
  */
-void proxenet_free_plugin(plugin_t* plugin)
+void proxenet_remove_plugin(plugin_t* plugin)
 {
 #ifdef _PERL_PLUGIN
 	if(plugin->type == _PERL_) {
@@ -123,6 +124,9 @@ void proxenet_free_plugin(plugin_t* plugin)
 	proxenet_xfree(plugin->name);
 	proxenet_xfree(plugin->filename);
 	proxenet_xfree(plugin);
+
+	if (cfg->verbose)
+		xlog(LOG_INFO, "Plugin '%s' free-ed\n", plugin->name);
 }
 
 
@@ -130,41 +134,41 @@ void proxenet_free_plugin(plugin_t* plugin)
 /**
  *
  */
-void proxenet_delete_list_plugins()
+void proxenet_remove_all_plugins()
 {
 	plugin_t *p = plugins_list;
 	plugin_t *next;
 	
 	while (p != NULL) {
 		next = p->next;
-		proxenet_free_plugin(p);
+		proxenet_remove_plugin(p);
 		p = next;
 	}
 	
 	plugins_list = NULL;
 	
-#ifdef DEBUG
-	xlog(LOG_DEBUG, "%s\n", "Deleted all plugins");
-#endif
+	if (cfg->verbose)
+		xlog(LOG_INFO, "%s\n", "Deleted all plugins");
+
 }
 
 
 /**
  *
  */
-char* proxenet_build_plugins_list()
+static bool proxenet_build_plugins_list(char *list_str, int list_len)
 {
 	plugin_t *p;
-	char *list_str, *ptr;
-	int n;
+	char *ptr;
+	int n, max_line_len;
 	
-	list_str = proxenet_xmalloc(2048);
+	max_line_len = 128;
 	ptr = list_str;
 	n = sprintf(ptr, "Plugins list:\n");
 	ptr += n;
 	
 	for (p = plugins_list; p!=NULL; p=p->next) {
-		n = snprintf(ptr, 128,
+		n = snprintf(ptr, max_line_len,
 			     "|_ priority=%-3d id=%-3d type=%-10s[0x%x] name=%-20s (%sACTIVE)\n",
 			     p->priority,
 			     p->id,
@@ -174,26 +178,39 @@ char* proxenet_build_plugins_list()
 			     (p->state==ACTIVE?"":"IN")
 			    );
 		ptr += n;
+		
 		if (n<0)
 			break;
 
-		if ((ptr - list_str + 128) > 2048)
-			break;
+		if ((ptr - list_str + 128) > list_len) {
+			xlog(LOG_ERROR, "%s\n", "Overflow detected");
+			return false;
+		}
 	}
 
-	return list_str;
+	return true;
 }
 
 
 /**
  *
  */
-void proxenet_print_plugins_list()
+void proxenet_print_plugins_list(int fd)
 {
 	char *list_str;
+	int list_len;
 
-	list_str = proxenet_build_plugins_list();
-	xlog(LOG_INFO, "%s", list_str);
+	list_len = 2048;
+	list_str = (char*)alloca(list_len);
+		
+	if (!proxenet_build_plugins_list(list_str, list_len)) 
+		return;
+		
+	if (fd==1)
+		xlog(LOG_INFO, "%s", list_str);
+	else
+		proxenet_write(fd, list_str, list_len);
+	
 	proxenet_xfree(list_str);
 }
 
@@ -242,7 +259,7 @@ int proxenet_create_list_plugins(char* plugin_path)
 	}
 	
 	while ((dir_ptr=readdir(dir))) {
-		if (strcmp(dir_ptr->d_name,".")==0) continue;
+		if(strcmp(dir_ptr->d_name,".")==0) continue;
 		if(strcmp(dir_ptr->d_name,"..")==0) continue;
 		
 		if (atoi(&(dir_ptr->d_name[0])) == 0) continue;
@@ -263,6 +280,7 @@ int proxenet_create_list_plugins(char* plugin_path)
 		
 		/* add plugin in correct place (1: high priority, 9: low priority) */
 		proxenet_add_plugin(plugin_name, plugin_type, plugin_priority);
+
 	} 
 	
 	if (closedir(dir) < 0)
@@ -302,6 +320,4 @@ int count_initialized_plugins_by_type(int type)
 	
 	return i;
 }
-
-
 
