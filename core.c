@@ -473,10 +473,6 @@ void proxenet_process_http_request(sock_t server_socket)
 			
 			/* is connection to server not established ? -> new request */
 			if (client_socket < 0) {
-
-				/* filling new request structure */
-				req.id     = get_new_request_id();
-				req.type   = REQUEST;
 			
 				retcode = create_http_socket(&req, &server_socket, &client_socket, &ssl_context);
 				if (retcode < 0) {
@@ -486,6 +482,7 @@ void proxenet_process_http_request(sock_t server_socket)
 					break;
 				}
 
+				
 				if (ssl_context.use_ssl) {
 					if (ssl_context.server.is_valid && ssl_context.client.is_valid) {
 #ifdef DEBUG
@@ -494,14 +491,17 @@ void proxenet_process_http_request(sock_t server_socket)
 						proxenet_xfree(req.data);
 						continue;
 						
-					} else {
-						xlog(LOG_ERROR, "[%d] Failed to establish interception\n", req.id);
-						proxenet_xfree(req.data);
-						client_socket = -1;
-						break;
 					}
+					
+					xlog(LOG_ERROR, "[%d] Failed to establish interception\n", req.id);
+					proxenet_xfree(req.data);
+					client_socket = -1;
+					break;
 				}
 			}
+			
+			req.type   = REQUEST;
+			req.id     = get_new_request_id();
 
 			/* check if request is valid  */
 			if (!cfg->proxy.host) {
@@ -606,6 +606,9 @@ void proxenet_process_http_request(sock_t server_socket)
 
 	
 	if (req.id) {
+#ifdef DEBUG
+		xlog(LOG_DEBUG, "Free-ing request %d\n", req.id);
+#endif
 		proxenet_xfree(req.http_infos.method);
 		proxenet_xfree(req.http_infos.hostname);
 		proxenet_xfree(req.http_infos.uri);
@@ -614,6 +617,9 @@ void proxenet_process_http_request(sock_t server_socket)
 	
 	/* close client socket */
 	if (client_socket > 0) {
+#ifdef DEBUG
+		xlog(LOG_DEBUG, "Closing proxy->server socket #%d\n", client_socket);
+#endif		
 		if (ssl_context.client.is_valid) {
 			proxenet_ssl_finish(&ssl_context.client);
 			close_socket_ssl(client_socket, &ssl_context.client.context);
@@ -626,6 +632,9 @@ void proxenet_process_http_request(sock_t server_socket)
 	
 	/* close local socket */
 	if (server_socket > 0) {
+#ifdef DEBUG
+		xlog(LOG_DEBUG, "Closing browser->proxy socket #%d\n", server_socket);
+#endif		
 		if (ssl_context.server.is_valid) {
 			proxenet_ssl_finish(&(ssl_context.server));
 			close_socket_ssl(server_socket, &ssl_context.server.context);
@@ -892,9 +901,10 @@ void xloop(sock_t sock, sock_t ctl_sock)
 #endif
 
 			tid = get_new_thread_id();
-			if(tid < 0)
+			if(tid < 0) {
 				continue;
-
+			}
+			
 			struct sockaddr addr;
 			socklen_t addrlen = 0;
 
