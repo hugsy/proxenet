@@ -114,19 +114,27 @@ int proxenet_plugin_list_size()
  */
 void proxenet_remove_plugin(plugin_t* plugin)
 {
+	char* name;
+	int len;
+	
 #ifdef _PERL_PLUGIN
 	if(plugin->type == _PERL_) {
 		proxenet_xfree(plugin->pre_function);
 		proxenet_xfree(plugin->post_function);
 	}
 #endif
+
+	len = strlen(plugin->name);
+	name = alloca(len+1);
+	proxenet_xzero(name, len+1);
+	strncpy(name, plugin->name, len);
 	
 	proxenet_xfree(plugin->name);
 	proxenet_xfree(plugin->filename);
 	proxenet_xfree(plugin);
 
 	if (cfg->verbose)
-		xlog(LOG_INFO, "Plugin '%s' free-ed\n", plugin->name);
+		xlog(LOG_INFO, "Plugin '%s' free-ed\n", name);
 }
 
 
@@ -227,7 +235,7 @@ int proxenet_get_plugin_type(char* filename)
 	bool is_valid = false;
 	char *ext;
 
-	ext = rindex(filename, '.');
+	ext = strrchr(filename, '.');
 	if (!ext)
 		return -1;
 	

@@ -53,13 +53,13 @@ static bool get_url_information(char* request, http_request_t* http)
 	
 	
 	/* find method */
-	start_pos = index(request, ' ');
+	start_pos = strchr(request, ' ');
 	if (start_pos == NULL) {
 		xlog(LOG_ERROR, "%s\n", "Malformed HTTP Header");
 		return false;
 	}
 	
-	end_pos = index(start_pos+1, ' ');
+	end_pos = strchr(start_pos+1, ' ');
 	if (end_pos==NULL) {
 		xlog(LOG_ERROR, "%s\n", "Malformed HTTP Header");
 		return false;
@@ -123,7 +123,7 @@ static bool get_url_information(char* request, http_request_t* http)
 
 	/* get version */
 	cur_pos+= str_len + 1;
-	end_pos = index(cur_pos, '\r');
+	end_pos = strchr(cur_pos, '\r');
 	if (!end_pos)
 		return false;
 	str_len = end_pos - cur_pos;
@@ -142,35 +142,41 @@ bool is_valid_http_request(char** request, size_t* request_len)
 	size_t new_request_len = -1;
 	char *old_ptr, *new_ptr;
 	int i = -1;
-
+	int offlen = -1;
+	
 	old_ptr = new_ptr = NULL;
 	old_ptr = strstr(*request, "http://");
-	if (old_ptr) {
-		new_ptr = old_ptr + 7;
-	} else {
+	if (old_ptr) 
+		offlen = 7;
+	else {
 		old_ptr = strstr(*request, "https://");
-		if (old_ptr) {
-			new_ptr = old_ptr + 8;
-		} else {
-			xlog(LOG_ERROR, "Cannot find protocol (http|https) in request:\n%s\n", *request);
-			return false;
-		} 
+		if (old_ptr) 
+			offlen = 8;
+	}
+
+	if (offlen < 0) {
+		xlog(LOG_ERROR, "Cannot find protocol (http|https) in request:\n%s\n", *request);
+		return false;
 	}
 	
-	new_ptr = index(new_ptr, '/');
+	new_ptr = strchr(old_ptr + offlen, '/');
 	if (!new_ptr) {
 		xlog(LOG_ERROR, "%s\n", "Cannot find path (must not be implicit)");
 		return false;
 	}
+
+	new_request_len = *request_len - (new_ptr-old_ptr);
+
+#ifdef DEBUG
+	xlog(LOG_DEBUG, "Adjusting buffer to %d->%d bytes\n", *request_len, new_request_len);
+#endif
 	
-	new_request_len = *request_len  - (new_ptr-old_ptr);
-	
-	for (i=0; i<new_request_len; i++)
+	for (i=0; i<new_request_len - (old_ptr-*request);i++)
 		*(old_ptr+i) = *(new_ptr+i);
 	
 	*request = proxenet_xrealloc(*request, new_request_len);
 	*request_len = new_request_len;
-	
+
 	return true;
 }
 
@@ -185,7 +191,7 @@ void set_https_infos(request_t *req) {
 	buf = req->data;
 	
 	/* method  */
-	ptr = index(buf, ' ');
+	ptr = strchr(buf, ' ');
 	if (!ptr) return;
 	c = *ptr;
 	*ptr = '\0';
@@ -196,7 +202,7 @@ void set_https_infos(request_t *req) {
 	buf = ptr+1;
 	
 	/* path */
-	ptr = index(buf, ' ');
+	ptr = strchr(buf, ' ');
 	if (!ptr) return;
 	c = *ptr;
 	*ptr = '\0';
@@ -207,7 +213,7 @@ void set_https_infos(request_t *req) {
 	buf = ptr+1;
 
 	/* version */
-	ptr = index(req->data, '\r');
+	ptr = strchr(req->data, '\r');
 	if (!ptr) return;
 	c = *ptr;
 	*ptr = '\0';

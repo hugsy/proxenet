@@ -16,7 +16,7 @@ DEBUG           	=       0
 DEBUG_SSL		=       0
 
 CC			=       cc
-BIN		  	=       proxenet
+BIN	  		=       proxenet
 DEFINES			=       -DPROGNAME=$(PROGNAME) -DVERSION=$(VERSION) -DAUTHOR=$(AUTHOR) -DLICENSE=$(LICENSE)
 CHARDEN			=	-fstack-protector-all 
 LHARDEN			=	-Wl,-z,relro
@@ -24,14 +24,14 @@ LDFLAGS			=       -lpthread $(LHARDEN)
 SRC			=	$(wildcard *.c)
 OBJECTS         	=       $(patsubst %.c, %.o, $(SRC))
 INC			=      	-I/usr/include -pthread
-CFLAGS			=	-O2 -Wall $(DEFINES) $(INC) -pthread $(CHARDEN)
+CFLAGS			=	-Wall $(DEFINES) $(INC) -pthread $(CHARDEN) -O2
 LIB			= 	-L/lib
 
 
 # DEBUG
 ifeq ($(DEBUG), 1)
-DBGFLAGS		=       -ggdb -DDEBUG
-CFLAGS			+=      $(DBGFLAGS)
+DBGFLAGS		=       -ggdb -DDEBUG -fno-omit-frame-pointer -fsanitize=address
+CFLAGS			+=      $(DBGFLAGS) 
 
 ifeq ($(DEBUG_SSL), 1)
 CFLAGS			+=	-DDEBUG_SSL
