@@ -168,12 +168,13 @@ static bool proxenet_build_plugins_list(char *list_str, int *list_len)
 {
 	plugin_t *p;
 	char *ptr;
-	int n, max_line_len;
+	int n, max_line_len, total_len;
 	
 	max_line_len = 128;
 	ptr = list_str;
 	n = sprintf(ptr, "Plugins list:\n");
 	ptr += n;
+	total_len = 0;
 	
 	for (p = plugins_list; p!=NULL; p=p->next) {
 		n = snprintf(ptr, max_line_len,
@@ -185,18 +186,23 @@ static bool proxenet_build_plugins_list(char *list_str, int *list_len)
 			     p->name,
 			     (p->state==ACTIVE?"":"IN")
 			    );
-		ptr += n;
 		
-		if (n<0)
-			break;
-
+		
+		if (n<0) {
+			xlog(LOG_ERROR, "Error: %s\n", strerror(errno));
+			return false;
+		}
+		
+		ptr += n;
+		total_len += n;
+		
 		if ((ptr - list_str + 128) > *list_len) {
 			xlog(LOG_ERROR, "%s\n", "Overflow detected");
 			return false;
 		}
 	}
 
-	*list_len = n;
+	*list_len = total_len;
 
 	return true;
 }
@@ -213,8 +219,10 @@ void proxenet_print_plugins_list(int fd)
 	list_len = 2048;
 	list_str = (char*)alloca(list_len);
 		
-	if (!proxenet_build_plugins_list(list_str, &list_len)) 
+	if (!proxenet_build_plugins_list(list_str, &list_len)) {
+		xlog(LOG_ERROR, "%s\n", "Failed to build plugins list string");
 		return;
+	}
 
 	if (fd<0)
 		xlog(LOG_INFO, "%s", list_str);
