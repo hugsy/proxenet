@@ -30,12 +30,12 @@ LIB			= 	-L/lib
 
 # DEBUG
 ifeq ($(DEBUG), 1)
-DBGFLAGS		=       -ggdb -DDEBUG -fno-omit-frame-pointer
+DBGFLAGS		=       -ggdb -DDEBUG 
 CFLAGS			+=      $(DBGFLAGS) 
 
 ifeq ($(CC), clang)
-CFLAGS			+=      -fsanitize=address
-end
+CFLAGS			+=      -fsanitize=address -fno-omit-frame-pointer
+endif
 
 ifeq ($(DEBUG_SSL), 1)
 CFLAGS			+=	-DDEBUG_SSL
