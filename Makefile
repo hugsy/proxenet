@@ -12,7 +12,7 @@ VERSION_MINOR		= 	2
 VERSION_REL		=	git
 VERSION         	=       \"$(VERSION_MAJOR).$(VERSION_MINOR)-$(VERSION_REL)\"
 ARCH            	=       $(shell uname)
-DEBUG           	=       1
+DEBUG           	=       0
 DEBUG_SSL		=       0
 
 CC			=       cc
