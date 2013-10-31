@@ -8,14 +8,15 @@
 #include "main.h"
 
 typedef ssl_context proxenet_ssl_context_t;
-typedef x509_cert proxenet_ssl_cert_t;
+typedef x509_crt proxenet_ssl_cert_t;
 
 typedef struct __ssl_atom_t {
 		ssl_context context;
-		x509_cert   cert;
+		x509_crt   cert;
 		ctr_drbg_context ctr_drbg;
 		entropy_context entropy;
 		rsa_context rsa;
+		pk_context pkey;
 		bool is_valid;
 } ssl_atom_t;
 
@@ -28,16 +29,13 @@ typedef struct __ssl_context_t {
 #include "socket.h"
 #include "utils.h"
 
-void proxenet_ssl_free_certificate(proxenet_ssl_cert_t* ssl_cert);
-	
 int proxenet_ssl_init_server_context(ssl_atom_t* server);
 int proxenet_ssl_init_client_context(ssl_atom_t* client);
 
 void proxenet_ssl_wrap_socket(proxenet_ssl_context_t* s, sock_t* sock);
 int proxenet_ssl_handshake(proxenet_ssl_context_t* s);
 
-void proxenet_ssl_bye(proxenet_ssl_context_t *s);
-void proxenet_ssl_finish(ssl_atom_t* ssl);
+void proxenet_ssl_finish(ssl_atom_t* ssl, bool t);
 int close_socket_ssl(sock_t sock, proxenet_ssl_context_t *s);
 
 ssize_t proxenet_ssl_read(sock_t sock, void *n, size_t l, proxenet_ssl_context_t *s);

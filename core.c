@@ -621,7 +621,7 @@ void proxenet_process_http_request(sock_t server_socket)
 		xlog(LOG_DEBUG, "Closing proxy->server socket #%d\n", client_socket);
 #endif		
 		if (ssl_context.client.is_valid) {
-			proxenet_ssl_finish(&ssl_context.client);
+			proxenet_ssl_finish(&(ssl_context.client), false);
 			close_socket_ssl(client_socket, &ssl_context.client.context);
 		
 		} else {
@@ -636,7 +636,7 @@ void proxenet_process_http_request(sock_t server_socket)
 		xlog(LOG_DEBUG, "Closing browser->proxy socket #%d\n", server_socket);
 #endif		
 		if (ssl_context.server.is_valid) {
-			proxenet_ssl_finish(&(ssl_context.server));
+			proxenet_ssl_finish(&(ssl_context.server), true);
 			close_socket_ssl(server_socket, &ssl_context.server.context);
 			
 		} else {

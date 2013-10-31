@@ -30,6 +30,9 @@
  * SSL context setup
  */
 
+/*
+ * Compatible with PolarSSL 1.3+ API
+ */
 
 #ifdef DEBUG_SSL
 
@@ -39,7 +42,7 @@ static char buf[2048] = {0, };
 /**
  *
  */
-void proxenet_ssl_debug(void *who, int level, const char *str )
+static void proxenet_ssl_debug(void *who, int level, const char *str )
 {
 	size_t l = strlen(str);
 	size_t k = strlen(buf);
@@ -76,7 +79,8 @@ int proxenet_ssl_init_server_context(ssl_atom_t *server)
 	}
 	
 	/* checking certificate */
-	retcode = x509parse_crtfile(&(server->cert), cfg->certfile);
+	x509_crt_init( &(server->cert) );
+	retcode = x509_crt_parse_file(&(server->cert), cfg->certfile);
 	if(retcode) {
 		error_strerror(retcode, ssl_error_buffer, 127);
 		xlog(LOG_CRITICAL, "Failed to parse certificate: %s\n", ssl_error_buffer);
@@ -85,7 +89,8 @@ int proxenet_ssl_init_server_context(ssl_atom_t *server)
 	
 	/* checking private key */
 	rsa_init(&(server->rsa), RSA_PKCS_V15, 0);
-	retcode = x509parse_keyfile(&(server->rsa), cfg->keyfile, NULL);
+	pk_init( &(server->pkey) );
+	retcode = pk_parse_keyfile(&(server->pkey), cfg->keyfile, "");
 	if(retcode) {
 		error_strerror(retcode, ssl_error_buffer, 127);
 		rsa_free(&(server->rsa));
@@ -101,7 +106,7 @@ int proxenet_ssl_init_server_context(ssl_atom_t *server)
 	ssl_set_authmode(context, SSL_VERIFY_NONE );
 	ssl_set_rng(context, ctr_drbg_random, &(server->ctr_drbg) );
 	ssl_set_ca_chain(context, server->cert.next, NULL, NULL );
-	ssl_set_own_cert(context, &(server->cert), &(server->rsa));
+	ssl_set_own_cert(context, &(server->cert), &(server->pkey));
 
 #ifdef DEBUG_SSL
 	ssl_set_dbg(context, proxenet_ssl_debug, "SERVER");
@@ -188,16 +193,16 @@ int proxenet_ssl_handshake(proxenet_ssl_context_t* ctx)
 /**
  *
  */
-void proxenet_ssl_free_certificate(proxenet_ssl_cert_t* ssl_cert)
+static void proxenet_ssl_free_certificate(proxenet_ssl_cert_t* ssl_cert)
 {
-	x509_free( ssl_cert );
+	x509_crt_free( ssl_cert );
 }
 
 
 /**
  *
  */
-void proxenet_ssl_bye(proxenet_ssl_context_t* ssl)
+static void proxenet_ssl_bye(proxenet_ssl_context_t* ssl)
 {
 	ssl_close_notify( ssl );
 }
@@ -206,11 +211,13 @@ void proxenet_ssl_bye(proxenet_ssl_context_t* ssl)
 /**
  *
  */
-void proxenet_ssl_finish(ssl_atom_t* ssl)
+void proxenet_ssl_finish(ssl_atom_t* ssl, bool is_server)
 {
 	rsa_free(&ssl->rsa);
 	proxenet_ssl_bye(&ssl->context);
 	proxenet_ssl_free_certificate(&ssl->cert);
+	if (is_server)
+		pk_free( &ssl->pkey );
 }
 			     
 /**
@@ -234,7 +241,7 @@ int close_socket_ssl(sock_t sock, proxenet_ssl_context_t* ssl)
 /**
  *
  */
-ssize_t proxenet_ssl_ioctl(int (*func)(), void *buf, size_t count, proxenet_ssl_context_t* ssl) {
+static ssize_t proxenet_ssl_ioctl(int (*func)(), void *buf, size_t count, proxenet_ssl_context_t* ssl) {
 	int retcode = -1;
 
 	do {
