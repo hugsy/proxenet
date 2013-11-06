@@ -155,7 +155,10 @@ sock_t create_connect_socket(char *host, char* port)
 	}
 	
 	if (!ll || sock < 0) {
-		xlog(LOG_ERROR, "%s\n", "Failed to create socket");
+		if (errno)
+			xlog(LOG_ERROR, "%s (%d)\n", strerror(errno), errno);
+		else
+			xlog(LOG_ERROR, "%s\n", "Unknown socket error");
 	}
 #ifdef DEBUG     
 	else {

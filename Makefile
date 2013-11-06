@@ -113,6 +113,9 @@ check-dl:
 	$(eval LDFLAGS += -ldl )
 
 check-python:
+ifeq ($(NO_PYTHON), 1)
+	@echo "[-] Explicitly disabling Python support"
+else
 	@echo -n "[+] Looking for '$(PYTHON_VERSION)' ... "
 ifeq ($(strip $(shell pkg-config --cflags --libs $(PYTHON_VERSION) >/dev/null 2>&1 && echo ok)), ok) 
 	@echo "found"
@@ -120,10 +123,14 @@ ifeq ($(strip $(shell pkg-config --cflags --libs $(PYTHON_VERSION) >/dev/null 2>
 	$(eval LDFLAGS += $(shell pkg-config --libs $(PYTHON_VERSION)) )
 	$(eval INC += $(shell pkg-config --cflags $(PYTHON_VERSION)) )
 else
-	@echo "not found"
+	@echo "Python libs not found"
+endif
 endif
 
 check-lua:
+ifeq ($(NO_LUA), 1)
+	@echo "[-] Explicitly disabling Lua support"
+else
 	@echo -n "[+] Looking for '$(LUA_VERSION)' ... "
 ifeq ($(strip $(shell pkg-config --cflags --libs $(LUA_VERSION) >/dev/null 2>&1 && echo ok)), ok)
 	@echo "found"
@@ -131,10 +138,14 @@ ifeq ($(strip $(shell pkg-config --cflags --libs $(LUA_VERSION) >/dev/null 2>&1 
 	$(eval LDFLAGS += $(shell pkg-config --libs $(LUA_VERSION)) )
 	$(eval INC += $(shell pkg-config --cflags $(LUA_VERSION)) )
 else
-	@echo "not found"
+	@echo "Lua libs not found"
+endif
 endif
 
 check-ruby:
+ifeq ($(NO_RUBY), 1)
+	@echo "[-] Explicitly disabling Ruby support"
+else
 	@echo -n "[+] Looking for '$(RUBY_VERSION)' ... "
 ifeq ($(strip $(shell pkg-config --cflags --libs $(RUBY_VERSION) > /dev/null 2>&1  && echo ok)), ok)
 	@echo "found"
@@ -144,8 +155,12 @@ ifeq ($(strip $(shell pkg-config --cflags --libs $(RUBY_VERSION) > /dev/null 2>&
 else
 	@echo "not found"
 endif
+endif
 
 check-perl:
+ifeq ($(NO_PERL), 1)
+	@echo "[-] Explicitly disabling Perl support"
+else
 	@echo -n "[+] Looking for '$(PERL_VERSION)' ... "
 ifeq ($(strip $(shell pkg-config --cflags --libs $(PERL_VERSION) >/dev/null 2>&1 && echo ok)), ok)
 	@echo "found"
@@ -154,6 +169,7 @@ ifeq ($(strip $(shell pkg-config --cflags --libs $(PERL_VERSION) >/dev/null 2>&1
 	$(eval INC += $(shell pkg-config --cflags $(PERL_VERSION)) )
 else
 	@echo "not found"
+endif
 endif
 
 # Packaging
