@@ -129,42 +129,53 @@ int proxenet_ruby_initialize_function(plugin_t* plugin, req_t type)
 		return -1;
 	}
 
-	if (plugin->pre_function && type == REQUEST) {
-		xlog(LOG_WARNING, "Pre-hook function already defined for '%s'\n", plugin->name);
-		return 0;
-	}
-
-	if (plugin->post_function && type == RESPONSE) {
-		xlog(LOG_WARNING, "Post-hook function already defined for '%s'\n", plugin->name);
-		return 0;
-	}
-	
 	if (proxenet_ruby_load_file(plugin) < 0) {
 		xlog(LOG_ERROR, "Failed to load %s\n", plugin->filename);
 		return -1;
 	}
 
 	/* get function ID */
-	if (type == REQUEST) {
-		plugin->pre_function  = (void*) rb_intern(CFG_REQUEST_PLUGIN_FUNCTION);
-		if (plugin->pre_function) {
+	switch(type)
+	{
+		case REQUEST:
+			if (plugin->pre_function) {
+				xlog(LOG_WARNING, "Pre-hook function already defined for '%s'\n", plugin->name);
+				return 0;
+				
+			}
+
+			plugin->pre_function  = (void*) rb_intern(CFG_REQUEST_PLUGIN_FUNCTION);
+			if (plugin->pre_function) {
 #ifdef DEBUG
-			xlog(LOG_DEBUG, "Loaded %s:%s\n", plugin->filename, CFG_REQUEST_PLUGIN_FUNCTION);
+				xlog(LOG_DEBUG, "Loaded %s:%s\n", plugin->filename, CFG_REQUEST_PLUGIN_FUNCTION);
 #endif
-			return 0;
-		}
-		
-	} else {
-		plugin->post_function = (void*) rb_intern(CFG_RESPONSE_PLUGIN_FUNCTION);
-		if (plugin->post_function) {
+				return 0;
+			}				
+			break;
+			
+		case RESPONSE:
+			if (plugin->post_function) {
+				xlog(LOG_WARNING, "Post-hook function already defined for '%s'\n", plugin->name);
+				return 0;
+			}
+			
+			plugin->post_function = (void*) rb_intern(CFG_RESPONSE_PLUGIN_FUNCTION);
+			if (plugin->post_function) {
 #ifdef DEBUG
-			xlog(LOG_DEBUG, "Loaded %s:%s\n", plugin->filename, CFG_RESPONSE_PLUGIN_FUNCTION);
+				xlog(LOG_DEBUG, "Loaded %s:%s\n", plugin->filename, CFG_RESPONSE_PLUGIN_FUNCTION);
 #endif			
-			return 0;
-		}
+				return 0;
+			}
+			break;
+			
+		default:
+			xlog(LOG_CRITICAL, "%s\n", "Should never be here, autokill !");
+			abort();
+			break;
 	}
 
 	xlog(LOG_ERROR, "%s\n", "Failed to find function");
+	
 	return -1;
 }
 
