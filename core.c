@@ -391,6 +391,8 @@ static int proxenet_apply_plugins(request_t *request)
 		/* Additionnal check for dummy plugin coder */
 		if (!request->data || request->size == 0) {
 			xlog(LOG_CRITICAL, "Plugin '%s' is invalid", p->name);
+			p->state = INACTIVE;
+			
 			return -1;
 		}
 	}
