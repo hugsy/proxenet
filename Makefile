@@ -56,10 +56,10 @@ endif
 
 ifeq ($(FORCE_RUBY18), 1) 
 RUBY_VERSION		=	ruby-1.8
-RUBY_MINOR			=	8
+RUBY_MINOR		=	8
 else # ruby1.9 API is compatible with ruby2
 RUBY_VERSION		=	ruby-1.9
-RUBY_MINOR			=	9
+RUBY_MINOR		=	9
 endif
 
 LUA_VERSION		=	lua5.2
@@ -102,7 +102,7 @@ check-polarssl:
 	@echo "int main(int a,char** b){ return 0; }">_a.c;$(CC) _a.c -lpolarssl || (echo "not found"; rm -fr _a.c && exit 1)
 	@rm -fr _a.c a.out
 	@echo "found"
-	$(eval LDFLAGS += -lpolarssl )
+	$(eval LDFLAGS += -lpolarssl)
 
 check-dl:
 	@echo -n "[+] Looking for required 'dl' library ... "

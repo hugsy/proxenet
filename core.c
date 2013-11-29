@@ -325,13 +325,11 @@ int proxenet_toggle_plugin(int plugin_id)
 /**
  *
  */
-static char* proxenet_apply_plugins(request_t *request)
+static int proxenet_apply_plugins(request_t *request)
 {
-	plugin_t *p;
-	char *old_data;
+	plugin_t *p = NULL;
+	char *old_data = NULL;;
 	char* (*plugin_function)(plugin_t*, request_t*) = NULL;
-	
-	old_data = NULL;
 	
 	for (p=plugins_list; p!=NULL; p=p->next) {  
 		
@@ -372,11 +370,10 @@ static char* proxenet_apply_plugins(request_t *request)
 				
 			default:
 				xlog(LOG_CRITICAL, "Type %d not supported (yet)\n", p->type);
-				continue;
+				return -1;
 		}
 
 		old_data = request->data;
-		
 		request->data = (*plugin_function)(p, request);
 		
 		if (request->data) {
@@ -387,12 +384,18 @@ static char* proxenet_apply_plugins(request_t *request)
 			proxenet_xfree(old_data);
 			
 		} else {
-			/* Otherwise, use the old_data, which is only the original data */
+			/* Otherwise (data different or error), use the original data */
 			request->data = old_data;
+		}
+
+		/* Additionnal check for dummy plugin coder */
+		if (!request->data || request->size == 0) {
+			xlog(LOG_CRITICAL, "Plugin '%s' is invalid", p->name);
+			return -1;
 		}
 	}
 	
-	return request->data;
+	return 0;
 }
 
 
@@ -412,7 +415,7 @@ void proxenet_process_http_request(sock_t server_socket)
 	sigset_t emptyset;
 	size_t n;
 	
-	client_socket = retcode = n =-1;
+	client_socket = retcode = n = -1;
 	
 	proxenet_xzero(&req, sizeof(request_t));
 	proxenet_xzero(&ssl_context, sizeof(ssl_context_t));
@@ -539,7 +542,12 @@ void proxenet_process_http_request(sock_t server_socket)
 			     req.id, req.size, (req.http_infos.is_ssl)?"SSL":"PLAIN");
 #endif
 			/* hook request with all plugins in plugins_list  */
-			req.data = proxenet_apply_plugins(&req);
+			if ( proxenet_apply_plugins(&req) < 0) {
+				/* extremist action: any error on any plugin discard the whole request */
+				req.id = 0;
+				proxenet_xfree( req.data );
+				continue;
+			}
 			
 #ifdef DEBUG
 			xlog(LOG_DEBUG, "[%d] Sending buffer %d bytes (%s) - post-plugins\n",
@@ -586,7 +594,12 @@ void proxenet_process_http_request(sock_t server_socket)
 			req.size   = n;
 			
 			/* execute response hooks */
-			req.data = proxenet_apply_plugins(&req);
+			if ( proxenet_apply_plugins(&req) < 0) {
+				/* extremist action: any error on any plugin discard the whole request */
+				req.id = 0;
+				proxenet_xfree(req.data);
+				continue;
+			}
 
 			/* send modified data to client */
 			if (is_ssl)

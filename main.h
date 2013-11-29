@@ -13,7 +13,7 @@
 #define CFG_DEFAULT_NB_THREAD             10
 #define CFG_DEFAULT_TRY_EXIT_MAX          3
 #define CFG_DEFAULT_OUTPUT                stdout
-#define CFG_DEFAULT_PLUGINS_PATH          "./plugins"
+#define CFG_DEFAULT_PLUGINS_PATH          "./proxenet-plugins"
 #define CFG_DEFAULT_SSL_KEYFILE           "./keys/proxenet.key"
 #define CFG_DEFAULT_SSL_CERTFILE          "./keys/proxenet.crt"
 #define CFG_DEFAULT_IP_VERSION             AF_INET

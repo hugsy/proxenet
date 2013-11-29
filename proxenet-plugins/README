@@ -1,0 +1,5 @@
+This directory contains active proxenet plugins.
+
+If you are looking for examples to create your own plugins, check the examples/ directory.
+
+Public plugins repository can be found at https://github.com/hugsy/proxenet-plugins
