@@ -335,7 +335,7 @@ static int proxenet_apply_plugins(request_t *request)
 		
 		if (p->state == INACTIVE)
 			continue;
-		
+	
 		switch (p->type) {
 			
 #ifdef _PYTHON_PLUGIN 
@@ -373,6 +373,15 @@ static int proxenet_apply_plugins(request_t *request)
 				return -1;
 		}
 
+#ifdef DEBUG
+		xlog(LOG_DEBUG,
+		     "Calling %s plugin id %d: %s:%s\n",
+		     supported_plugins_str[p->type],
+		     p->id,
+		     p->name,
+		     request->type==REQUEST?CFG_REQUEST_PLUGIN_FUNCTION:CFG_RESPONSE_PLUGIN_FUNCTION);
+#endif
+		
 		old_data = request->data;
 		request->data = (*plugin_function)(p, request);
 		

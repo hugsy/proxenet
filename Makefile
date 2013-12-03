@@ -33,9 +33,9 @@ ifeq ($(DEBUG), 1)
 DBGFLAGS		=       -ggdb -DDEBUG 
 CFLAGS			+=      $(DBGFLAGS) 
 
-ifeq ($(CC), clang)
-CFLAGS			+=      -fsanitize=address -fno-omit-frame-pointer
-endif
+#ifeq ($(CC), clang)
+#CFLAGS			+=      -fsanitize=address -fno-omit-frame-pointer
+#endif
 
 ifeq ($(DEBUG_SSL), 1)
 CFLAGS			+=	-DDEBUG_SSL

@@ -11,7 +11,7 @@
 #include "socket.h"
 #include "utils.h"
 
-#define BUFSIZE 1024
+#define BUFSIZE 2048
 
 
 static struct command_t known_commands[] = {
