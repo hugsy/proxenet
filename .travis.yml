@@ -7,7 +7,7 @@ compiler:
 before_script:
 - sudo apt-get update -qq
 - sudo apt-get install -qq python-dev liblua5.2-dev ruby-dev libruby1.9.1 libperl-dev
-- sudo apt-get install -t testing --qq libpolarssl-dev
+- sudo apt-get install -qq -t testing libpolarssl-dev
 
 script: PKG_CONFIG_PATH=`pwd`/pc/ ./make.sh
 
