@@ -4,28 +4,28 @@
 #
 #
 
-PROGNAME		=	\"proxenet\"
-AUTHOR			= 	\"hugsy\"
-LICENSE			=	\"GPLv2\"
+PROGNAME			=	\"proxenet\"
+AUTHOR				= 	\"hugsy\"
+LICENSE				=	\"GPLv2\"
 VERSION_MAJOR		= 	0
 VERSION_MINOR		= 	2
-VERSION_REL		=	git
+VERSION_REL			=	git
 VERSION         	=       \"$(VERSION_MAJOR).$(VERSION_MINOR)-$(VERSION_REL)\"
 ARCH            	=       $(shell uname)
 DEBUG           	=       0
-DEBUG_SSL		=       0
+DEBUG_SSL			=       0
 
-CC			=       cc
-BIN	  		=       proxenet
-DEFINES			=       -DPROGNAME=$(PROGNAME) -DVERSION=$(VERSION) -DAUTHOR=$(AUTHOR) -DLICENSE=$(LICENSE)
-CHARDEN			=	-fstack-protector-all
-LHARDEN			=	-Wl,-z,relro
-LDFLAGS			=       -lpthread $(LHARDEN)
-SRC			=	$(wildcard *.c)
+CC					=       cc
+BIN	  				=       proxenet
+DEFINES				=       -DPROGNAME=$(PROGNAME) -DVERSION=$(VERSION) -DAUTHOR=$(AUTHOR) -DLICENSE=$(LICENSE)
+CHARDEN				=		-fstack-protector-all
+LHARDEN				=		-Wl,-z,relro
+LDFLAGS				=       -lpthread $(LHARDEN)
+SRC					=		$(wildcard *.c)
 OBJECTS         	=       $(patsubst %.c, %.o, $(SRC))
-INC			=      	-I/usr/include -pthread
-CFLAGS			=	-Wall $(DEFINES) $(INC) -pthread $(CHARDEN) -O2
-LIB			= 	-L/lib
+INC					=      	-I/usr/include -pthread
+CFLAGS				=		-Wall $(DEFINES) $(INC) -pthread $(CHARDEN)
+LIB					= 		-L/lib
 
 
 # DEBUG
@@ -33,14 +33,17 @@ ifeq ($(DEBUG), 1)
 DBGFLAGS		=       -ggdb -DDEBUG
 CFLAGS			+=      $(DBGFLAGS)
 
-#ifeq ($(CC), clang)
-#CFLAGS			+=      -fsanitize=address -fno-omit-frame-pointer
-#endif
+ifeq ($(CC), clang)
+CFLAGS			+=      -fsanitize=address -fno-omit-frame-pointer -O1
+endif
 
 ifeq ($(DEBUG_SSL), 1)
 CFLAGS			+=	-DDEBUG_SSL
 endif
 
+else
+
+CFLAGS			+=      -O3
 endif
 
 
