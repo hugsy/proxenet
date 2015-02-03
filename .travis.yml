@@ -9,7 +9,7 @@ before_script:
 - sudo apt-get install -qq python-dev liblua5.2-dev ruby-dev libruby1.9.1 libperl-dev
 - sudo apt-get install -qq -t testing libpolarssl-dev
 
-script: PKG_CONFIG_PATH=`pwd`/pc/ ./make.sh
+script: PKG_CONFIG_PATH=`pwd`/pc/ make
 
 after_script: ./proxenet --help
 

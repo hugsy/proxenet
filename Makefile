@@ -28,7 +28,7 @@ CFLAGS				=		-Wall $(DEFINES) $(INC) -pthread $(CHARDEN)
 LIB					= 		-L/lib
 
 
-# DEBUG
+# if DEBUG
 ifeq ($(DEBUG), 1)
 DBGFLAGS		=       -ggdb -DDEBUG
 CFLAGS			+=      $(DBGFLAGS)
@@ -43,6 +43,7 @@ endif
 
 else
 
+# if not DEBUG
 CFLAGS			+=      -O3
 endif
 
