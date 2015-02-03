@@ -5,17 +5,18 @@ compiler:
   - gcc
 
 before_script:
-  - sudo apt-get update
-  - sudo apt-get install -qq python-dev liblua5.2-dev libpolarssl-dev ruby-dev libruby1.9.1 libruby1.8 libperl-dev
+- sudo apt-get update -qq
+- sudo apt-get install -qq python-dev liblua5.2-dev ruby-dev libruby1.9.1 libperl-dev
+- sudo apt-get install -t testing --qq libpolarssl-dev
 
-script: PKG_CONFIG_PATH=`pwd`/pc/ make FORCE_RUBY18=1
+script: PKG_CONFIG_PATH=`pwd`/pc/ ./make.sh
 
 after_script: ./proxenet --help
 
 notifications:
   email:
     recipients:
-      - proxenet@pyc.li
+      - hugsy+github@pyc.li
 
     on_success: always
     on_failure: always
