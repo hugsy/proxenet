@@ -27,6 +27,7 @@
 #endif
 #ifndef CFG_DEFAULT_PLUGINS_PATH
 #define CFG_DEFAULT_PLUGINS_PATH          "./proxenet-plugins"
+#define CFG_DEFAULT_PLUGINS_AUTOLOAD_PATH CFG_DEFAULT_PLUGINS_PATH"/autoload"
 #endif
 #ifndef CFG_DEFAULT_SSL_KEYFILE
 #define CFG_DEFAULT_SSL_KEYFILE           "./keys/proxenet.key"
