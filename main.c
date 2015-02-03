@@ -5,7 +5,7 @@
 #include <unistd.h>
 #include <netdb.h>
 #include <pthread.h>
-#include <semaphore.h> 
+#include <semaphore.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <errno.h>
@@ -19,7 +19,7 @@
 
 
 /**
- * 
+ *
  */
 void version(bool end)
 {
@@ -38,7 +38,7 @@ void usage(int retcode)
 {
 	FILE* fd;
 	fd = (retcode == 0) ? stdout : stderr;
-	
+
 	fprintf(fd,
 		"\n"RED"SYNTAX:"NOCOLOR"\n"
 		"\t%s "GREEN"[OPTIONS+]"NOCOLOR"\n"
@@ -67,7 +67,7 @@ void usage(int retcode)
 		CFG_DEFAULT_PROXY_PORT,
 		CFG_DEFAULT_SSL_KEYFILE,
 		CFG_DEFAULT_SSL_CERTFILE);
-	
+
 	exit(retcode);
 }
 
@@ -80,13 +80,13 @@ void help(char* argv0)
 	const char* plugin_name;
 	const char* plugin_ext;
 	int i;
-	
+
 	version(false);
 	printf("Written by %s\n"
 	       "Released under: %s\n\n"
 	       "Compiled with support for :\n",
 	       AUTHOR, LICENSE);
-	
+
 	i = 0;
 	while (true) {
 		plugin_name = supported_plugins_str[i];
@@ -94,7 +94,7 @@ void help(char* argv0)
 
 		if (!plugin_name || !plugin_ext)
 			break;
-	
+
 		printf("\t[+] 0x%.2x   "GREEN"%-10s"NOCOLOR" (%s)\n", i, plugin_name, plugin_ext);
 		i++;
 	}
@@ -109,7 +109,7 @@ void help(char* argv0)
 #ifdef DEBUG_SSL
 	printf("\t[+] "BLUE"PolarSSL DEBUG symbols"NOCOLOR"\n");
 #endif
-	
+
 	usage(EXIT_SUCCESS);
 }
 
@@ -127,7 +127,7 @@ int parse_options (int argc, char** argv)
 	char *proxy_host, *proxy_port;
 
 	proxy_host = proxy_port = NULL;
-	
+
 	const struct option long_opts[] = {
 		{ "help",       0, 0, 'h' },
 		{ "verbose",    0, 0, 'v' },
@@ -142,9 +142,9 @@ int parse_options (int argc, char** argv)
 		{ "proxy-port", 1, 0, 'P' },
 		{ "no-color",   0, 0, 'n' },
 		{ "version",    0, 0, 'V' },
-		{ 0, 0, 0, 0 } 
+		{ 0, 0, 0, 0 }
 	};
-	
+
 	cfg->iface		= CFG_DEFAULT_BIND_ADDR;
 	cfg->port		= CFG_DEFAULT_PORT;
 	cfg->logfile_fd		= CFG_DEFAULT_OUTPUT;
@@ -153,19 +153,18 @@ int parse_options (int argc, char** argv)
 	cfg->ip_version		= CFG_DEFAULT_IP_VERSION;
 	cfg->try_exit		= 0;
 	cfg->try_exit_max	= CFG_DEFAULT_TRY_EXIT_MAX;
-	
+
 	path			= CFG_DEFAULT_PLUGINS_PATH;
 	keyfile			= CFG_DEFAULT_SSL_KEYFILE;
 	certfile		= CFG_DEFAULT_SSL_CERTFILE;
 	logfile			= NULL;
-	
+
 	/* parse command line arguments */
 	while (1) {
-		curopt = -1;
 		curopt_idx = 0;
 		curopt = getopt_long (argc,argv,"n46Vhvb:p:l:t:c:k:x:X:P:",long_opts, &curopt_idx);
 		if (curopt == -1) break;
-		
+
 		switch (curopt) {
 			case 'v': cfg->verbose++; break;
 			case 'b': cfg->iface = optarg; break;
@@ -178,7 +177,7 @@ int parse_options (int argc, char** argv)
 				break;
 			case 'P': proxy_port = optarg; break;
 			case 'c': certfile = optarg; break;
-			case 'k': keyfile = optarg; break;	   
+			case 'k': keyfile = optarg; break;
 			case 'h': help(argv[0]); break;
 			case 'V': version(true); break;
 			case 'n': cfg->use_color = false; break;
@@ -216,7 +215,7 @@ int parse_options (int argc, char** argv)
 		fprintf(stderr, "Too many threads. Setting to default.\n");
 		cfg->nb_threads = CFG_DEFAULT_NB_THREAD;
 	}
-	
+
 	/* check plugins path */
 	cfg->plugins_path = realpath(path, NULL);
 	if (cfg->plugins_path == NULL){
@@ -269,7 +268,7 @@ int parse_options (int argc, char** argv)
 			return -1;
 		}
 	}
-	
+
 	return 0;
 
 }
@@ -285,7 +284,7 @@ int proxenet_init_config(int argc, char** argv)
 {
 	cfg = &current_config;
 	proxenet_xzero(cfg, sizeof(conf_t));
-	
+
 	if (parse_options(argc, argv) < 0) {
 		xlog(LOG_CRITICAL, "%s\n", "Failed to parse arguments");
 		proxenet_free_config();
@@ -305,7 +304,7 @@ void proxenet_free_config()
 	/* those calls should be safe */
 	if (cfg->logfile)
 		proxenet_xfree(cfg->logfile);
-	
+
 	if (cfg->plugins_path)
 		proxenet_xfree(cfg->plugins_path);
 
@@ -314,7 +313,7 @@ void proxenet_free_config()
 
 	if (cfg->keyfile)
 		proxenet_xfree(cfg->keyfile);
-	
+
 	if(cfg->logfile_fd)
 		fclose(cfg->logfile_fd);
 
@@ -322,7 +321,7 @@ void proxenet_free_config()
 		proxenet_xfree(cfg->proxy.host);
 		proxenet_xfree(cfg->proxy.port);
 	}
-	
+
 }
 
 
@@ -332,23 +331,23 @@ void proxenet_free_config()
 int main (int argc, char **argv, char** envp)
 {
 	int retcode = -1;
-	
+
 	/* init semaphore for unified display */
 	sem_init(&tty_semaphore, 0, 1);
-	
+
 	/* get configuration */
 	retcode = proxenet_init_config(argc, argv);
-	if (retcode<0)		
+	if (retcode<0)
 		return EXIT_FAILURE;
-	
-	
+
+
 #ifdef _PERL_PLUGIN
 	/* perform plugin pre-initialisation -- currently done only for Perl */
 	proxenet_init_once_plugins(argc, argv, envp);
 #endif
 
 	/* proxenet starts here  */
-	retcode = proxenet_start(); 
+	retcode = proxenet_start();
 
 
 #ifdef _PERL_PLUGIN
@@ -361,5 +360,3 @@ int main (int argc, char **argv, char** envp)
 
 	return (retcode == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
 }
-
-

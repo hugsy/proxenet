@@ -22,15 +22,15 @@ static void generic_http_error_page(sock_t sock, char* msg)
 {
 	char* html_header = "<html><body><h1>proxenet error page</h1><br/>";
 	char* html_footer = "</body></html>";
-	
+
 	if (write(sock, html_header, strlen(html_header)) < 0) {
 		xlog(LOG_ERROR, "%s\n", "Failed to write error HTML header");
 	}
-	
+
 	if(write(sock, msg, strlen(msg)) < 0){
 		xlog(LOG_ERROR, "%s\n", "Failed to write error HTML page");
 	}
-	
+
 	if(write(sock, html_footer, strlen(html_footer)) < 0){
 		xlog(LOG_ERROR, "%s\n", "Failed to write error HTML footer");
 	}
@@ -44,73 +44,72 @@ static void generic_http_error_page(sock_t sock, char* msg)
  * cf. RFC2616
  */
 static bool get_url_information(char* request, http_request_t* http)
-{ 
+{
 	char *start_pos, *cur_pos, *end_pos;
 	unsigned int str_len;
-	
-	str_len = -1;
+
 	cur_pos = NULL;
-	
-	
+
+
 	/* find method */
 	start_pos = strchr(request, ' ');
 	if (start_pos == NULL) {
 		xlog(LOG_ERROR, "%s\n", "Malformed HTTP Header");
 		return false;
 	}
-	
+
 	end_pos = strchr(start_pos+1, ' ');
 	if (end_pos==NULL) {
 		xlog(LOG_ERROR, "%s\n", "Malformed HTTP Header");
 		return false;
 	}
-	
-	
-	str_len = start_pos-request ; 
+
+
+	str_len = start_pos - request ;
 	http->method = (char*)proxenet_xmalloc(str_len +1);
 	memcpy(http->method, request, str_len);
-	
+
 	++start_pos;
-	
+
 	/* get proto */
 	if (!strncmp(start_pos,"http://", 7)) {
 		http->proto = "http";
 		http->port = 80;
 		start_pos += 7;
-		
+
 	} else if (!strncmp(start_pos,"https://", 8)) {
 		http->proto = "https";
 		http->port = 443;
 		http->is_ssl = true;
 		start_pos += 8;
-		
+
 	} else if (!strcmp(http->method, "CONNECT")) {
 		http->proto = "https";
 		http->port = 443;
 		http->is_ssl = true;
-		
+
 	} else {
 		xlog(LOG_ERROR, "%s\n", "Malformed HTTP/HTTPS URL, unknown proto");
 		xlog(LOG_DEBUG, "%s\n", request);
 		proxenet_xfree(http->method);
 		return false;
 	}
-	
+
 	cur_pos = start_pos;
-	
+
 	/* get hostname */
 	for(; *cur_pos && *cur_pos!=':' && *cur_pos!='/' && cur_pos<end_pos; cur_pos++);
 	str_len = cur_pos - start_pos;
 	http->hostname = (char*)proxenet_xmalloc(str_len+1);
 	memcpy(http->hostname, start_pos, str_len);
-	
+
 	/* get port if set explicitly (i.e ':<port_num>'), otherwise default */
 	if(*cur_pos == ':') {
 		cur_pos++;
 		http->port = (unsigned short)atoi(cur_pos);
 		for(;*cur_pos!='/' && cur_pos<end_pos;cur_pos++);
 	}
-	
+
 	/* get uri (no need to parse) */
 	str_len = end_pos - cur_pos;
 	if (str_len > 0) {
@@ -129,7 +128,7 @@ static bool get_url_information(char* request, http_request_t* http)
 	str_len = end_pos - cur_pos;
 	http->version = (char*) proxenet_xmalloc(str_len+1);
 	memcpy(http->version, cur_pos, str_len);
-		
+
 	return true;
 }
 
@@ -137,20 +136,20 @@ static bool get_url_information(char* request, http_request_t* http)
 /**
  *
  */
-bool is_valid_http_request(char** request, size_t* request_len) 
+bool is_valid_http_request(char** request, size_t* request_len)
 {
 	size_t new_request_len = -1;
 	char *old_ptr, *new_ptr;
 	int i = -1;
 	int offlen = -1;
-	
+
 	old_ptr = new_ptr = NULL;
 	old_ptr = strstr(*request, "http://");
-	if (old_ptr) 
+	if (old_ptr)
 		offlen = 7;
 	else {
 		old_ptr = strstr(*request, "https://");
-		if (old_ptr) 
+		if (old_ptr)
 			offlen = 8;
 	}
 
@@ -158,7 +157,7 @@ bool is_valid_http_request(char** request, size_t* request_len)
 		xlog(LOG_ERROR, "Cannot find protocol (http|https) in request:\n%s\n", *request);
 		return false;
 	}
-	
+
 	new_ptr = strchr(old_ptr + offlen, '/');
 	if (!new_ptr) {
 		xlog(LOG_ERROR, "%s\n", "Cannot find path (must not be implicit)");
@@ -170,10 +169,10 @@ bool is_valid_http_request(char** request, size_t* request_len)
 #ifdef DEBUG
 	xlog(LOG_DEBUG, "Adjusting buffer to %d->%d bytes\n", *request_len, new_request_len);
 #endif
-	
+
 	for (i=0; i<new_request_len - (old_ptr-*request);i++)
 		*(old_ptr+i) = *(new_ptr+i);
-	
+
 	*request = proxenet_xrealloc(*request, new_request_len);
 	*request_len = new_request_len;
 
@@ -189,7 +188,7 @@ void set_https_infos(request_t *req) {
 	char c;
 
 	buf = req->data;
-	
+
 	/* method  */
 	ptr = strchr(buf, ' ');
 	if (!ptr) return;
@@ -200,7 +199,7 @@ void set_https_infos(request_t *req) {
 	*ptr = c;
 
 	buf = ptr+1;
-	
+
 	/* path */
 	ptr = strchr(buf, ' ');
 	if (!ptr) return;
@@ -219,16 +218,16 @@ void set_https_infos(request_t *req) {
 	*ptr = '\0';
 	req->http_infos.version = strdup(buf);
 	*ptr = c;
-	
+
 }
 
 
 /**
  * Establish a connection from proxenet -> server. If proxy forwarding configured, then process
  * request to other proxy.
- * 
+ *
  */
-int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock, ssl_context_t* ssl_ctx) 
+int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock, ssl_context_t* ssl_ctx)
 {
 	int retcode;
 	char *host, *port;
@@ -242,13 +241,13 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
 		return -1;
 	}
 
-	
+
 #ifdef DEBUG
 	char* full_uri = get_request_full_uri(req);
 	xlog(LOG_DEBUG, "URL: %s\n", full_uri);
 	proxenet_xfree(full_uri);
 #endif
-	
+
 	ssl_ctx->use_ssl = http_infos->is_ssl;
 	snprintf(sport, 5, "%u", http_infos->port);
 
@@ -256,31 +255,31 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
 	if (use_proxy) {
 		host = cfg->proxy.host;
 		port = cfg->proxy.port;
-		
+
 	} else {
 		host = http_infos->hostname;
 		port = sport;
 	}
-	
+
 	retcode = create_connect_socket(host, port);
 	if (retcode < 0) {
 		if (errno)
 			generic_http_error_page(*server_sock, strerror(errno));
 		else
 			generic_http_error_page(*server_sock, "Unknown error in <i>create_connect_socket</i>");
-		
+
 		retcode = -1;
-		
+
 	} else {
 		*client_sock = retcode;
-		
+
 		/* if ssl, set up ssl interception */
 		if (http_infos->is_ssl) {
 
 			if (use_proxy) {
 				char *connect_buf = NULL;
-				
-				/* 0. set up proxy->proxy ssl session (i.e. forward CONNECT request) */ 
+
+				/* 0. set up proxy->proxy ssl session (i.e. forward CONNECT request) */
 				retcode = proxenet_write(*client_sock, req->data, req->size);
 				if (retcode < 0) {
 					xlog(LOG_ERROR, "%s failed to CONNECT to proxy\n", PROGNAME);
@@ -295,21 +294,21 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
 				}
 
 				/* expect HTTP 200 */
-				if (   (strncmp(connect_buf, "HTTP/1.0 200", 12) != 0) 
+				if (   (strncmp(connect_buf, "HTTP/1.0 200", 12) != 0)
 				    && (strncmp(connect_buf, "HTTP/1.1 200", 12) != 0)) {
 					xlog(LOG_ERROR, "%s->proxy: bad HTTP version\n", PROGNAME);
 					if (cfg->verbose)
 							xlog(LOG_ERROR, "Received %s\n", connect_buf);
-					
+
 					return -1;
 				}
 			}
 
-			/* 1. set up proxy->server ssl session */ 
+			/* 1. set up proxy->server ssl session */
 			if(proxenet_ssl_init_client_context(&(ssl_ctx->client)) < 0) {
 				return -1;
 			}
-			
+
 			proxenet_ssl_wrap_socket(&(ssl_ctx->client.context), client_sock);
 			if (proxenet_ssl_handshake(&(ssl_ctx->client.context)) < 0) {
 				xlog(LOG_ERROR, "%s->server: handshake\n", PROGNAME);
@@ -344,8 +343,8 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
 #endif
 		}
 	}
-	
-	
+
+
 	return retcode;
 }
 
@@ -373,5 +372,5 @@ char* get_request_full_uri(request_t* req)
 		 http_infos->port,
 		 http_infos->uri);
 
-	return uri;	
+	return uri;
 }

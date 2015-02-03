@@ -1,7 +1,7 @@
 ################################################################################
 #
 # proxenet Makefile
-# 
+#
 #
 
 PROGNAME		=	\"proxenet\"
@@ -18,7 +18,7 @@ DEBUG_SSL		=       0
 CC			=       cc
 BIN	  		=       proxenet
 DEFINES			=       -DPROGNAME=$(PROGNAME) -DVERSION=$(VERSION) -DAUTHOR=$(AUTHOR) -DLICENSE=$(LICENSE)
-CHARDEN			=	-fstack-protector-all 
+CHARDEN			=	-fstack-protector-all
 LHARDEN			=	-Wl,-z,relro
 LDFLAGS			=       -lpthread $(LHARDEN)
 SRC			=	$(wildcard *.c)
@@ -30,8 +30,8 @@ LIB			= 	-L/lib
 
 # DEBUG
 ifeq ($(DEBUG), 1)
-DBGFLAGS		=       -ggdb -DDEBUG 
-CFLAGS			+=      $(DBGFLAGS) 
+DBGFLAGS		=       -ggdb -DDEBUG
+CFLAGS			+=      $(DBGFLAGS)
 
 #ifeq ($(CC), clang)
 #CFLAGS			+=      -fsanitize=address -fno-omit-frame-pointer
@@ -46,7 +46,7 @@ endif
 
 # PLUGINS
 #
-ifeq ($(FORCE_PYTHON3), 1) 
+ifeq ($(FORCE_PYTHON3), 1)
 PYTHON_VERSION		=	python-3.3
 PYTHON_MAJOR		=	3
 else
@@ -54,7 +54,7 @@ PYTHON_VERSION		=	python-2.7
 PYTHON_MAJOR		=	2
 endif
 
-ifeq ($(FORCE_RUBY18), 1) 
+ifeq ($(FORCE_RUBY18), 1)
 RUBY_VERSION		=	ruby-1.8
 RUBY_MINOR		=	8
 else # ruby1.9 API is compatible with ruby2
@@ -63,14 +63,14 @@ RUBY_MINOR		=	9
 endif
 
 LUA_VERSION		=	lua5.2
-PERL_VERSION		=	perl5.14
+PERL_VERSION		=	perl5.18.2
 
 # TEST
-TEST_ARGS		= 	-4 -vvvv -t 10 -b 0.0.0.0 -p 8000 
+TEST_ARGS		= 	-4 -vvvv -t 10 -b 0.0.0.0 -p 8000
 
 
 # Compile rules
-.PHONY : all check-syntax clean keys tags purge test check-required check-plugins check-python check-lua check-ruby check-perl leaks
+.PHONY : all install uninstall check-syntax clean keys tags purge test check-required check-plugins check-python check-lua check-ruby check-perl leaks
 
 .c.o :
 	@echo "[+] CC $< -> $@"
@@ -78,7 +78,7 @@ TEST_ARGS		= 	-4 -vvvv -t 10 -b 0.0.0.0 -p 8000
 
 all :  check-required check-plugins $(BIN)
 
-$(BIN): $(OBJECTS) 
+$(BIN): $(OBJECTS)
 	@echo "[+] LINK with $(LDFLAGS)"
 	@$(CC) $(CFLAGS) -o $@ $(OBJECTS) $(LIB) $(LDFLAGS)
 
@@ -92,6 +92,14 @@ purge: clean
 
 keys:
 	@make -C keys keys
+
+install: $(BIN)
+	install -s -m 755 -o root -g root -- ./$(BIN) /usr/local/bin/
+	gzip -c ./man/$(BIN).1 >> ./man/$(BIN).1.gz
+	install -m 644 -o root -- ./man/$(BIN).1.gz /usr/share/man/man8/
+
+uninstall: clean
+	rm -fr /usr/local/bin/$(BIN) /usr/share/man/man1/$(BIN).1.gz
 
 check-required: check-polarssl check-dl
 
@@ -117,7 +125,7 @@ ifeq ($(NO_PYTHON), 1)
 	@echo "[-] Explicitly disabling Python support"
 else
 	@echo -n "[+] Looking for '$(PYTHON_VERSION)' ... "
-ifeq ($(strip $(shell pkg-config --cflags --libs $(PYTHON_VERSION) >/dev/null 2>&1 && echo ok)), ok) 
+ifeq ($(strip $(shell pkg-config --cflags --libs $(PYTHON_VERSION) >/dev/null 2>&1 && echo ok)), ok)
 	@echo "found"
 	$(eval DEFINES += -D_PYTHON_PLUGIN -D_PYTHON_MAJOR_=$(PYTHON_MAJOR) )
 	$(eval LDFLAGS += $(shell pkg-config --libs $(PYTHON_VERSION)) )

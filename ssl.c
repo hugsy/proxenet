@@ -48,7 +48,7 @@ static void proxenet_ssl_debug(void *who, int level, const char *str )
 	size_t k = strlen(buf);
 
 	strncpy(buf+k, str, l);
-	
+
 	if (str[l-1] == '\n') {
 		xlog(LOG_DEBUG, "%s - %s", (char*)who, buf);
 		proxenet_xzero(buf, 2048);
@@ -66,7 +66,7 @@ int proxenet_ssl_init_server_context(ssl_atom_t *server)
 	int retcode = -1;
 	char ssl_error_buffer[128] = {0, };
 	proxenet_ssl_context_t *context = &(server->context);
-	
+
 	entropy_init( &(server->entropy) );
 
 	/* init rng */
@@ -77,7 +77,7 @@ int proxenet_ssl_init_server_context(ssl_atom_t *server)
 		xlog(LOG_ERROR, "ctr_drbg_init returned %d\n", retcode);
 		return -1;
 	}
-	
+
 	/* checking certificate */
 	x509_crt_init( &(server->cert) );
 	retcode = x509_crt_parse_file(&(server->cert), cfg->certfile);
@@ -86,7 +86,7 @@ int proxenet_ssl_init_server_context(ssl_atom_t *server)
 		xlog(LOG_CRITICAL, "Failed to parse certificate: %s\n", ssl_error_buffer);
 		return -1;
 	}
-	
+
 	/* checking private key */
 	rsa_init(&(server->rsa), RSA_PKCS_V15, 0);
 	pk_init( &(server->pkey) );
@@ -112,7 +112,7 @@ int proxenet_ssl_init_server_context(ssl_atom_t *server)
 	ssl_set_dbg(context, proxenet_ssl_debug, "SERVER");
 #endif
 	server->is_valid = true;
-	
+
 	return 0;
 }
 
@@ -124,9 +124,9 @@ int proxenet_ssl_init_client_context(ssl_atom_t* client)
 {
 	int retcode = -1;
 	proxenet_ssl_context_t *context = &(client->context);
-	
+
 	entropy_init( &(client->entropy) );
-	
+
 	/* init rng */
 	retcode = ctr_drbg_init( &(client->ctr_drbg), entropy_func, &(client->entropy),
 				 NULL, 0);
@@ -138,7 +138,7 @@ int proxenet_ssl_init_client_context(ssl_atom_t* client)
 	/* init ssl context */
 	if (ssl_init(context) != 0)
 		return -1;
-	
+
 	ssl_set_endpoint(context, SSL_IS_CLIENT );
 	ssl_set_authmode(context, SSL_VERIFY_OPTIONAL );
 	ssl_set_rng(context, ctr_drbg_random, &(client->ctr_drbg) );
@@ -147,18 +147,18 @@ int proxenet_ssl_init_client_context(ssl_atom_t* client)
 #ifdef DEBUG_SSL
 	ssl_set_dbg(context, proxenet_ssl_debug, "CLIENT");
 #endif
-	
+
 	client->is_valid = true;
-	
+
 	return 0;
-} 
+}
 
 
 
 /**
  *
  */
-void proxenet_ssl_wrap_socket(proxenet_ssl_context_t* ctx, sock_t* sock) 
+void proxenet_ssl_wrap_socket(proxenet_ssl_context_t* ctx, sock_t* sock)
 {
 	ssl_set_bio(ctx, net_recv, sock, net_send, sock );
 }
@@ -175,7 +175,7 @@ int proxenet_ssl_handshake(proxenet_ssl_context_t* ctx)
 		retcode = ssl_handshake( ctx );
 		if (retcode == 0)
 			break;
-		
+
 		if(retcode!=POLARSSL_ERR_NET_WANT_READ && retcode!=POLARSSL_ERR_NET_WANT_WRITE) {
 			char ssl_strerror[128] = {0, };
 			error_strerror(retcode, ssl_strerror, 127);
@@ -183,10 +183,10 @@ int proxenet_ssl_handshake(proxenet_ssl_context_t* ctx)
 			     -retcode, ssl_strerror);
 			break;
 		}
-		
+
 	} while( retcode != 0 );
 
-	return retcode;	
+	return retcode;
 }
 
 
@@ -206,7 +206,7 @@ static void proxenet_ssl_bye(proxenet_ssl_context_t* ssl)
 {
 	ssl_close_notify( ssl );
 }
-			     
+
 
 /**
  *
@@ -219,7 +219,7 @@ void proxenet_ssl_finish(ssl_atom_t* ssl, bool is_server)
 	if (is_server)
 		pk_free( &ssl->pkey );
 }
-			     
+
 /**
  *
  */
@@ -229,9 +229,9 @@ int close_socket_ssl(sock_t sock, proxenet_ssl_context_t* ssl)
 
 	ret = close_socket(sock);
 	ssl_free( ssl );
-	
+
 	return ret;
-}  
+}
 
 
 /*
@@ -256,33 +256,33 @@ static ssize_t proxenet_ssl_ioctl(int (*func)(), void *buf, size_t count, proxen
 
 		if (retcode < 0) {
 			char ssl_strerror[128] = {0, };
-			
+
 			switch(retcode) {
 				case POLARSSL_ERR_SSL_PEER_CLOSE_NOTIFY :
 					/* acceptable case */
 					return 0;
-					
+
 				default:
 					error_strerror(retcode, ssl_strerror, 127);
 					xlog(LOG_ERROR, "SSL I/O got %#x: %s\n", -retcode, ssl_strerror);
 					return -1;
 			}
 		}
-		
+
 	} while (true);
-	
-	return retcode;	
+
+	return retcode;
 }
 
 
 /**
  *
  */
-ssize_t proxenet_ssl_read(sock_t sock, void *buf, size_t count, proxenet_ssl_context_t* ssl) 
+ssize_t proxenet_ssl_read(sock_t sock, void *buf, size_t count, proxenet_ssl_context_t* ssl)
 {
 	int (*func)() = &ssl_read;
 	int ret = -1;
-	
+
 	ret = proxenet_ssl_ioctl(func, buf, count, ssl);
 	if (ret<0) {
 		xlog(LOG_ERROR, "%s\n", "Error while reading SSL stream");
@@ -300,7 +300,7 @@ ssize_t proxenet_ssl_read(sock_t sock, void *buf, size_t count, proxenet_ssl_con
 /**
  *
  */
-ssize_t proxenet_ssl_write(sock_t sock, void *buf, size_t count, proxenet_ssl_context_t* ssl_sess) 
+ssize_t proxenet_ssl_write(sock_t sock, void *buf, size_t count, proxenet_ssl_context_t* ssl_sess)
 {
 	int (*func)() = &ssl_write;
 	int ret = -1;
@@ -308,7 +308,6 @@ ssize_t proxenet_ssl_write(sock_t sock, void *buf, size_t count, proxenet_ssl_co
 	ret = proxenet_ssl_ioctl(func, buf, count, ssl_sess);
 	if (ret < 0)
 		xlog(LOG_ERROR, "%s\n", "Error while writing SSL stream");
-	
+
 	return ret;
 }
-
