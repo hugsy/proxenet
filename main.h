@@ -27,7 +27,7 @@
 #endif
 #ifndef CFG_DEFAULT_PLUGINS_PATH
 #define CFG_DEFAULT_PLUGINS_PATH          "./proxenet-plugins"
-#define CFG_DEFAULT_PLUGINS_AUTOLOAD_PATH CFG_DEFAULT_PLUGINS_PATH"/autoload"
+#define CFG_DEFAULT_PLUGINS_AUTOLOAD_PATH "/autoload" // *Must* start with a '/'
 #endif
 #ifndef CFG_DEFAULT_SSL_KEYFILE
 #define CFG_DEFAULT_SSL_KEYFILE           "./keys/proxenet.key"
@@ -54,6 +54,7 @@ typedef struct __proxenet_config {
 		char* port;
 		char* iface;
 		char* plugins_path;
+                char* autoload_path;
 		char* certfile;
 		char* keyfile;
 		int ip_version;

@@ -809,11 +809,16 @@ static void kill_zombies()
 
 
 /**
+ * This function is called when proxenet is loaded. Therefore, only the scripts
+ * located in the `autoload_path` must be loaded.
+ * Additionnal plugins can be added via the command line client.
  *
+ * @return 0 on success
+ * @return -1 on error
  */
 int proxenet_initialize_plugins_list()
 {
-	if(proxenet_create_list_plugins(cfg->plugins_path) < 0) {
+	if(proxenet_create_list_plugins(cfg->autoload_path) < 0) {
 		xlog(LOG_ERROR, "%s\n", "Failed to build plugins list, leaving");
 		return -1;
 	}

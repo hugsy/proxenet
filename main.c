@@ -123,7 +123,7 @@ void help(char* argv0)
 int parse_options (int argc, char** argv)
 {
 	int curopt, curopt_idx;
-	char *logfile, *path, *keyfile, *certfile;
+	char *logfile, *plugin_path, *keyfile, *certfile;
 	char *proxy_host, *proxy_port;
 
 	proxy_host = proxy_port = NULL;
@@ -154,7 +154,7 @@ int parse_options (int argc, char** argv)
 	cfg->try_exit		= 0;
 	cfg->try_exit_max	= CFG_DEFAULT_TRY_EXIT_MAX;
 
-	path			= CFG_DEFAULT_PLUGINS_PATH;
+	plugin_path		= CFG_DEFAULT_PLUGINS_PATH;
 	keyfile			= CFG_DEFAULT_SSL_KEYFILE;
 	certfile		= CFG_DEFAULT_SSL_CERTFILE;
 	logfile			= NULL;
@@ -183,7 +183,7 @@ int parse_options (int argc, char** argv)
 			case 'n': cfg->use_color = false; break;
 			case '4': cfg->ip_version = AF_INET; break;
 			case '6': cfg->ip_version = AF_INET6; break;
-			case 'x': path = optarg; break;
+			case 'x': plugin_path = optarg; break;
 			case '?':
 			default:
 				usage (EXIT_FAILURE);
@@ -212,20 +212,17 @@ int parse_options (int argc, char** argv)
 
 	/* check if nb of threads is in boundaries */
 	if (cfg->nb_threads > MAX_THREADS) {
-		fprintf(stderr, "Too many threads. Setting to default.\n");
+		fprintf(stderr, "Thread number invalid. Setting to default.\n");
 		cfg->nb_threads = CFG_DEFAULT_NB_THREAD;
 	}
 
 	/* check plugins path */
-	cfg->plugins_path = realpath(path, NULL);
-	if (cfg->plugins_path == NULL){
-		xlog(LOG_CRITICAL, "realpath(plugins_path) failed: %s\n", strerror(errno));
+	if (!is_valid_plugin_path(plugin_path, &cfg->plugins_path, &cfg->autoload_path))
 		return -1;
-	}
-	if (!is_valid_path(cfg->plugins_path)) {
-		xlog(LOG_CRITICAL, "%s\n", "Invalid plugins path provided");
-		return -1;
-	}
+
+#ifdef DEBUG
+        xlog(LOG_DEBUG, "Valid plugin tree for '%s' and '%s'\n", cfg->plugins_path, cfg->autoload_path);
+#endif
 
 	/* check ssl certificate */
 	cfg->certfile = realpath(certfile, NULL);
@@ -305,8 +302,10 @@ void proxenet_free_config()
 	if (cfg->logfile)
 		proxenet_xfree(cfg->logfile);
 
-	if (cfg->plugins_path)
+	if (cfg->plugins_path) {
 		proxenet_xfree(cfg->plugins_path);
+                proxenet_xfree(cfg->autoload_path);
+        }
 
 	if (cfg->certfile)
 		proxenet_xfree(cfg->certfile);
