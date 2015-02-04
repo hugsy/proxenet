@@ -418,13 +418,12 @@ void proxenet_process_http_request(sock_t server_socket)
 {
 	sock_t client_socket;
 	request_t req;
-	int retcode;
+	int retcode, n;
 	fd_set rfds;
 	struct timespec ts;
 	ssl_context_t ssl_context;
 	bool is_ssl;
 	sigset_t emptyset;
-	size_t n;
 
 	client_socket = retcode = n = -1;
 
@@ -449,7 +448,6 @@ void proxenet_process_http_request(sock_t server_socket)
 
 		sigemptyset(&emptyset);
 		retcode = pselect(FD_SETSIZE, &rfds, NULL, NULL, &ts, &emptyset);
-
 		if (retcode < 0) {
 			if (errno == EINTR) {
 				continue;
@@ -479,10 +477,22 @@ void proxenet_process_http_request(sock_t server_socket)
 			xlog(LOG_DEBUG, "[%d] Got %dB from client (%s)\n", req.id, n, (is_ssl)?"SSL":"PLAIN");
 #endif
 
-			if (n <= 0)
+			if (n < 0) {
+#ifdef DEBUG
+                                xlog(LOG_CRITICAL, "[%d] Error during read, end thread\n", req.id);
+#endif
 				break;
+                        }
 
-			req.size = n;
+                        if (n == 0){
+#ifdef DEBUG
+                                xlog(LOG_DEBUG, "[%d] Empty socket from client\n", req.id);
+#endif
+                                continue;
+                        }
+
+                        /* from here, n can only be positive */
+			req.size = (size_t) n;
 
 			/* is connection to server not established ? -> new request */
 			if (client_socket < 0) {
@@ -516,8 +526,9 @@ void proxenet_process_http_request(sock_t server_socket)
 			req.type   = REQUEST;
 			req.id     = get_new_request_id();
 
-			/* check if request is valid  */
+                        /* if proxenet does not relay to another proxy */
 			if (!cfg->proxy.host) {
+                                /* check if request is valid  */
 				if (!is_ssl) {
 					if (!is_valid_http_request(&req.data, &req.size)) {
 							proxenet_xfree(req.data);
