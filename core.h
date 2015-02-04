@@ -39,16 +39,16 @@ proxenet_state 	proxy_state;
 unsigned long 	active_threads_bitmask;
 sem_t 		tty_semaphore;
 plugin_t 	*plugins_list;  /* points to first plugin */
-
+pthread_t  	threads[MAX_THREADS];
 
 void		proxenet_delete_once_plugins();
-void		proxenet_init_once_plugins(int, char**, char**);	
+void		proxenet_init_once_plugins(int, char**, char**);
 int 		proxenet_start();
 unsigned int	get_active_threads_size();
+bool		is_thread_active(int);
 int		proxenet_toggle_plugin(int);
 void 		proxenet_destroy_plugins_vm();
 int 		proxenet_initialize_plugins_list();
 void 		proxenet_initialize_plugins();
 void 		xloop(sock_t, sock_t);
-
 #endif /* _CORE_H */

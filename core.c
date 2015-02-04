@@ -49,7 +49,6 @@
 
 static long	 request_id;
 static pthread_mutex_t request_id_mutex;
-static pthread_t threads[MAX_THREADS];
 
 
 /**
@@ -281,6 +280,7 @@ void proxenet_destroy_plugins_vm()
 
 
 /**
+ * (De)Activate a plugin at runtime
  *
  * @return 0 -> new status inactive
  * @return 1 -> new status active
@@ -711,7 +711,7 @@ static void* process_thread_job(void* arg)
 /**
  *
  */
-static inline bool is_thread_active(int idx)
+bool is_thread_active(int idx)
 {
 	return active_threads_bitmask & (1<<idx);
 }

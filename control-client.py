@@ -80,6 +80,8 @@ if __name__ == "__main__":
         while True:
             cmd = raw_input( recv_until(cli) +" ")
             cli.send(cmd.strip()+"\n")
+            if cmd.strip() == "quit":
+                break
 
     except KeyboardInterrupt:
         info("Exiting client")

@@ -23,7 +23,7 @@ static struct command_t known_commands[] = {
 	{ "reload", 	 0, &reload_cmd, "Reload the plugins" },
 	{ "threads", 	 0, &threads_cmd, "Show info about threads" },
 	{ "plugin", 	 1, &plugin_cmd, "Get/Set info about plugin"},
-	
+
 	{ NULL, 0, NULL, NULL}
 };
 
@@ -59,7 +59,7 @@ void help_cmd(sock_t fd, char *options, unsigned int nb_options)
 		snprintf(msg, msglen+1, "%-15s\t%s\n", cmd->name, cmd->desc);
 		proxenet_write(fd, (void*)msg, strlen(msg));
 	}
-	
+
 	return;
 }
 
@@ -85,43 +85,56 @@ void pause_cmd(sock_t fd, char *options, unsigned int nb_options)
 
 
 /**
- *
+ * Get information about proxenet state.
  */
 void info_cmd(sock_t fd, char *options, unsigned int nb_options)
 {
 	char msg[BUFSIZE] = {0, };
-	int n;
-	
-	n = snprintf(msg, BUFSIZE,
-		     "Infos:\n"
-		     "- Listening interface: %s/%s\n"
-		     "- Supported IP version: %s\n"
-		     "- Logging to %s\n"
-		     "- Running/Max threads: %d/%d\n"
-		     "- SSL private key: %s\n"
-		     "- SSL certificate: %s\n"
-		     "- Proxy: %s [%s]\n"
-		     "- Plugins directory: %s\n"
-		     , 
-		     cfg->iface, cfg->port,
-		     (cfg->ip_version==AF_INET)? "IPv4": (cfg->ip_version==AF_INET6)?"IPv6": "ANY",
-		     (cfg->logfile)?cfg->logfile:"stdout",
-		     get_active_threads_size(), cfg->nb_threads,
-		     cfg->keyfile,
-		     cfg->certfile,
-		     cfg->proxy.host ? cfg->proxy.host : "None",
-		     cfg->proxy.host ? cfg->proxy.port : "direct",
-		     cfg->plugins_path  
-		    );
+	int n, i;
 
+        /* generic info  */
+	n = snprintf(msg, sizeof(msg),
+                 "Infos:\n"
+                 "- Listening interface: %s/%s\n"
+                 "- Supported IP version: %s\n"
+                 "- Logging to %s\n"
+                 "- SSL private key: %s\n"
+                 "- SSL certificate: %s\n"
+                 "- Proxy: %s [%s]\n"
+                 "- Plugins directory: %s\n"
+                 "- Autoloading plugins directory: %s\n"
+                 ,
+                 cfg->iface, cfg->port,
+                 (cfg->ip_version==AF_INET)? "IPv4": (cfg->ip_version==AF_INET6)?"IPv6": "ANY",
+                 (cfg->logfile)?cfg->logfile:"stdout",
+                 cfg->keyfile,
+                 cfg->certfile,
+                 cfg->proxy.host ? cfg->proxy.host : "None",
+                 cfg->proxy.host ? cfg->proxy.port : "direct",
+                 cfg->plugins_path,
+                 cfg->autoload_path
+                );
 	proxenet_write(fd, (void*)msg, n);
-	
+
+    /* threads info  */
+    memset(msg, 0, sizeof(msg));
+    n = snprintf(msg, sizeof(msg), "- Running/Max threads: %d/%d\n", get_active_threads_size(), cfg->nb_threads);
+    proxenet_write(fd, (void*)msg, n);
+
+    for (i=0; i < cfg->nb_threads; i++) {
+            if (!is_thread_active(i)) continue;
+            memset(msg, 0, sizeof(msg));
+            n = snprintf(msg, sizeof(msg), "\t- Thread %d (%lu)\n", i, threads[i]);
+            proxenet_write(fd, (void*)msg, n);
+    }
+
+        /* plugins info */
 	if (proxenet_plugin_list_size()) {
 		proxenet_print_plugins_list(fd);
 	} else {
 		proxenet_write(fd, (void*)"No plugin loaded\n", 17);
 	}
-	
+
 	return;
 }
 
@@ -161,7 +174,7 @@ void verbose_cmd(sock_t fd, char *options, unsigned int nb_options)
 void reload_cmd(sock_t fd, char *options, unsigned int nb_options)
 {
 	char *msg;
-	
+
 	if (get_active_threads_size() > 0) {
 		msg = "Threads still active, cannot reload";
 		proxenet_write(fd, (void*)msg, strlen(msg));
@@ -169,7 +182,7 @@ void reload_cmd(sock_t fd, char *options, unsigned int nb_options)
 	}
 
 	proxy_state = SLEEPING;
-	
+
 	proxenet_destroy_plugins_vm();
 	proxenet_remove_all_plugins();
 
@@ -219,7 +232,7 @@ void threads_cmd(sock_t fd, char *options, unsigned int nb_options)
 		n = snprintf(msg, BUFSIZE, "Invalid action\n Syntax\n threads (inc|dec)\n");
 
 	proxenet_write(fd, (void*)msg, n);
-	
+
 	return;
 }
 
@@ -232,7 +245,7 @@ void plugin_cmd(sock_t fd, char *options, unsigned int nb_options)
 	char msg[BUFSIZE] = {0, };
 	char *ptr;
 	int n, res;
-	
+
 	ptr = strtok(options, " \n");
 	if (!ptr){
 		n = snprintf(msg, BUFSIZE, "Invalid action\nSyntax\n plugin [list]|[toggle <num>]\n");
@@ -243,7 +256,7 @@ void plugin_cmd(sock_t fd, char *options, unsigned int nb_options)
 	if (strcmp(ptr, "list") == 0) {
 		proxenet_print_plugins_list(fd);
 		return;
-		
+
 	} else if (strcmp(ptr, "toggle") == 0) {
 		ptr = strtok(NULL, " \n");
 		if (!ptr)
@@ -257,7 +270,7 @@ void plugin_cmd(sock_t fd, char *options, unsigned int nb_options)
 			return;
 		}
 	}
-	
+
 	n = snprintf(msg, BUFSIZE, "Invalid action\nSyntax\n plugin [list]|[toggle <num>]\n");
 	proxenet_write(fd, (void*)msg, n);
 	return;
@@ -274,7 +287,7 @@ struct command_t* get_command(char *name)
 	struct command_t *cmd;
 	char *buf = name;
 	char c;
-	
+
 	do {
 		c = *buf;
 		if (c == '\0')
@@ -283,10 +296,10 @@ struct command_t* get_command(char *name)
 			*buf = '\0';
 			break;
 		}
-		
+
 		buf++;
 	} while (1);
-	
+
 	for (cmd=known_commands; cmd && cmd->name; cmd++) {
 		if (strcmp(name, cmd->name) == 0) {
 			*buf = c;
@@ -306,7 +319,7 @@ int proxenet_handle_control_event(sock_t* sock) {
 	char *ptr = NULL;
 	int retcode = -1;
 	struct command_t *cmd = NULL;
-	
+
 	retcode = proxenet_read(*sock, read_buf, BUFSIZE-1);
 	if (retcode < 0) {
 		xlog(LOG_ERROR, "Failed to read control command: %s\n", strerror(errno));
@@ -316,16 +329,16 @@ int proxenet_handle_control_event(sock_t* sock) {
 	if (retcode == 0) {
 		return -1;
 	}
-	
+
 	if (read_buf[0] == '\n') {
 		goto cmd_end;
 	}
-		
+
 	if ( (cmd=get_command(read_buf)) == NULL ) {
 		proxenet_write(*sock, CONTROL_INVALID, strlen(CONTROL_INVALID));
 		goto cmd_end;
 	}
-	
+
 #ifdef DEBUG
 	xlog(LOG_DEBUG, "Receiving control command: \"%s\" \n", cmd->name);
 #endif
@@ -335,7 +348,6 @@ int proxenet_handle_control_event(sock_t* sock) {
 
 cmd_end:
 	proxenet_write(*sock, CONTROL_PROMPT, strlen(CONTROL_PROMPT));
-	
+
 	return 0;
 }
-
