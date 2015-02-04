@@ -488,7 +488,7 @@ void proxenet_process_http_request(sock_t server_socket)
 #ifdef DEBUG
                                 xlog(LOG_DEBUG, "[%d] Empty socket from client\n", req.id);
 #endif
-                                continue;
+                                break;
                         }
 
                         /* from here, n can only be positive */
