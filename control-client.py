@@ -6,6 +6,8 @@ import argparse
 import socket
 import datetime
 import os
+import rlcompleter
+import readline
 
 
 __author__    =   "hugsy"
