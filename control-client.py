@@ -7,6 +7,7 @@ import socket
 import datetime
 import os
 
+
 __author__    =   "hugsy"
 __version__   =   0.1
 __licence__   =   "WTFPL v.2"
@@ -39,6 +40,15 @@ def err(msg):
     return _log('-', msg)
 
 
+def recv_until(sock, pattern=">>> "):
+    data = ""
+    while True:
+        data += sock.recv(1024)
+        if data.endswith(pattern):
+            break
+    return data
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(usage = __usage__,
                                      description = __desc__)
@@ -56,6 +66,7 @@ if __name__ == "__main__":
 
     try:
         cli = socket.socket( socket.AF_UNIX, socket.SOCK_STREAM )
+        cli.settimeout(5)
         cli.connect(PROXENET_SOCKET_PATH)
     except socket.error as se:
         err("Failed to connect: %s" % se)
@@ -64,17 +75,15 @@ if __name__ == "__main__":
     info("Connected")
 
     try:
-        data = cli.recv(1024).strip()
         while True:
-            cmd = raw_input(data)
-            cli.send(cmd)
-            data = cli.recv(1024).strip()
-            print(data)
-            data = cli.recv(10)
+            cmd = raw_input( recv_until(cli) +" ")
+            cli.send(cmd.strip()+"\n")
 
     except KeyboardInterrupt:
         info("Exiting client")
     except EOFError:
         info("End of stream")
+    except Exception as e:
+        err("Unexpected exception: %s" % e)
     finally:
         cli.close()
