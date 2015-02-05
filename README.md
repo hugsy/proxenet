@@ -1,55 +1,31 @@
 ## Proxenet
 
-The idea behind Proxenet is to have a fully DIY web proxy for pentest. It is a
-C-based proxy that allows you to interact with higher level languages for
-modifying on-the-fly requests/responses sent by your Web browser.
-
-It is still at a very early stage of development (but very active though), and
-supports plugins in the following languages :
-- C
-- Python
-- Lua
-- Ruby
-- Perl
-
-(Maybe more to come)
-
-Check the project Wiki for all details!
+### What is it?
+`proxenet` is a fully DIY web proxy for pentest(ers). It is a C-based proxy that
+allows you to interact with higher level languages for modifying on-the-fly
+requests/responses sent by your Web browser.
 
 
-### Current status
+### How to start
+
+``` bash
+$ git clone https://github.com/hugsy/proxenet.git
+$ cd proxenet
+$ make
+```
+
+
+### Build status
 [![Continuous Integration status](https://secure.travis-ci.org/hugsy/proxenet.png)](https://travis-ci.org/hugsy/proxenet)
 
 
-### The best of both world ?
-
-Some people might miss the beautiful interface some other GUI-friendly proxies
-provide. So be it! Plug `proxenet` as a relay behind your favorite `Burp`,
-`Zap`, `Proxystrike`, `abrupt`, etc. and enjoy the show!
+### Documentation
+[![Docs latest](https://readthedocs.org/projects/proxenet/badge/)](https://proxenet.readthedocs.org/en/latest)
 
 
-### Write-Your-Own-Plugins
+### Authors
+`proxenet` was developed by [hugsy](https://github.com/hugsy) with contributions
+from
 
-It is a fact that writing extension for `Burps` is a pain, and other tools only
-provide plugins (when they do) in the language they were written in.
-So the basic core idea behind `proxenet` is to allow pentesters to **easily**
-interact with their HTTP requests/responses in their favorite high-level
-language. 
-
-
-### Languages Versions
-
-Implemented support with C API in :
-- Python 2.7/3.3
-- Ruby 1.8/1.9
-- Perl 5.14
-- Lua 5.2
-
-
-### What's next?
-
-There are heaps and heaps of bugs, crashes, etc., so I am working on fixing that to
-provide more stability (please tell me your bugs/patches!)
-Many many many other features to come as well through plugins!
-
-Want to get more? Fork it, patch it, push it!
+- [Aorimn](https://github.com/Aorimn)
+- [lukejahnke](https://github.com/lukejahnke)
