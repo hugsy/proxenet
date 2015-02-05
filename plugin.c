@@ -261,17 +261,29 @@ int proxenet_get_plugin_type(char* filename)
 
 /**
  * Plugin name structure *MUST* be  `PLUGIN_DIR/<priority><name>.<ext>`
- * with priority in [0, 10[
- * If a file does not match this, it is not added as plugin
+ * with priority in [1, 9]
+ * If a file does not match this pattern, it will be discarded
+ *
+ * @param plugin_path is the path to look for plugins
+ * @param plugin_name is the name of the plugin to add. If NULL, this function will try
+ *        to *all* the files in the directory.
+ * @return 0 on success, -1 on error
  */
-int proxenet_create_list_plugins(char* plugin_path)
+int proxenet_add_new_plugins(char* plugin_path, char* plugin_name)
 {
 	struct dirent *dir_ptr=NULL;
 	DIR *dir = NULL;
-	char* plugin_name = NULL;
-	short plugin_type=-1, plugin_priority=9;
+	char* name = NULL;
+	short type=-1, priority=9;
 	int d_name_len;
+        bool add_all = (plugin_name==NULL)?true:false;
 
+#ifdef DEBUG
+        if (add_all)
+                xlog(LOG_DEBUG, "Trying to add all files in '%s'\n", plugin_path);
+        else
+                xlog(LOG_DEBUG, "Trying to add '%s/%s'\n", plugin_path, plugin_name);
+#endif
 	dir = opendir(plugin_path);
 	if (dir == NULL) {
 		xlog(LOG_ERROR, "Failed to open '%s': %s\n", plugin_path, strerror(errno));
@@ -279,28 +291,41 @@ int proxenet_create_list_plugins(char* plugin_path)
 	}
 
 	while ((dir_ptr=readdir(dir))) {
-		if(strcmp(dir_ptr->d_name,".")==0) continue;
-		if(strcmp(dir_ptr->d_name,"..")==0) continue;
+		if (strcmp(dir_ptr->d_name,".")==0)
+                        continue;
 
-		if (atoi(&(dir_ptr->d_name[0])) == 0) continue;
+		if (strcmp(dir_ptr->d_name,"..")==0)
+                        continue;
+
+                /* if add one plugin, loop until the right name */
+                if (!add_all && strcmp(dir_ptr->d_name, plugin_name)!=0)
+                        continue;
+
+                /* if first char is not valid int, continue */
+		if (atoi(&(dir_ptr->d_name[0])) == 0)
+                        continue;
 
 		/* plugin name  */
 		d_name_len = strlen(dir_ptr->d_name);
 		if (d_name_len > 510) continue;
-		plugin_name = dir_ptr->d_name;
+		name = dir_ptr->d_name;
+
+		/* plugin priority (discard if invalid) */
+		priority = (unsigned short)atoi(name);
+		if ( !(1 <= priority && priority <= 9) )
+			continue;
 
 		/* plugin type */
-		plugin_type = proxenet_get_plugin_type(plugin_name);
-		if (plugin_type < 0) continue;
-
-		/* plugin priority */
-		plugin_priority = (unsigned short)atoi(plugin_name);
-		if (plugin_priority>9 || plugin_priority < 1)
-			plugin_priority = 9;
+		type = proxenet_get_plugin_type(name);
+		if (type < 0)
+                        continue;
 
 		/* add plugin in correct place (1: high priority, 9: low priority) */
-		proxenet_add_plugin(plugin_name, plugin_type, plugin_priority);
+		proxenet_add_plugin(name, type, priority);
 
+                /* if add one plugin only, there is no need to keep looping */
+                if (!add_all)
+                        break;
 	}
 
 	if (closedir(dir) < 0)

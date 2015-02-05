@@ -829,7 +829,7 @@ static void kill_zombies()
  */
 int proxenet_initialize_plugins_list()
 {
-	if(proxenet_create_list_plugins(cfg->autoload_path) < 0) {
+	if(proxenet_add_new_plugins(cfg->autoload_path, NULL) < 0) {
 		xlog(LOG_ERROR, "%s\n", "Failed to build plugins list, leaving");
 		return -1;
 	}

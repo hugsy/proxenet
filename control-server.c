@@ -29,7 +29,34 @@ static struct command_t known_commands[] = {
 
 
 /**
+ * Send detailed information to socket
  *
+ * @param fd the socket to send data to
+ */
+static void _send_threads_info(sock_t fd)
+{
+        char msg[BUFSIZE] = {0,};
+        int i, n;
+
+        n = snprintf(msg, sizeof(msg),
+                     "- Running/Max threads: %d/%d\n",
+                     get_active_threads_size(),
+                     cfg->nb_threads);
+        proxenet_write(fd, (void*)msg, n);
+
+        for (i=0; i < cfg->nb_threads; i++) {
+                if (!is_thread_active(i)) continue;
+                memset(msg, 0, sizeof(msg));
+                n = snprintf(msg, sizeof(msg), "\t- Thread %d (%lu)\n", i, threads[i]);
+                proxenet_write(fd, (void*)msg, n);
+        }
+
+        return;
+}
+
+
+/**
+ * This command will try to kill gracefully the running process of proxenet
  */
 void quit_cmd(sock_t fd, char *options, unsigned int nb_options)
 {
@@ -42,7 +69,7 @@ void quit_cmd(sock_t fd, char *options, unsigned int nb_options)
 
 
 /**
- *
+ * The famous help menu
  */
 void help_cmd(sock_t fd, char *options, unsigned int nb_options)
 {
@@ -65,7 +92,7 @@ void help_cmd(sock_t fd, char *options, unsigned int nb_options)
 
 
 /**
- *
+ * (De)-Activate pause mode (suspend and block interception)
  */
 void pause_cmd(sock_t fd, char *options, unsigned int nb_options)
 {
@@ -90,7 +117,7 @@ void pause_cmd(sock_t fd, char *options, unsigned int nb_options)
 void info_cmd(sock_t fd, char *options, unsigned int nb_options)
 {
 	char msg[BUFSIZE] = {0, };
-	int n, i;
+	int n;
 
         /* generic info  */
 	n = snprintf(msg, sizeof(msg),
@@ -116,17 +143,8 @@ void info_cmd(sock_t fd, char *options, unsigned int nb_options)
                 );
 	proxenet_write(fd, (void*)msg, n);
 
-    /* threads info  */
-    memset(msg, 0, sizeof(msg));
-    n = snprintf(msg, sizeof(msg), "- Running/Max threads: %d/%d\n", get_active_threads_size(), cfg->nb_threads);
-    proxenet_write(fd, (void*)msg, n);
-
-    for (i=0; i < cfg->nb_threads; i++) {
-            if (!is_thread_active(i)) continue;
-            memset(msg, 0, sizeof(msg));
-            n = snprintf(msg, sizeof(msg), "\t- Thread %d (%lu)\n", i, threads[i]);
-            proxenet_write(fd, (void*)msg, n);
-    }
+        /* threads info  */
+        _send_threads_info(fd);
 
         /* plugins info */
 	if (proxenet_plugin_list_size()) {
@@ -140,7 +158,7 @@ void info_cmd(sock_t fd, char *options, unsigned int nb_options)
 
 
 /**
- *
+ * Increase/Decrease verbosity of proxenet (useful for logging/debugging)
  */
 void verbose_cmd(sock_t fd, char *options, unsigned int nb_options)
 {
@@ -169,7 +187,7 @@ void verbose_cmd(sock_t fd, char *options, unsigned int nb_options)
 
 
 /**
- *
+ * Reload proxenet
  */
 void reload_cmd(sock_t fd, char *options, unsigned int nb_options)
 {
@@ -205,7 +223,7 @@ void reload_cmd(sock_t fd, char *options, unsigned int nb_options)
 
 
 /**
- *
+ * Get information about the threads
  */
 void threads_cmd(sock_t fd, char *options, unsigned int nb_options)
 {
@@ -215,12 +233,7 @@ void threads_cmd(sock_t fd, char *options, unsigned int nb_options)
 
 	ptr = strtok(options, " \n");
 	if (!ptr){
-		n = get_active_threads_size();
-		n = snprintf(msg, 128, "%d active thread%c/%d max thread%c\n",
-			     n, (n>1)?'s':' ',
-			     cfg->nb_threads, (cfg->nb_threads>1)?'s':' '
-			    );
-		proxenet_write(fd, (void*)msg, n);
+                _send_threads_info(fd);
 		return;
 	}
 
@@ -238,47 +251,95 @@ void threads_cmd(sock_t fd, char *options, unsigned int nb_options)
 
 
 /**
- *
+ * Handle plugins (list/activate/deactivate/load)
  */
 void plugin_cmd(sock_t fd, char *options, unsigned int nb_options)
 {
 	char msg[BUFSIZE] = {0, };
 	char *ptr;
 	int n, res;
+        unsigned int plugin_id;
+        char* plugin_name = NULL;
 
+
+        /* usage */
 	ptr = strtok(options, " \n");
-	if (!ptr){
-		n = snprintf(msg, BUFSIZE, "Invalid action\nSyntax\n plugin [list]|[toggle <num>]\n");
-		proxenet_write(fd, (void*)msg, n);
-		return;
-	}
+	if (!ptr)
+                goto invalid_plugin_action;
 
+
+        /* list */
 	if (strcmp(ptr, "list") == 0) {
 		proxenet_print_plugins_list(fd);
 		return;
 
-	} else if (strcmp(ptr, "toggle") == 0) {
-		ptr = strtok(NULL, " \n");
-		if (!ptr)
-			return;
+	}
 
-		n = atoi(ptr);
-		if (0 < n && n <= proxenet_plugin_list_size() ) {
-			res = proxenet_toggle_plugin(n);
-			n = snprintf(msg, BUFSIZE, "Plugin %d is now %sACTIVE\n", n, res?"":"IN");
+        /* (de-)activate a plugin based on its id */
+        if (strcmp(ptr, "toggle") == 0) {
+		ptr = strtok(NULL, " \n");
+		if (!ptr) {
+                        n = sprintf(msg, "Missing plugin id\n");
+                        proxenet_write(fd, (void*)msg, n);
+			return;
+                }
+
+		plugin_id = atoi(ptr);
+		if (0 < plugin_id && plugin_id <= proxenet_plugin_list_size() ) {
+			res = proxenet_toggle_plugin(plugin_id);
+                        if (res < 0){
+                                n = snprintf(msg, BUFSIZE, "Failed to toggle plugin %d\n", plugin_id);
+                                proxenet_write(fd, (void*)msg, n);
+                                return;
+                        }
+			n = snprintf(msg, BUFSIZE, "Plugin %d is now %sACTIVE\n", plugin_id, res?"":"IN");
 			proxenet_write(fd, (void*)msg, n);
 			return;
 		}
 	}
 
-	n = snprintf(msg, BUFSIZE, "Invalid action\nSyntax\n plugin [list]|[toggle <num>]\n");
+        /* add a plugin at runtime */
+        if (strcmp(ptr, "load") == 0) {
+                ptr = strtok(NULL, " \n");
+		if (!ptr){
+                        n = sprintf(msg, "Missing plugin name\n");
+                        proxenet_write(fd, (void*)msg, n);
+			return;
+                }
+
+                if ( (plugin_name=strdup(ptr)) == NULL ){
+                        n = sprintf(msg, "strdup failed: %s\n", strerror(errno));
+                        proxenet_write(fd, (void*)msg, n);
+                        return;
+                }
+
+                res = proxenet_add_new_plugins(cfg->plugins_path, plugin_name);
+                if(res<0){
+                        n = snprintf(msg, sizeof(msg)-1, "Error while loading plugin '%s'\n", plugin_name);
+                        proxenet_write(fd, (void*)msg, n);
+                }else{
+                        n = snprintf(msg, sizeof(msg)-1, "Plugin '%s' added successfully\n", plugin_name);
+                        proxenet_write(fd, (void*)msg, n);
+                }
+
+                /* plugin list must be reinitialized since we dynamically load VMs only if plugins are found */
+                proxenet_initialize_plugins();
+
+                proxenet_xfree(plugin_name);
+		return;
+	}
+
+invalid_plugin_action:
+	n = snprintf(msg, BUFSIZE, "Invalid action\nSyntax\n plugin [list]|[toggle <num>][load <0PluginName.ext>]\n");
 	proxenet_write(fd, (void*)msg, n);
 	return;
 }
 
 
 /**
+ * Parse an incoming command
  *
+ * @param name is a pointer to the buffer of the command to parse
  * @return pointer to valid struct command_t if `name` is found as known_commands[]
  * @return NULL otherwise
  */
@@ -312,7 +373,7 @@ struct command_t* get_command(char *name)
 
 
 /**
- *
+ * Main handler for new control command
  */
 int proxenet_handle_control_event(sock_t* sock) {
 	char read_buf[BUFSIZE] = {0, };

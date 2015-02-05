@@ -10,7 +10,7 @@ typedef enum __supported_plugins_t {
 #ifdef _PYTHON_PLUGIN
 	_PYTHON_,
 #endif
-  
+
 #ifdef _C_PLUGIN
 	_C_,
 #endif
@@ -26,7 +26,7 @@ typedef enum __supported_plugins_t {
 #ifdef _LUA_PLUGIN
 	_LUA_,
 #endif
-	
+
   END_VALUE
 } supported_plugins_t;
 
@@ -45,7 +45,7 @@ const static UNUSED char* supported_plugins_str[] = {
 #ifdef _C_PLUGIN
 	"C",
 #endif
-	
+
 #ifdef _RUBY_PLUGIN
 	#if _RUBY_MINOR_ == 8
 	"Ruby 1.8",
@@ -53,7 +53,7 @@ const static UNUSED char* supported_plugins_str[] = {
 	"Ruby 1.9",
 	#else
 	"Unknown Ruby version (incorrect build?)",
-	#endif	
+	#endif
 #endif
 
 #ifdef _PERL_PLUGIN
@@ -63,20 +63,20 @@ const static UNUSED char* supported_plugins_str[] = {
 #ifdef _LUA_PLUGIN
 	"Lua",
 #endif
-	
+
   NULL
 };
 
 
 const static UNUSED char* plugins_extensions_str[] = {
-#ifdef _PYTHON_PLUGIN  
+#ifdef _PYTHON_PLUGIN
 	".py",
 #endif
-  
-#ifdef _C_PLUGIN      
+
+#ifdef _C_PLUGIN
 	".so",
 #endif
-	
+
 #ifdef _RUBY_PLUGIN
 	".rb",
 #endif
@@ -88,13 +88,13 @@ const static UNUSED char* plugins_extensions_str[] = {
 #ifdef _LUA_PLUGIN
 	".lua",
 #endif
-	
+
   NULL
 };
 
 #define MAX_VMS 5
 
-typedef struct _http_request_fields 
+typedef struct _http_request_fields
 {
 	  char* method;
 	  char* proto;
@@ -102,7 +102,7 @@ typedef struct _http_request_fields
 	  char* hostname;
 	  unsigned short port;
 	  char* uri;
-	  char* version;		
+	  char* version;
 } http_request_t ;
 
 typedef enum {
@@ -141,12 +141,12 @@ typedef struct _plugin_type {
 		interpreter_t *interpreter;
 		void *pre_function;
 		void *post_function;
-		
+
 } plugin_t;
 
 #include "http.h"
 
-int	proxenet_create_list_plugins(char*);
+int	proxenet_add_new_plugins(char*, char*);
 int 	proxenet_plugin_list_size();
 void	proxenet_remove_plugin(plugin_t*);
 void 	proxenet_remove_all_plugins();
