@@ -30,10 +30,10 @@ root@kali:~/proxenet# ./control-client.py
 [*] 2015/02/04 22:12:03: Connected
 Welcome on proxenet control interface
 Type `help` to list available commands
->>>  plugin list
+>>>  plugin list 
 Plugins list:
 |_ priority=8   id=1   type=Python2   [0x0] name=FilterEncodingHeader (ACTIVE)
->>>  plugin load 
+>>>  plugin load 8LogReqRes.py
 Plugin '8LogReqRes.py' added successfully
 >>>  plugin list
 Plugins list:
