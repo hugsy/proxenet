@@ -20,7 +20,7 @@ $ make
 
 
 ### Documentation
-[![Docs latest](https://readthedocs.org/projects/proxenet/badge/)](https://proxenet.readthedocs.org/en/latest)
+[![Documentation Status](https://readthedocs.org/projects/proxenet/badge/?version=latest)](https://readthedocs.org/projects/proxenet/?badge=latest)
 
 
 ### Authors
