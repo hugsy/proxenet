@@ -1,7 +1,7 @@
 site_name: proxenet documentation
 theme: readthedocs
 pages:
-- [index.md, Home]
+- [README.md, Home]
 - [compil.md, Compilation]
 - [config.md, Configuration]
 - [plugin.md, Plugins]
