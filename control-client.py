@@ -20,6 +20,7 @@ by {2}
 syntax: {3} [options] args
 """.format(__version__, __licence__, __author__, __file__)
 
+# the socket path can be modified in control-server.h
 PROXENET_SOCKET_PATH = "/tmp/proxenet-control-socket"
 
 def now():
@@ -75,13 +76,18 @@ if __name__ == "__main__":
         exit(1)
 
     info("Connected")
+    do_loop = True
 
     try:
         while True:
+            if do_loop:
+                recv_until(cli)
+                break
+
             cmd = raw_input( recv_until(cli) +" ")
             cli.send(cmd.strip()+"\n")
             if cmd.strip() == "quit":
-                break
+                do_loop = False
 
     except KeyboardInterrupt:
         info("Exiting client")

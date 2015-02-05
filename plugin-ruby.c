@@ -2,7 +2,7 @@
 
 /*******************************************************************************
  *
- * Ruby plugin 
+ * Ruby plugin
  *
  */
 
@@ -36,9 +36,9 @@ int proxenet_ruby_load_file(plugin_t* plugin)
 	char* pathname;
 	size_t pathname_len;
 	int res = 0;
-	
+
 	filename = plugin->filename;
-	
+
 	/* load script */
 	pathname_len = strlen(cfg->plugins_path) + 1 + strlen(filename) + 1;
 	pathname = alloca(pathname_len + 1);
@@ -57,7 +57,7 @@ int proxenet_ruby_load_file(plugin_t* plugin)
 		return -1;
 	}
 
-#ifdef DEBUG	
+#ifdef DEBUG
 	xlog(LOG_DEBUG, "%s\n", pathname);
 #endif
 	return 0;
@@ -80,10 +80,10 @@ int proxenet_ruby_initialize_vm(plugin_t* plugin)
 #ifdef DEBUG
 	xlog(LOG_DEBUG, "%s\n", "Initializing Ruby VM");
 #endif
-	
+
 	/* init vm */
 	ruby_init();
-	
+
 #if _RUBY_MINOR_ == 9
 #ifdef DEBUG
 	xlog(LOG_DEBUG, "%s\n", "Using Ruby 1.9 C API");
@@ -97,13 +97,14 @@ int proxenet_ruby_initialize_vm(plugin_t* plugin)
 	interpreter->vm = (void*) ruby_top_self;
 
 #else
+        xlog(LOG_CRITICAL, "%s\n", "Unsupported Ruby version");
 	abort();
 #endif
 
 	ruby_init_loadpath();
-	
+
 	interpreter->ready = true;
-	
+
 	return 0;
 }
 
@@ -122,7 +123,7 @@ int proxenet_ruby_destroy_vm(plugin_t* plugin)
  */
 int proxenet_ruby_initialize_function(plugin_t* plugin, req_t type)
 {
-	
+
 	/* checks */
 	if (!plugin->name) {
 		xlog(LOG_ERROR, "%s\n", "null plugin name");
@@ -135,13 +136,12 @@ int proxenet_ruby_initialize_function(plugin_t* plugin, req_t type)
 	}
 
 	/* get function ID */
-	switch(type)
-	{
+	switch(type) {
 		case REQUEST:
 			if (plugin->pre_function) {
 				xlog(LOG_WARNING, "Pre-hook function already defined for '%s'\n", plugin->name);
 				return 0;
-				
+
 			}
 
 			plugin->pre_function  = (void*) rb_intern(CFG_REQUEST_PLUGIN_FUNCTION);
@@ -150,24 +150,24 @@ int proxenet_ruby_initialize_function(plugin_t* plugin, req_t type)
 				xlog(LOG_DEBUG, "Loaded %s:%s\n", plugin->filename, CFG_REQUEST_PLUGIN_FUNCTION);
 #endif
 				return 0;
-			}				
+			}
 			break;
-			
+
 		case RESPONSE:
 			if (plugin->post_function) {
 				xlog(LOG_WARNING, "Post-hook function already defined for '%s'\n", plugin->name);
 				return 0;
 			}
-			
+
 			plugin->post_function = (void*) rb_intern(CFG_RESPONSE_PLUGIN_FUNCTION);
 			if (plugin->post_function) {
 #ifdef DEBUG
 				xlog(LOG_DEBUG, "Loaded %s:%s\n", plugin->filename, CFG_RESPONSE_PLUGIN_FUNCTION);
-#endif			
+#endif
 				return 0;
 			}
 			break;
-			
+
 		default:
 			xlog(LOG_CRITICAL, "%s\n", "Should never be here, autokill !");
 			abort();
@@ -175,7 +175,7 @@ int proxenet_ruby_initialize_function(plugin_t* plugin, req_t type)
 	}
 
 	xlog(LOG_ERROR, "%s\n", "Failed to find function");
-	
+
 	return -1;
 }
 
@@ -193,14 +193,14 @@ static char* proxenet_ruby_execute_function(interpreter_t* interpreter, ID rFunc
 	uri = get_request_full_uri(request);
 	if (!uri)
 		return NULL;
-	
+
 	/* build args */
 	rVM = (VALUE)interpreter->vm;
 
 	rArgs[0] = INT2FIX(request->id);
 	rArgs[1] = rb_str_new(request->data, request->size);
 	rArgs[2] = rb_str_new2(uri);
-	
+
 	/* function call */
 	rRet = rb_funcall2(rVM, rFunc, 3, rArgs);
 	if (!rRet) {
@@ -210,9 +210,9 @@ static char* proxenet_ruby_execute_function(interpreter_t* interpreter, ID rFunc
 	}
 
 	rRet = rArgs[1];
-	
+
 	rb_check_type(rRet, T_STRING);
-	
+
 	/* copy result to exploitable buffer */
 	buf = RSTRING_PTR(rRet);
 	buflen = RSTRING_LEN(rRet);
@@ -222,7 +222,7 @@ static char* proxenet_ruby_execute_function(interpreter_t* interpreter, ID rFunc
 
 	request->data = data;
 	request->size = buflen;
-	
+
 call_end:
 	proxenet_xfree(uri);
 	return data;
@@ -248,17 +248,17 @@ static void proxenet_ruby_unlock_vm(interpreter_t *interpreter)
 
 
 /**
- * 
+ *
  */
 char* proxenet_ruby_plugin(plugin_t* plugin, request_t* request)
 {
 	char* buf = NULL;
 	interpreter_t *interpreter = plugin->interpreter;
 	ID rFunc;
-	
+
 	if (request->type == REQUEST)
 		rFunc = (ID) plugin->pre_function;
-	else 
+	else
 		rFunc = (ID) plugin->post_function;
 
 	proxenet_ruby_lock_vm(interpreter);
