@@ -80,7 +80,7 @@ if __name__ == "__main__":
 
     try:
         while True:
-            if do_loop:
+            if not do_loop:
                 recv_until(cli)
                 break
 

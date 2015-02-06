@@ -1,0 +1,9 @@
+site_name: proxenet documentation
+theme: readthedocs
+pages:
+- [index.md, Home]
+- [compil.md, Compilation]
+- [config.md, Configuration]
+- [plugin.md, Plugins]
+- [refs.md, References]
+- [runtime.md, Runtime]

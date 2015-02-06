@@ -52,7 +52,9 @@ static pthread_mutex_t request_id_mutex;
 
 
 /**
+ * Allocate safely a new and unique request id
  *
+ * @return the new request id
  */
 static int get_new_request_id()
 {
@@ -61,11 +63,10 @@ static int get_new_request_id()
 	pthread_mutex_lock(&request_id_mutex);
 	rid = request_id;
 	request_id++;
+        pthread_mutex_unlock(&request_id_mutex);
 #ifdef DEBUG
 	xlog(LOG_DEBUG, "Allocating ID #%d\n", rid);
 #endif
-	pthread_mutex_unlock(&request_id_mutex);
-
 	return rid;
 }
 
