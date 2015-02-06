@@ -187,7 +187,7 @@ int proxenet_ruby_initialize_function(plugin_t* plugin, req_t type)
 static char* proxenet_ruby_execute_function(interpreter_t* interpreter, ID rFunc, request_t* request)
 {
 	char *buf, *data;
-	int buflen;
+	int buflen, i;
 	VALUE rArgs[3], rRet, rVM;
 	char *uri;
 
@@ -202,7 +202,7 @@ static char* proxenet_ruby_execute_function(interpreter_t* interpreter, ID rFunc
 	rArgs[1] = rb_str_new(request->data, request->size);
 	rArgs[2] = rb_str_new2(uri);
 
-        for(i = 0; i<3; i++) {
+        for(i=0; i<3; i++) {
                 rb_gc_register_address(&rArgs[i]);
 	}
 
@@ -216,7 +216,7 @@ static char* proxenet_ruby_execute_function(interpreter_t* interpreter, ID rFunc
 
 	rb_check_type(rRet, T_STRING);
 
-        for(i = 0; i<3; i++) {
+        for(i=0; i<3; i++) {
                 rb_gc_unregister_address(&rArgs[i]);
 	}
 
