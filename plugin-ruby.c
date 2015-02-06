@@ -20,6 +20,7 @@
 
 
 /**
+ * Ruby require callback
  *
  */
 VALUE proxenet_ruby_require_cb(VALUE arg)
@@ -201,6 +202,10 @@ static char* proxenet_ruby_execute_function(interpreter_t* interpreter, ID rFunc
 	rArgs[1] = rb_str_new(request->data, request->size);
 	rArgs[2] = rb_str_new2(uri);
 
+        for(i = 0; i<3; i++) {
+                rb_gc_register_address(&rArgs[i]);
+	}
+
 	/* function call */
 	rRet = rb_funcall2(rVM, rFunc, 3, rArgs);
 	if (!rRet) {
@@ -209,9 +214,11 @@ static char* proxenet_ruby_execute_function(interpreter_t* interpreter, ID rFunc
 		goto call_end;
 	}
 
-	rRet = rArgs[1];
-
 	rb_check_type(rRet, T_STRING);
+
+        for(i = 0; i<3; i++) {
+                rb_gc_unregister_address(&rArgs[i]);
+	}
 
 	/* copy result to exploitable buffer */
 	buf = RSTRING_PTR(rRet);
