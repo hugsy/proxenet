@@ -13,7 +13,6 @@ VERSION_REL			=	git
 VERSION      		   	=       \"$(VERSION_MAJOR).$(VERSION_MINOR)-$(VERSION_REL)\"
 ARCH            		=       $(shell uname)
 DEBUG		           	=       0
-DEBUG_SSL			=       0
 
 CC				=       cc
 BIN	  			=       proxenet
@@ -29,7 +28,7 @@ LIB				= 	-L/lib
 
 
 # if DEBUG
-ifeq ($(DEBUG), 1)
+ifneq ($(DEBUG), 0)
 DBGFLAGS		=       -ggdb -DDEBUG
 CFLAGS			+=      $(DBGFLAGS)
 
@@ -37,7 +36,7 @@ ifeq ($(CC), clang)
 CFLAGS			+=      -fsanitize=address -fno-omit-frame-pointer -O1
 endif
 
-ifeq ($(DEBUG_SSL), 1)
+ifneq ($(DEBUG), 1)
 CFLAGS			+=	-DDEBUG_SSL
 endif
 
@@ -67,7 +66,8 @@ RUBY_MINOR		=	9
 endif
 
 LUA_VERSION		=	lua5.2
-PERL_VERSION		=	perl5.18.2
+PERL_VERSION		=	perl5.20.1
+TCL_VERSION		=	tcl8.6
 
 # TEST
 TEST_ARGS		= 	-4 -vvvv -t 10 -b 0.0.0.0 -p 8000
@@ -131,7 +131,7 @@ else
 	@echo -n "[+] Looking for '$(PYTHON_VERSION)' ... "
 ifeq ($(strip $(shell pkg-config --cflags --libs $(PYTHON_VERSION) >/dev/null 2>&1 && echo ok)), ok)
 	@echo "found"
-	$(eval DEFINES += -D_PYTHON_PLUGIN -D_PYTHON_MAJOR_=$(PYTHON_MAJOR) )
+	$(eval DEFINES += -D_PYTHON_PLUGIN  -D_PYTHON_VERSION=$(LUA_VERSION) -D_PYTHON_MAJOR_=$(PYTHON_MAJOR) )
 	$(eval LDFLAGS += $(shell pkg-config --libs $(PYTHON_VERSION)) )
 	$(eval INC += $(shell pkg-config --cflags $(PYTHON_VERSION)) )
 else
@@ -146,7 +146,7 @@ else
 	@echo -n "[+] Looking for '$(LUA_VERSION)' ... "
 ifeq ($(strip $(shell pkg-config --cflags --libs $(LUA_VERSION) >/dev/null 2>&1 && echo ok)), ok)
 	@echo "found"
-	$(eval DEFINES += -D_LUA_PLUGIN )
+	$(eval DEFINES += -D_LUA_PLUGIN -D_LUA_VERSION=$(LUA_VERSION))
 	$(eval LDFLAGS += $(shell pkg-config --libs $(LUA_VERSION)) )
 	$(eval INC += $(shell pkg-config --cflags $(LUA_VERSION)) )
 else
@@ -161,7 +161,7 @@ else
 	@echo -n "[+] Looking for '$(RUBY_VERSION)' ... "
 ifeq ($(strip $(shell pkg-config --cflags --libs $(RUBY_VERSION) > /dev/null 2>&1  && echo ok)), ok)
 	@echo "found"
-	$(eval DEFINES += -D_RUBY_PLUGIN -D_RUBY_MINOR_=$(RUBY_MINOR))
+	$(eval DEFINES += -D_RUBY_PLUGIN -D_RUBY_VERSION=$(RUBY_VERSION) -D_RUBY_MINOR_=$(RUBY_MINOR))
 	$(eval LDFLAGS += $(shell pkg-config --libs $(RUBY_VERSION)) )
 	$(eval INC += $(shell pkg-config --cflags $(RUBY_VERSION)) )
 else
@@ -176,7 +176,7 @@ else
 	@echo -n "[+] Looking for '$(PERL_VERSION)' ... "
 ifeq ($(strip $(shell pkg-config --cflags --libs $(PERL_VERSION) >/dev/null 2>&1 && echo ok)), ok)
 	@echo "found"
-	$(eval DEFINES += -D_PERL_PLUGIN)
+	$(eval DEFINES += -D_PERL_PLUGIN -D_PERL_VERSION=$(PERL_VERSION))
 	$(eval LDFLAGS += $(shell pkg-config --libs $(PERL_VERSION)) )
 	$(eval INC += $(shell pkg-config --cflags $(PERL_VERSION)) )
 else
@@ -188,26 +188,17 @@ check-tcl:
 ifeq ($(NO_TCL), 1)
 	@echo "[-] Explicitly disabling TCL support"
 else
-	@echo -n "[+] Looking for required 'tcl' library ... "
-	@echo "int main(int a,char** b){return 0;}">_a.c; $(CC) _a.c -ltcl || (echo "not found"; rm -fr _a.c && exit 1)
-	@rm -fr _a.c a.out
+	@echo -n "[+] Looking for '$(TCL_VERSION)' ... "
+ifeq ($(strip $(shell pkg-config --cflags --libs $(TCL_VERSION) >/dev/null 2>&1 && echo ok)), ok)
 	@echo "found"
-	$(eval DEFINES += -D_TCL_PLUGIN -I/usr/include/tcl8.6/)
-	$(eval LDFLAGS += -ltcl )
+	$(eval DEFINES += -D_TCL_PLUGIN -D_TCL_VERSION=$(TCL_VERSION))
+	$(eval LDFLAGS += $(shell pkg-config --libs $(TCL_VERSION)) )
+	$(eval INC += $(shell pkg-config --cflags $(TCL_VERSION)) )
+else
+	@echo "not found"
+endif
 endif
 
-# Packaging
-snapshot: clean
-	git add . && \
-	git ci -m "$(shell date): Generating snapshot release" && \
-        git archive --format=tar --prefix=$(BIN)-$(VERSION)/ HEAD \
-	|gzip > /tmp/$(PROGNAME)-latest.tgz
-
-stable: clean
-	git add . && \
-	git ci -m "$(shell date): Generating stable release" && \
-	git archive --format=tar --prefix=$(BIN)-$(VERSION)/ master \
-	|gzip > /tmp/${PROGNAME}-${PROGVERS}.tgz
 
 # Tests
 test: clean all

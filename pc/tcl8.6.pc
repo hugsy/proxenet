@@ -1,0 +1,11 @@
+V=8.6
+prefix=/usr
+libdir=${prefix}/lib
+includedir=${prefix}/include/tcl${V}
+
+Name: TCL
+Description: Tcl is a powerful, easy to use, embeddable, cross-platform interpreted scripting language.
+Version: ${V}
+Requires:
+Libs: -L${libdir} -ltcl
+Cflags: -I${includedir}
