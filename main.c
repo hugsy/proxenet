@@ -60,6 +60,7 @@ static void usage(int retcode)
 		"\t-n, --no-color\t\t\t\tDisable colored output\n"
 		"\t-4, \t\t\t\t\tIPv4 only (default)\n"
 		"\t-6, \t\t\t\t\tIPv6 only (default: IPv4)\n"
+                "\t-d, --daemon\t\t\t\tStart as daemon\n"
 		"\t-h, --help\t\t\t\tShow help\n"
 		"\t-V, --version\t\t\t\tShow version\n"
 		,
@@ -150,6 +151,7 @@ static int parse_options (int argc, char** argv)
 		{ "proxy-port", 1, 0, 'P' },
 		{ "no-color",   0, 0, 'n' },
 		{ "version",    0, 0, 'V' },
+                { "daemon",     0, 0, 'd' },
 		{ 0, 0, 0, 0 }
 	};
 
@@ -161,6 +163,7 @@ static int parse_options (int argc, char** argv)
 	cfg->ip_version		= CFG_DEFAULT_IP_VERSION;
 	cfg->try_exit		= 0;
 	cfg->try_exit_max	= CFG_DEFAULT_TRY_EXIT_MAX;
+        cfg->daemon		= false;
 
 	plugin_path		= CFG_DEFAULT_PLUGINS_PATH;
 	keyfile			= CFG_DEFAULT_SSL_KEYFILE;
@@ -170,7 +173,7 @@ static int parse_options (int argc, char** argv)
 	/* parse command line arguments */
 	while (1) {
 		curopt_idx = 0;
-		curopt = getopt_long (argc,argv,"n46Vhvb:p:l:t:c:k:x:X:P:",long_opts, &curopt_idx);
+		curopt = getopt_long (argc,argv,"dn46Vhvb:p:l:t:c:k:x:X:P:",long_opts, &curopt_idx);
 		if (curopt == -1) break;
 
 		switch (curopt) {
@@ -192,6 +195,7 @@ static int parse_options (int argc, char** argv)
 			case '4': cfg->ip_version = AF_INET; break;
 			case '6': cfg->ip_version = AF_INET6; break;
 			case 'x': plugin_path = optarg; break;
+                        case 'd': cfg->daemon = true; break;
 			case '?':
 			default:
 				usage (EXIT_FAILURE);
@@ -273,6 +277,21 @@ static int parse_options (int argc, char** argv)
 			return -1;
 		}
 	}
+
+        /* become a daemon */
+        if(cfg->daemon) {
+                if (cfg->verbose){
+                        xlog(LOG_WARNING, "%s will now run as daemon\n", PROGNAME);
+                        xlog(LOG_WARNING, "%s\n", "Use `control-client.py' to interact with the process.");
+                }
+
+                if (daemon(0, 0) < 0) {
+                        xlog(LOG_ERROR, "daemon failed: %s\n", strerror(errno));
+                        return -1;
+                }
+
+                cfg->verbose = 0;
+        }
 
 	return 0;
 
