@@ -10,7 +10,7 @@ requests/responses sent by your Web browser.
 
 ``` bash
 $ git clone https://github.com/hugsy/proxenet.git
-$ cd proxenet && ./make.sh
+$ cd proxenet && cmake . && make
 ```
 
 
