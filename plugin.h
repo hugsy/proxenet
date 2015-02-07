@@ -155,14 +155,13 @@ typedef struct _plugin_type {
                 snprintf(p, len, "%s/%s", cfg->plugins_path, f);        \
         }
 
-int		proxenet_add_new_plugins(char*, char*);
-unsigned int 	proxenet_plugin_list_size();
-void		proxenet_remove_plugin(plugin_t*);
-void 		proxenet_remove_all_plugins();
-void 		proxenet_print_plugins_list();
-int		count_plugins_by_type(int);
-char*		get_plugin_path(char*);
-int		count_initialized_plugins_by_type(int);
-
+unsigned int 		proxenet_plugin_list_size();
+unsigned int		count_plugins_by_type(supported_plugins_t);
+unsigned int		count_initialized_plugins_by_type(supported_plugins_t);
+int			proxenet_add_new_plugins(char*, char*);
+void			proxenet_remove_plugin(plugin_t*);
+void 			proxenet_remove_all_plugins();
+void 			proxenet_print_plugins_list();
+char*			get_plugin_path(char*);
 
 #endif /* _PLUGINS_H */

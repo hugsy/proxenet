@@ -338,9 +338,9 @@ int proxenet_add_new_plugins(char* plugin_path, char* plugin_name)
 /**
  *
  */
-int count_plugins_by_type(int type)
+unsigned int count_plugins_by_type(supported_plugins_t type)
 {
-	int i=0;
+	unsigned int i=0;
 	plugin_t* p;
 
 	for(p=plugins_list; p!=NULL; p=p->next)
@@ -353,13 +353,13 @@ int count_plugins_by_type(int type)
 /**
  *
  */
-int count_initialized_plugins_by_type(int type)
+unsigned int count_initialized_plugins_by_type(supported_plugins_t type)
 {
-	int i=0;
+	unsigned int i=0;
 	plugin_t* p;
 
 	for(p=plugins_list; p!=NULL; p=p->next)
-		if (p->type  ==type &&
+		if (p->type  == type &&
 		    p->state == ACTIVE &&
 		    p->interpreter!=NULL) i++;
 
