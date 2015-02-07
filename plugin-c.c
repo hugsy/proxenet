@@ -1,8 +1,12 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #ifdef _C_PLUGIN
 
 /*******************************************************************************
  *
- * C plugin 
+ * C plugin
  *
  */
 
@@ -19,16 +23,16 @@
 /**
  *
  */
-int proxenet_c_initialize_vm(plugin_t* plugin) 
+int proxenet_c_initialize_vm(plugin_t* plugin)
 {
 	size_t pathlen;
 	char *pathname;
 	void *interpreter;
-	
+
 	pathlen = strlen(cfg->plugins_path) + 1 + strlen(plugin->filename) + 1;
 	pathname = alloca(pathlen + 1);
 	proxenet_xzero(pathname, pathlen+1);
-	
+
 	if (snprintf(pathname, pathlen, "%s/%s", cfg->plugins_path, plugin->filename) < 0) {
 		xlog(LOG_CRITICAL,"%s\n", "Failed to get path");
 		return -1;
@@ -56,16 +60,16 @@ int proxenet_c_destroy_vm(plugin_t* plugin)
 
 	if (interpreter) {
 		plugin->pre_function  = NULL;
-		plugin->post_function = NULL;		
-		
+		plugin->post_function = NULL;
+
 		if (dlclose(interpreter) < 0) {
-			xlog(LOG_ERROR, "[C] Failed to close interpreter for %s\n", plugin->name); 
+			xlog(LOG_ERROR, "[C] Failed to close interpreter for %s\n", plugin->name);
 			return -1;
 		}
-		
+
 		interpreter = NULL;
 		return 0;
-		
+
 	} else {
 		xlog(LOG_ERROR, "%s\n", "[C] Cannot destroy uninitialized interpreter");
 		return -1;
@@ -83,10 +87,10 @@ int proxenet_c_initialize_function(plugin_t* plugin, req_t type)
 	/* if already initialized, return ok */
 	if (plugin->pre_function && type==REQUEST)
 		return 0;
-	
+
 	if (plugin->post_function && type==RESPONSE)
 		return 0;
-	
+
 	interpreter = (void *) plugin->interpreter;
 
 	if (type == REQUEST) {
@@ -94,10 +98,10 @@ int proxenet_c_initialize_function(plugin_t* plugin, req_t type)
 		if (plugin->pre_function) {
 #ifdef DEBUG
 			xlog(LOG_DEBUG, "[C] Pre func is at %p\n", plugin->pre_function);
-#endif			
+#endif
 			return 0;
 		}
-		
+
 	} else {
 		plugin->post_function = dlsym(interpreter, CFG_RESPONSE_PLUGIN_FUNCTION);
 		if (plugin->post_function) {
@@ -106,9 +110,9 @@ int proxenet_c_initialize_function(plugin_t* plugin, req_t type)
 #endif
 			return 0;
 		}
-		
+
 	}
-	
+
 	xlog(LOG_ERROR, "[C] dlsym failed: %s\n", dlerror());
 	return -1;
 }
@@ -123,7 +127,7 @@ char* proxenet_c_plugin(plugin_t *plugin, request_t *request)
 	char *bufres;
 
 	bufres = NULL;
-	
+
 	if (request->type == REQUEST)
 		plugin_function = plugin->pre_function;
 	else
@@ -134,7 +138,7 @@ char* proxenet_c_plugin(plugin_t *plugin, request_t *request)
 		return NULL;
 
 	request->size = strlen(bufres);
-	
+
 	return bufres;
 }
 

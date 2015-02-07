@@ -1,3 +1,6 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #ifdef _PYTHON_PLUGIN
 /* Python2 API specificity : http://docs.python.org/2/c-api/intro.html#includes */
 #include <Python.h>
@@ -577,8 +580,7 @@ void proxenet_process_http_request(sock_t server_socket)
 #endif
 			/* send modified data */
 			if (is_ssl) {
-				retcode = proxenet_ssl_write(client_socket, req.data, req.size,
-							     &(ssl_context.client.context));
+				retcode = proxenet_ssl_write(&(ssl_context.client.context), req.data, req.size);
 			} else {
 				retcode = proxenet_write(client_socket, req.data, req.size);
 			}
@@ -624,7 +626,7 @@ void proxenet_process_http_request(sock_t server_socket)
 
 			/* send modified data to client */
 			if (is_ssl)
-				retcode = proxenet_ssl_write(server_socket, req.data, req.size, &ssl_context.server.context);
+				retcode = proxenet_ssl_write(&(ssl_context.server.context), req.data, req.size);
 			else
 				retcode = proxenet_write(server_socket, req.data, req.size);
 

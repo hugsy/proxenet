@@ -1,3 +1,7 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <fcntl.h>
 #include <getopt.h>
 #include <stdio.h>
@@ -21,7 +25,7 @@
 /**
  *
  */
-void version(bool end)
+static void version(bool end)
 {
 	printf("%s v%s\n", PROGNAME, VERSION);
 	if (end) {
@@ -34,7 +38,7 @@ void version(bool end)
 /**
  *
  */
-void usage(int retcode)
+static void usage(int retcode)
 {
 	FILE* fd;
 	fd = (retcode == 0) ? stdout : stderr;
@@ -75,7 +79,7 @@ void usage(int retcode)
 /**
  *
  */
-void help(char* argv0)
+static void help()
 {
 	const char* plugin_name;
 	const char* plugin_ext;
@@ -120,7 +124,7 @@ void help(char* argv0)
  * @return 0 if successfully parsed and allocated
  * @return -1
  */
-int parse_options (int argc, char** argv)
+static int parse_options (int argc, char** argv)
 {
 	int curopt, curopt_idx;
 	char *logfile, *plugin_path, *keyfile, *certfile;
@@ -178,7 +182,7 @@ int parse_options (int argc, char** argv)
 			case 'P': proxy_port = optarg; break;
 			case 'c': certfile = optarg; break;
 			case 'k': keyfile = optarg; break;
-			case 'h': help(argv[0]); break;
+			case 'h': help(); break;
 			case 'V': version(true); break;
 			case 'n': cfg->use_color = false; break;
 			case '4': cfg->ip_version = AF_INET; break;
@@ -327,7 +331,7 @@ void proxenet_free_config()
 /**
  *
  */
-int main (int argc, char **argv, char** envp)
+int main (int argc, char **argv, char **envp)
 {
 	int retcode = -1;
 

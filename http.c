@@ -140,9 +140,10 @@ bool is_valid_http_request(char** request, size_t* request_len)
 {
 	size_t new_request_len = -1;
 	char *old_ptr, *new_ptr;
-	int i = -1;
-	int offlen = -1;
+	unsigned int i;
+	int offlen;
 
+        offlen = -1;
 	old_ptr = new_ptr = NULL;
 	old_ptr = strstr(*request, "http://");
 	if (old_ptr)
@@ -170,8 +171,9 @@ bool is_valid_http_request(char** request, size_t* request_len)
 	xlog(LOG_DEBUG, "Adjusting buffer to %d->%d bytes\n", *request_len, new_request_len);
 #endif
 
-	for (i=0; i<new_request_len - (old_ptr-*request);i++)
+	for (i=0; i<new_request_len - (old_ptr-*request);i++) {
 		*(old_ptr+i) = *(new_ptr+i);
+        }
 
 	*request = proxenet_xrealloc(*request, new_request_len);
 	*request_len = new_request_len;

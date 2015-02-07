@@ -37,13 +37,7 @@ typedef enum __supported_plugins_t {
 
 const static UNUSED char* supported_plugins_str[] = {
 #ifdef _PYTHON_PLUGIN
-	#if _PYTHON_MAJOR_ == 2
-	"Python2",
-	#elif _PYTHON_MAJOR_ == 3
-	"Python3",
-	#else
-	"Unknown Python version (incorrect build?)",
-	#endif
+	_PYTHON_VERSION_,
 #endif
 
 #ifdef _C_PLUGIN
@@ -51,13 +45,7 @@ const static UNUSED char* supported_plugins_str[] = {
 #endif
 
 #ifdef _RUBY_PLUGIN
-	#if _RUBY_MINOR_ == 8
-	"Ruby1.8",
-	#elif _RUBY_MINOR_ == 9
-	"Ruby1.9",
-	#else
-	"Unknown Ruby version (incorrect build?)",
-	#endif
+        _RUBY_VERSION_,
 #endif
 
 #ifdef _PERL_PLUGIN
@@ -167,14 +155,14 @@ typedef struct _plugin_type {
                 snprintf(p, len, "%s/%s", cfg->plugins_path, f);        \
         }
 
-int	proxenet_add_new_plugins(char*, char*);
-int 	proxenet_plugin_list_size();
-void	proxenet_remove_plugin(plugin_t*);
-void 	proxenet_remove_all_plugins();
-void 	proxenet_print_plugins_list();
-int	count_plugins_by_type(int);
-char*	get_plugin_path(char*);
-int	count_initialized_plugins_by_type(int);
+int		proxenet_add_new_plugins(char*, char*);
+unsigned int 	proxenet_plugin_list_size();
+void		proxenet_remove_plugin(plugin_t*);
+void 		proxenet_remove_all_plugins();
+void 		proxenet_print_plugins_list();
+int		count_plugins_by_type(int);
+char*		get_plugin_path(char*);
+int		count_initialized_plugins_by_type(int);
 
 
 #endif /* _PLUGINS_H */

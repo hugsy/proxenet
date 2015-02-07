@@ -1,3 +1,7 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #ifdef _PERL_PLUGIN
 
 /*******************************************************************************
@@ -28,7 +32,6 @@ static PerlInterpreter *my_perl;
 static int proxenet_perl_load_file(plugin_t* plugin)
 {
 	char *pathname = NULL;
-	size_t pathlen = 0;
 	SV* sv = NULL;
 	int nb_res = -1;
 	SV* package_sv = NULL;
@@ -168,7 +171,7 @@ int proxenet_perl_destroy_vm(plugin_t* plugin)
 /**
  *
  */
-static char* proxenet_perl_execute_function(plugin_t* plugin, const char* fname, long rid, char* request_str, size_t* request_size)
+static char* proxenet_perl_execute_function(const char* fname, long rid, char* request_str, size_t* request_size)
 {
 	dSP;
 	char *res, *data;
@@ -247,7 +250,7 @@ char* proxenet_perl_plugin(plugin_t* plugin, request_t* request)
 		function_name = plugin->post_function;
 
 	proxenet_perl_lock_vm(interpreter);
-	buf = proxenet_perl_execute_function(plugin, function_name, request->id, request->data, &request->size);
+	buf = proxenet_perl_execute_function(function_name, request->id, request->data, &request->size);
 	proxenet_perl_unlock_vm(interpreter);
 
 	return buf;

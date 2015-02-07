@@ -259,7 +259,7 @@ int proxenet_read_all(sock_t sock, char** ptr, proxenet_ssl_context_t* ssl)
 
 		if (ssl) {
 			/* ssl */
-			ret = proxenet_ssl_read(sock, current_offset, MAX_READ_SIZE, ssl);
+			ret = proxenet_ssl_read(ssl, current_offset, MAX_READ_SIZE);
 		} else {
 			/* plaintext */
 			ret = proxenet_read(sock, current_offset, MAX_READ_SIZE);

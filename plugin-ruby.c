@@ -1,3 +1,7 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #ifdef _RUBY_PLUGIN
 
 /*******************************************************************************
@@ -80,13 +84,13 @@ int proxenet_ruby_initialize_vm(plugin_t* plugin)
 	/* init vm */
 	ruby_init();
 
-#if _RUBY_MINOR_ == 9
+#if (_RUBY_MAJOR_ == 2 || (_RUBY_MAJOR_ == 1 && _RUBY_MINOR_ == 9))
 #ifdef DEBUG
 	xlog(LOG_DEBUG, "%s\n", "Using Ruby 1.9 C API");
 #endif
 	interpreter->vm = (void*) rb_cObject;
 
-#elif RUBY_MINOR_ == 8
+#elif (_RUBY_MAJOR_ == 1 && _RUBY_MINOR_ == 8)
 #ifdef DEBUG
 	xlog(LOG_DEBUG, "%s\n", "Using Ruby 1.8 C API");
 #endif

@@ -97,10 +97,10 @@ void proxenet_add_plugin(char* name, supported_plugins_t type, short priority)
 /**
  *
  */
-int proxenet_plugin_list_size()
+unsigned int proxenet_plugin_list_size()
 {
 	plugin_t *p;
-	int i;
+	unsigned int i;
 
 	for (p=plugins_list, i=0; p!=NULL; p=p->next, i++);
 

@@ -278,7 +278,7 @@ static ssize_t proxenet_ssl_ioctl(int (*func)(), void *buf, size_t count, proxen
 /**
  *
  */
-ssize_t proxenet_ssl_read(sock_t sock, void *buf, size_t count, proxenet_ssl_context_t* ssl)
+ssize_t proxenet_ssl_read(proxenet_ssl_context_t* ssl, void *buf, size_t count)
 {
 	int (*func)() = &ssl_read;
 	int ret = -1;
@@ -300,12 +300,12 @@ ssize_t proxenet_ssl_read(sock_t sock, void *buf, size_t count, proxenet_ssl_con
 /**
  *
  */
-ssize_t proxenet_ssl_write(sock_t sock, void *buf, size_t count, proxenet_ssl_context_t* ssl_sess)
+ssize_t proxenet_ssl_write(proxenet_ssl_context_t* ssl, void *buf, size_t count)
 {
 	int (*func)() = &ssl_write;
 	int ret = -1;
 
-	ret = proxenet_ssl_ioctl(func, buf, count, ssl_sess);
+	ret = proxenet_ssl_ioctl(func, buf, count, ssl);
 	if (ret < 0)
 		xlog(LOG_ERROR, "%s\n", "Error while writing SSL stream");
 

@@ -1,6 +1,10 @@
 #ifndef _UTILS_H
 #define _UTILS_H
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #ifndef SIZE_MAX
 #define SIZE_MAX ~((size_t)1)
 #endif
