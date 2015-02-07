@@ -35,7 +35,7 @@ typedef enum __supported_plugins_t {
 } supported_plugins_t;
 
 
-const static UNUSED char* supported_plugins_str[] = {
+static const UNUSED char* supported_plugins_str[] = {
 #ifdef _PYTHON_PLUGIN
 	_PYTHON_VERSION_,
 #endif
@@ -64,7 +64,7 @@ const static UNUSED char* supported_plugins_str[] = {
 };
 
 
-const static UNUSED char* plugins_extensions_str[] = {
+static const UNUSED char* plugins_extensions_str[] = {
 #ifdef _PYTHON_PLUGIN
 	".py",
 #endif

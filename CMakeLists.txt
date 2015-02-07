@@ -58,10 +58,11 @@ option(DEBUG_SSL              "Enable SSL debug"                       OFF)
 if (DEBUG)
   set(CMAKE_BUILD_TYPE Debug)
   set(CMAKE_C_FLAGS_DEBUG "-ggdb -DDEBUG -O0")
-  set(CMAKE_VERBOSE_MAKEFILE OFF)
+  set(CMAKE_VERBOSE_MAKEFILE ON)
 else()
   set(CMAKE_BUILD_TYPE None)
   set(CMAKE_C_FLAGS "-O3")
+  set(CMAKE_VERBOSE_MAKEFILE OFF)
 endif(DEBUG)
 
 # main files to compile
