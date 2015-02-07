@@ -55,6 +55,7 @@ Simply run an instance with the `-d` option.
 $ ./proxenet -dv
 WARNING: proxenet will now run as daemon
 WARNING: Use `control-client.py' to interact with the process.
+$
 ```
 
 ## Control client
