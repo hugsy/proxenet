@@ -27,6 +27,10 @@ typedef enum __supported_plugins_t {
 	_LUA_,
 #endif
 
+#ifdef _TCL_PLUGIN
+	_TCL_,
+#endif
+
   END_VALUE
 } supported_plugins_t;
 
@@ -64,6 +68,10 @@ const static UNUSED char* supported_plugins_str[] = {
 	"Lua",
 #endif
 
+#ifdef _TCL_PLUGIN
+	"Tcl",
+#endif
+
   NULL
 };
 
@@ -89,10 +97,14 @@ const static UNUSED char* plugins_extensions_str[] = {
 	".lua",
 #endif
 
+#ifdef _LUA_PLUGIN
+	".tcl",
+#endif
+
   NULL
 };
 
-#define MAX_VMS 5
+#define MAX_VMS 6
 
 typedef struct _http_request_fields
 {
@@ -145,6 +157,15 @@ typedef struct _plugin_type {
 } plugin_t;
 
 #include "http.h"
+
+#define PROXENET_ABSOLUTE_PLUGIN_PATH(f, p)                             \
+        {                                                               \
+                size_t len;                                             \
+                len = strlen(cfg->plugins_path) + 1 + strlen(f) + 1;    \
+                p = alloca(len + 1);                                    \
+                proxenet_xzero(p, len + 1);                             \
+                snprintf(p, len, "%s/%s", cfg->plugins_path, f);        \
+        }
 
 int	proxenet_add_new_plugins(char*, char*);
 int 	proxenet_plugin_list_size();

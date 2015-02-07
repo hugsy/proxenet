@@ -7,25 +7,25 @@
 PROGNAME			=	\"proxenet\"
 AUTHOR				= 	\"hugsy\"
 LICENSE				=	\"GPLv2\"
-VERSION_MAJOR		= 	0
-VERSION_MINOR		= 	3
+VERSION_MAJOR			= 	0
+VERSION_MINOR			= 	3
 VERSION_REL			=	git
-VERSION         	=       \"$(VERSION_MAJOR).$(VERSION_MINOR)-$(VERSION_REL)\"
-ARCH            	=       $(shell uname)
-DEBUG           	=       0
+VERSION      		   	=       \"$(VERSION_MAJOR).$(VERSION_MINOR)-$(VERSION_REL)\"
+ARCH            		=       $(shell uname)
+DEBUG		           	=       0
 DEBUG_SSL			=       0
 
-CC					=       cc
-BIN	  				=       proxenet
+CC				=       cc
+BIN	  			=       proxenet
 DEFINES				=       -DPROGNAME=$(PROGNAME) -DVERSION=$(VERSION) -DAUTHOR=$(AUTHOR) -DLICENSE=$(LICENSE)
-CHARDEN				=		-fstack-protector-all
-LHARDEN				=		-Wl,-z,relro
+CHARDEN				=	-fstack-protector-all
+LHARDEN				=	-Wl,-z,relro
 LDFLAGS				=       -lpthread $(LHARDEN)
-SRC					=		$(wildcard *.c)
-OBJECTS         	=       $(patsubst %.c, %.o, $(SRC))
-INC					=      	-I/usr/include -pthread
-CFLAGS				=		-Wall $(DEFINES) $(INC) -pthread $(CHARDEN)
-LIB					= 		-L/lib
+SRC				=	$(wildcard *.c)
+OBJECTS         		=       $(patsubst %.c, %.o, $(SRC))
+INC				=      	-I/usr/include -pthread
+CFLAGS				=	-Wall $(DEFINES) $(INC) -pthread $(CHARDEN)
+LIB				= 	-L/lib
 
 
 # if DEBUG
@@ -74,7 +74,7 @@ TEST_ARGS		= 	-4 -vvvv -t 10 -b 0.0.0.0 -p 8000
 
 
 # Compile rules
-.PHONY : all install uninstall check-syntax clean keys tags purge test check-required check-plugins check-python check-lua check-ruby check-perl leaks
+.PHONY : all install uninstall check-syntax clean keys tags purge test check-required check-plugins check-python check-lua check-ruby check-perl check-tcl leaks
 
 .c.o :
 	@echo "[+] CC $< -> $@"
@@ -107,7 +107,7 @@ uninstall: clean
 
 check-required: check-polarssl check-dl
 
-check-plugins: check-python check-lua check-ruby check-perl
+check-plugins: check-python check-lua check-ruby check-perl check-tcl
 
 check-polarssl:
 	@echo -n "[+] Looking for required 'polarssl' library ... "
@@ -182,6 +182,18 @@ ifeq ($(strip $(shell pkg-config --cflags --libs $(PERL_VERSION) >/dev/null 2>&1
 else
 	@echo "not found"
 endif
+endif
+
+check-tcl:
+ifeq ($(NO_TCL), 1)
+	@echo "[-] Explicitly disabling TCL support"
+else
+	@echo -n "[+] Looking for required 'tcl' library ... "
+	@echo "int main(int a,char** b){return 0;}">_a.c; $(CC) _a.c -ltcl || (echo "not found"; rm -fr _a.c && exit 1)
+	@rm -fr _a.c a.out
+	@echo "found"
+	$(eval DEFINES += -D_TCL_PLUGIN -I/usr/include/tcl8.6/)
+	$(eval LDFLAGS += -ltcl )
 endif
 
 # Packaging

@@ -34,16 +34,11 @@ int proxenet_ruby_load_file(plugin_t* plugin)
 {
 	char* filename;
 	char* pathname;
-	size_t pathname_len;
 	int res = 0;
 
 	filename = plugin->filename;
 
-	/* load script */
-	pathname_len = strlen(cfg->plugins_path) + 1 + strlen(filename) + 1;
-	pathname = alloca(pathname_len + 1);
-	proxenet_xzero(pathname, pathname_len + 1);
-	snprintf(pathname, pathname_len, "%s/%s", cfg->plugins_path, filename);
+        PROXENET_ABSOLUTE_PLUGIN_PATH(filename, pathname);
 
 #if _RUBY_MINOR_ == 9
 	rb_protect(proxenet_ruby_require_cb, (VALUE) pathname, &res);
