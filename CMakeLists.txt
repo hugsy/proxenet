@@ -44,16 +44,16 @@ set(CMAKE_SHARED_LINKER_FLAGS "-Wl,-z,relro")
 
 
 # scripts supports (if libraries can be found)
-option(_C_PLUGIN           "Add C script support"                   ON)
-option(_PYTHON_PLUGIN      "Add Python 2.x script support"          ON)
-option(_PYTHON3_PLUGIN     "Use Python 3.x script support"          OFF)
-option(_LUA_PLUGIN         "Add Lua script support"                 ON)
-option(_RUBY18_PLUGIN      "Add Ruby 1.8 script support"            OFF)
-option(_RUBY_PLUGIN        "Use Ruby 1.9/2.x script support"        OFF)
-option(_PERL_PLUGIN        "Add Perl script support"                ON)
-option(_TCL_PLUGIN         "Add Tcl script support"                 ON)
-option(DEBUG               "Enable Debug"                           OFF)
-option(DEBUG_SSL           "Enable SSL debug"                       OFF)
+option(USE_C_PLUGIN           "Add C script support"                   ON)
+option(USE_PYTHON_PLUGIN      "Add Python 2.x script support"          ON)
+option(USE_PYTHON3_PLUGIN     "Use Python 3.x script support"          OFF)
+option(USE_LUA_PLUGIN         "Add Lua script support"                 ON)
+option(USE_RUBY18_PLUGIN      "Add Ruby 1.8 script support"            OFF)
+option(USE_RUBY_PLUGIN        "Use Ruby 1.9/2.x script support"        OFF)
+option(USE_PERL_PLUGIN        "Add Perl script support"                ON)
+option(USE_TCL_PLUGIN         "Add Tcl script support"                 ON)
+option(DEBUG                  "Enable Debug"                           OFF)
+option(DEBUG_SSL              "Enable SSL debug"                       OFF)
 
 if (DEBUG)
   set(CMAKE_BUILD_TYPE Debug)
@@ -96,7 +96,7 @@ set(ALL_FILES ${CORE_FILES})
 ## Setup plugin integration
 
 # C
-if (_C_PLUGIN)
+if (USE_C_PLUGIN)
   find_library(DL_LIBRARY
               NAMES dl
               PATHS /lib /usr/lib /usr/libexec /usr/local/lib /usr/local/libexec
@@ -104,64 +104,70 @@ if (_C_PLUGIN)
   add_definitions(-DHAVE_DL)
   set(EXTRA_LIBS ${EXTRA_LIBS} dl)
   set(ALL_FILES ${ALL_FILES} plugin-c.c plugin-c.h)
-endif(_C_PLUGIN)
+  set(_C_PLUGIN 1)
+endif(USE_C_PLUGIN)
 
 
 # python2
-if (_PYTHON_PLUGIN)
+if (USE_PYTHON_PLUGIN)
   find_package(Python)
   if(PYTHON_FOUND)
      include_directories(${PYTHON_INCLUDE_PATH})
      set(EXTRA_LIBS ${EXTRA_LIBS} ${PYTHON_LIBRARY})
      set(ALL_FILES ${ALL_FILES} plugin-python.c plugin-python.h)
      set(_PYTHON_VERSION_ ${_PYTHON_MAJOR_}.${_PYTHON_MINOR_})
+     set(_PYTHON_PLUGIN 1)
    endif(PYTHON_FOUND)
-endif (_PYTHON_PLUGIN)
+endif(USE_PYTHON_PLUGIN)
 
 
 # lua
-if (_LUA_PLUGIN)
+if (USE_LUA_PLUGIN)
   find_package(Lua)
   if(LUA_FOUND)
     include_directories(${LUA_INCLUDE_DIRS})
     set(EXTRA_LIBS ${EXTRA_LIBS} ${LUA_LIBRARIES})
     set(ALL_FILES ${ALL_FILES} plugin-lua.c plugin-lua.h)
+    set(_LUA_PLUGIN 1)
   endif(LUA_FOUND)
-endif(_LUA_PLUGIN)
+endif(USE_LUA_PLUGIN)
 
 
 # ruby
-if (_RUBY_PLUGIN)
+if (USE_RUBY_PLUGIN)
   find_package(Ruby)
   if(RUBY_FOUND)
     include_directories(${RUBY_INCLUDE_DIRS})
     set(EXTRA_LIBS ${EXTRA_LIBS} ${RUBY_LIBRARIES})
     set(ALL_FILES ${ALL_FILES} plugin-ruby.c plugin-ruby.h)
     set(_RUBY_VERSION_ ${_RUBY_MAJOR_}.${_RUBY_MINOR_})
+    set(_RUBY_PLUGIN 1)
   endif(RUBY_FOUND)
-endif(_RUBY_PLUGIN)
+endif(USE_RUBY_PLUGIN)
 
 
 # perl
-if (_PERL_PLUGIN)
+if (USE_PERL_PLUGIN)
   find_package(Perl)
   if(PERL_FOUND)
     include_directories(${PERL_INCLUDE_PATH})
     set (EXTRA_LIBS ${EXTRA_LIBS} ${PERL_LIBRARY})
     set (ALL_FILES ${ALL_FILES} plugin-perl.c plugin-perl.h)
+    set (_PERL_PLUGIN 1)
   endif(PERL_FOUND)
-endif(_PERL_PLUGIN)
+endif(USE_PERL_PLUGIN)
 
 
 # tcl
-if (_TCL_PLUGIN)
+if (USE_TCL_PLUGIN)
   find_package(Tcl)
   if(TCL_FOUND)
     include_directories(${TCL_INCLUDE_PATH})
-    set (EXTRA_LIBS ${EXTRA_LIBS} ${TCL_LIBRARY})
-    set (ALL_FILES ${ALL_FILES} plugin-tcl.c plugin-tcl.h)
+    set(EXTRA_LIBS ${EXTRA_LIBS} ${TCL_LIBRARY})
+    set(ALL_FILES ${ALL_FILES} plugin-tcl.c plugin-tcl.h)
+    set(_TCL_PLUGIN 1)
   endif(TCL_FOUND)
-endif(_TCL_PLUGIN)
+endif(USE_TCL_PLUGIN)
 
 
 add_definitions(-DHAVE_CONFIG_H)
