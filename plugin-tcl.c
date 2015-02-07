@@ -60,7 +60,7 @@ int proxenet_tcl_initialize_vm(plugin_t* plugin)
 		return 0;
 
 	tcl_interpreter = Tcl_CreateInterp();
-        if (!Tcl_InterpActive(tcl_interpreter))
+        if (!tcl_interpreter)
                 return -1;
 
         Tcl_Init(tcl_interpreter);
