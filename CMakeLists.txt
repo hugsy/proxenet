@@ -20,16 +20,8 @@ set (VERSION_REL "git")
 set (VERSION "${VERSION_MAJOR}.${VERSION_MINOR}-${VERSION_REL}")
 
 # misc options
-set(CMAKE_VERBOSE_MAKEFILE OFF)
 
 # stable setup
-set(CMAKE_BUILD_TYPE None)
-set(CMAKE_C_FLAGS "-O3")
-
-
-# debug setup
-set(CMAKE_BUILD_TYPE Debug)
-set(CMAKE_C_FLAGS_DEBUG "-ggdb -DDEBUG -O0")
 
 
 # plugin cmake build path
@@ -50,7 +42,17 @@ option(_RUBY18_PLUGIN      "Add Ruby 1.8 script support"            OFF)
 option(_RUBY_PLUGIN        "Use Ruby 1.9/2.x script support"        ON)
 option(_PERL_PLUGIN        "Add Perl script support"                ON)
 option(_TCL_PLUGIN         "Add Tcl script support"                 ON)
+option(DEBUG               "Enable Debug"                           OFF)
+option(DEBUG_SSL           "Enable SSL debug"                       OFF)
 
+if (DEBUG)
+  set(CMAKE_BUILD_TYPE Debug)
+  set(CMAKE_C_FLAGS_DEBUG "-ggdb -DDEBUG -O0")
+  set(CMAKE_VERBOSE_MAKEFILE OFF)
+else()
+  set(CMAKE_BUILD_TYPE None)
+  set(CMAKE_C_FLAGS "-O3")
+endif(DEBUG)
 
 # main files to compile
 set(CORE_FILES
