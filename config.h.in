@@ -49,8 +49,11 @@
 
 #define VERSION_MAJOR   @VERSION_MAJOR@
 #define VERSION_MINOR   @VERSION_MINOR@
-#define VERSION_REL     @VERSION_REL@
+#define VERSION_REL     "@VERSION_REL@"
 #define VERSION         "@VERSION@"
+
+#define SYSTEM          "@CMAKE_SYSTEM@"
+#define CC              "@CMAKE_C_COMPILER_ID@"
 
 
 #cmakedefine _C_PLUGIN
@@ -58,14 +61,14 @@
 #cmakedefine _PYTHON_PLUGIN
 #cmakedefine _PYTHON_MAJOR_    @_PYTHON_MAJOR_@
 #cmakedefine _PYTHON_MINOR_    @_PYTHON_MINOR_@
-#define      _PYTHON_VERSION_  "Python@_PYTHON_MAJOR_@.@_PYTHON_MINOR_@"
+#cmakedefine _PYTHON_VERSION_  "Python@_PYTHON_VERSION_@"
 
 #cmakedefine _LUA_PLUGIN
 
 #cmakedefine _RUBY_PLUGIN
 #cmakedefine _RUBY_MAJOR_      @_RUBY_MAJOR_@
 #cmakedefine _RUBY_MINOR_      @_RUBY_MINOR_@
-#define      _RUBY_VERSION_    "Ruby@_RUBY_MAJOR_@.@_RUBY_MINOR_@"
+#cmakedefine _RUBY_VERSION_    "Ruby@_RUBY_MAJOR_@.@_RUBY_MINOR_@"
 
 #cmakedefine _PERL_PLUGIN
 

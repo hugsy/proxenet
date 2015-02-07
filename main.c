@@ -88,8 +88,12 @@ static void help()
 	version(false);
 	printf("Written by %s\n"
 	       "Released under: %s\n\n"
-	       "Compiled with support for :\n",
-	       AUTHOR, LICENSE);
+	       "Compiled by %s (%s) with support for :\n",
+
+	       AUTHOR,
+               LICENSE,
+               CC,
+               SYSTEM);
 
 	i = 0;
 	while (true) {

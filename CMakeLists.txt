@@ -12,16 +12,26 @@ set (PROGNAME proxenet)
 set (AUTHOR hugsy)
 set (LICENSE GPLv2)
 
-set (DEBUG 0)
+find_program(GIT_EXECUTABLE
+  NAMES git
+  PATHS /usr/bin /usr/local/bin)
+
+if(GIT_EXECUTABLE)
+  execute_process( COMMAND ${GIT_EXECUTABLE} rev-parse --abbrev-ref HEAD
+    OUTPUT_VARIABLE GIT_RELEASE_BRANCH)
+  execute_process( COMMAND ${GIT_EXECUTABLE} log -n 1 --pretty=format:%t
+    OUTPUT_VARIABLE GIT_RELEASE_COMMIT)
+  STRING(STRIP "${GIT_RELEASE_BRANCH}" GIT_RELEASE_BRANCH)
+  STRING(STRIP "${GIT_RELEASE_COMMIT}" GIT_RELEASE_COMMIT)
+  set (VERSION_REL "${GIT_RELEASE_BRANCH}:${GIT_RELEASE_COMMIT}")
+else(GIT_EXECUTABLE)
+  set (VERSION_REL "dev")
+endif(GIT_EXECUTABLE)
 
 set (VERSION_MAJOR 0)
 set (VERSION_MINOR 3)
-set (VERSION_REL "git")
+
 set (VERSION "${VERSION_MAJOR}.${VERSION_MINOR}-${VERSION_REL}")
-
-# misc options
-
-# stable setup
 
 
 # plugin cmake build path
@@ -82,6 +92,7 @@ set(EXTRA_LIBS ${EXTRA_LIBS} polarssl)
 # prepare compilation
 set(ALL_FILES ${CORE_FILES})
 
+
 ## Setup plugin integration
 
 # C
@@ -101,8 +112,9 @@ if (_PYTHON_PLUGIN)
   find_package(Python)
   if(PYTHON_FOUND)
      include_directories(${PYTHON_INCLUDE_PATH})
-     set (EXTRA_LIBS ${EXTRA_LIBS} ${PYTHON_LIBRARY})
+     set(EXTRA_LIBS ${EXTRA_LIBS} ${PYTHON_LIBRARY})
      set(ALL_FILES ${ALL_FILES} plugin-python.c plugin-python.h)
+     set(_PYTHON_VERSION_ ${_PYTHON_MAJOR_}.${_PYTHON_MINOR_})
    endif(PYTHON_FOUND)
 endif (_PYTHON_PLUGIN)
 
@@ -112,7 +124,7 @@ if (_LUA_PLUGIN)
   find_package(Lua)
   if(LUA_FOUND)
     include_directories(${LUA_INCLUDE_DIRS})
-    set (EXTRA_LIBS ${EXTRA_LIBS} ${LUA_LIBRARIES})
+    set(EXTRA_LIBS ${EXTRA_LIBS} ${LUA_LIBRARIES})
     set(ALL_FILES ${ALL_FILES} plugin-lua.c plugin-lua.h)
   endif(LUA_FOUND)
 endif(_LUA_PLUGIN)
@@ -123,8 +135,9 @@ if (_RUBY_PLUGIN)
   find_package(Ruby)
   if(RUBY_FOUND)
     include_directories(${RUBY_INCLUDE_DIRS})
-    set (EXTRA_LIBS ${EXTRA_LIBS} ${RUBY_LIBRARIES})
-    set (ALL_FILES ${ALL_FILES} plugin-ruby.c plugin-ruby.h)
+    set(EXTRA_LIBS ${EXTRA_LIBS} ${RUBY_LIBRARIES})
+    set(ALL_FILES ${ALL_FILES} plugin-ruby.c plugin-ruby.h)
+    set(_RUBY_VERSION_ ${_RUBY_MAJOR_}.${_RUBY_MINOR_})
   endif(RUBY_FOUND)
 endif(_RUBY_PLUGIN)
 
