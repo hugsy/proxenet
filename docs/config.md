@@ -20,17 +20,17 @@ $ ./proxenet --key=/path/to/ssl.key --cert=/path/to/ssl.crt
 
 - If you don't trust me (which is a good thing), you can re-generate new SSL keys easily:
 ```
-$ make keys
+$ make -C keys
 ```
 
 ## Proxy forwarding
 
-`proxenet` can seemlessly relay HTTP traffic to another HTTP proxy.
+`proxenet` can also seemlessly relay HTTP traffic and forward it to another HTTP proxy.
 
 ``` bash
 $ ./proxenet -X 192.168.128.1 --proxy-port 3128
-INFO: tid-139759413225216 in `xloop'(core.c:729) Starting interactive mode, press h for help
-INFO: tid-139759413225216 in `xloop'(core.c:826) Infos:
+INFO: Starting interactive mode, press h for help
+INFO: Infos:
 - Listening interface: localhost/8008
 - Supported IP version: IPv4
 - Logging to stdout
@@ -44,5 +44,38 @@ Plugins list:
 |_ priority=2   id=2   type=Ruby      [0x1] name=InjectRequest        (ACTIVE)
 |_ priority=2   id=3   type=Python    [0x0] name=InjectRequest        (ACTIVE)
 |_ priority=9   id=4   type=Python    [0x0] name=Intercept            (ACTIVE)
-
 ```
+
+## Daemon mode
+
+Running as daemon will make `proxenet` detach from the current terminal session. This could be very convenient if it is used on a shared host.
+
+Simply run an instance with the `-d` option.
+```bash
+$ ./proxenet -dv
+WARNING: proxenet will now run as daemon
+WARNING: Use `control-client.py' to interact with the process.
+```
+
+## Control client
+As mentionned, it is still possible to interact with the process using the control pipe. A client is provided for more commodity, and only requires Python interpreter. To spawn, run
+```bash
+$ python2 ./control-client.py
+[*] 2015/02/07 22:37:51: Connected
+Welcome on proxenet control interface
+Type `help` to list available commands
+>>> info
+Infos:
+- Listening interface: localhost/8008
+- Supported IP version: IPv4
+- Logging to stdout
+- SSL private key: /home/hugsy/code/proxenet/keys/proxenet.key
+- SSL certificate: /home/hugsy/code/proxenet/keys/proxenet.crt
+- Proxy: None [direct]
+- Plugins directory: /home/hugsy/code/proxenet/proxenet-plugins
+- Autoloading plugins directory: /home/hugsy/code/proxenet/proxenet-plugins/autoload
+- Running/Max threads: 0/10
+No plugin loaded
+```
+
+This interface provides an easy way to control `proxenet`, allowing for instance to increase/decrease the number of threads that can be spawned, pause the intercept process (blocking new HTTP request), loading new plugins, etc.)
