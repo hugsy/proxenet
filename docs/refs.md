@@ -21,3 +21,8 @@ List of some nice references found on about interacting high levels VM with C
 * http://pgl.yoyo.org/luai/i/lua_getfenv
 * http://gamedevgeek.com/tutorials/calling-lua-functions/
 * http://www.troubleshooters.com/codecorn/lua/lua_c_calls_lua.htm
+
+### tcl
+* http://tmml.sourceforge.net/doc/tcl/#DIVid81d4430
+* http://www.tcl.tk/man/tcl8.0/TclLib/
+* https://github.com/weechat/weechat/blob/master/src/plugins/tcl/weechat-tcl.c
