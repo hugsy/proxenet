@@ -47,7 +47,7 @@ option(_PYTHON_PLUGIN      "Add Python 2.x script support"          ON)
 option(_PYTHON3_PLUGIN     "Use Python 3.x script support"          OFF)
 option(_LUA_PLUGIN         "Add Lua script support"                 ON)
 option(_RUBY18_PLUGIN      "Add Ruby 1.8 script support"            OFF)
-option(_RUBY_PLUGIN        "Use Ruby 1.9/2.x script support"        ON)
+option(_RUBY_PLUGIN        "Use Ruby 1.9/2.x script support"        OFF)
 option(_PERL_PLUGIN        "Add Perl script support"                ON)
 option(_TCL_PLUGIN         "Add Tcl script support"                 ON)
 
