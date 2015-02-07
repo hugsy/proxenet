@@ -77,10 +77,10 @@ find_package(PolarSSL REQUIRED)
 add_definitions(-DHAVE_POLARSSL)
 set(EXTRA_LIBS ${EXTRA_LIBS} polarssl)
 
+# prepare compilation
+set(ALL_FILES ${CORE_FILES})
 
 ## Setup plugin integration
-
-set(ALL_FILES ${CORE_FILES} )
 
 # C
 if (_C_PLUGIN)
@@ -96,46 +96,56 @@ endif(_C_PLUGIN)
 
 # python2
 if (_PYTHON_PLUGIN)
-   find_package(Python)
-   include_directories(${PYTHON_INCLUDE_PATH})
-   set (EXTRA_LIBS ${EXTRA_LIBS} ${PYTHON_LIBRARY})
-   set(ALL_FILES ${ALL_FILES} plugin-python.c plugin-python.h)
+  find_package(Python)
+  if(PYTHON_FOUND)
+     include_directories(${PYTHON_INCLUDE_PATH})
+     set (EXTRA_LIBS ${EXTRA_LIBS} ${PYTHON_LIBRARY})
+     set(ALL_FILES ${ALL_FILES} plugin-python.c plugin-python.h)
+   endif(PYTHON_FOUND)
 endif (_PYTHON_PLUGIN)
 
 
 # lua
 if (_LUA_PLUGIN)
   find_package(Lua)
-  include_directories(${LUA_INCLUDE_DIRS})
-  set (EXTRA_LIBS ${EXTRA_LIBS} ${LUA_LIBRARIES})
-  set(ALL_FILES ${ALL_FILES} plugin-lua.c plugin-lua.h)
+  if(LUA_FOUND)
+    include_directories(${LUA_INCLUDE_DIRS})
+    set (EXTRA_LIBS ${EXTRA_LIBS} ${LUA_LIBRARIES})
+    set(ALL_FILES ${ALL_FILES} plugin-lua.c plugin-lua.h)
+  endif(LUA_FOUND)
 endif(_LUA_PLUGIN)
 
 
 # ruby
 if (_RUBY_PLUGIN)
-   find_package(Ruby)
-   include_directories(${RUBY_INCLUDE_DIRS})
-   set (EXTRA_LIBS ${EXTRA_LIBS} ${RUBY_LIBRARIES})
-   set (ALL_FILES ${ALL_FILES} plugin-ruby.c plugin-ruby.h)
+  find_package(Ruby)
+  if(RUBY_FOUND)
+    include_directories(${RUBY_INCLUDE_DIRS})
+    set (EXTRA_LIBS ${EXTRA_LIBS} ${RUBY_LIBRARIES})
+    set (ALL_FILES ${ALL_FILES} plugin-ruby.c plugin-ruby.h)
+  endif(RUBY_FOUND)
 endif(_RUBY_PLUGIN)
 
 
 # perl
 if (_PERL_PLUGIN)
-   find_package(Perl)
-   include_directories(${PERL_INCLUDE_PATH})
-   set (EXTRA_LIBS ${EXTRA_LIBS} ${PERL_LIBRARY})
-   set (ALL_FILES ${ALL_FILES} plugin-perl.c plugin-perl.h)
+  find_package(Perl)
+  if(PERL_FOUND)
+    include_directories(${PERL_INCLUDE_PATH})
+    set (EXTRA_LIBS ${EXTRA_LIBS} ${PERL_LIBRARY})
+    set (ALL_FILES ${ALL_FILES} plugin-perl.c plugin-perl.h)
+  endif(PERL_FOUND)
 endif(_PERL_PLUGIN)
 
 
 # tcl
 if (_TCL_PLUGIN)
-   find_package(Tcl)
-   include_directories(${TCL_INCLUDE_PATH})
-   set (EXTRA_LIBS ${EXTRA_LIBS} ${TCL_LIBRARY})
-   set (ALL_FILES ${ALL_FILES} plugin-tcl.c plugin-tcl.h)
+  find_package(Tcl)
+  if(TCL_FOUND)
+    include_directories(${TCL_INCLUDE_PATH})
+    set (EXTRA_LIBS ${EXTRA_LIBS} ${TCL_LIBRARY})
+    set (ALL_FILES ${ALL_FILES} plugin-tcl.c plugin-tcl.h)
+  endif(TCL_FOUND)
 endif(_TCL_PLUGIN)
 
 
