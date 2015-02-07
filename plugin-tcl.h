@@ -1,5 +1,8 @@
-#ifdef _TCL_PLUGIN
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
+#ifdef _TCL_PLUGIN
 
 int 	proxenet_tcl_initialize_vm(plugin_t*);
 int	proxenet_tcl_destroy_vm(plugin_t*);

@@ -49,6 +49,9 @@
 #include "plugin-lua.h"
 #endif
 
+#ifdef _TCL_PLUGIN
+#include "plugin-tcl.h"
+#endif
 
 static long	 request_id;
 static pthread_mutex_t request_id_mutex;
@@ -205,6 +208,23 @@ void proxenet_initialize_plugins()
 
 				break;
 #endif
+
+#ifdef _TCL_PLUGIN
+			case _TCL_:
+				if (proxenet_tcl_initialize_vm(plugin) < 0) {
+					plugin->state = INACTIVE;
+					xlog(LOG_ERROR, "%s\n", "Failed to init Lua VM");
+					goto delete_plugin;
+				}
+
+				if (proxenet_tcl_load_file(plugin) < 0) {
+					plugin->state = INACTIVE;
+					xlog(LOG_ERROR, "Failed to load %s\n", plugin->filename);
+					goto delete_plugin;
+				}
+
+				break;
+#endif
 			default:
 				break;
 		}
@@ -272,6 +292,12 @@ void proxenet_destroy_plugins_vm()
 #ifdef _LUA_PLUGIN
 			case _LUA_:
 				proxenet_lua_destroy_vm(p);
+				break;
+#endif
+
+#ifdef _TCL_PLUGIN
+			case _TCL_:
+				proxenet_tcl_destroy_vm(p);
 				break;
 #endif
 
@@ -372,6 +398,11 @@ static int proxenet_apply_plugins(request_t *request)
 				break;
 #endif
 
+#ifdef _TCL_PLUGIN
+			case _TCL_:
+				plugin_function = proxenet_tcl_plugin;
+				break;
+#endif
 			default:
 				xlog(LOG_CRITICAL, "Type %d not supported (yet)\n", p->type);
 				return -1;
