@@ -13,21 +13,15 @@ $ make && sudo make install
 ```
 
 ### Compilation
-Best way to set up a new `proxenet` environment is as this
+In order to build `proxenet` you will need to have [CMake](http://www.cmake.org)
 
 ```bash
 $ git clone https://github.com/hugsy/proxenet.git
-$ cd proxenet
-$ ./make.sh
+$ cd proxenet && cmake . && make
 ```
 
-
-The script will ```Makefile``` to attempt and find available librairies to
-enable plugins support (Python, Ruby, etc.).
-You will need to have the correct libraries installed on your system to compile
-and link it properly (see Language Versions part). It relies on ``` pkg-config
-``` for find flags and librairies used for compilation. Make sure to adjust your `PKG_CONFIG_PATH`.
-
-Compilation under the master branch will disable all the debug output. To
-re-enable them, simply edit `make.sh` and set DEBUG to 1. To  enable the SSL
-debugging output (high verbose), set DEBUG to 2.
+`cmake` will generate the `Makefile` accordingly to your configuration and libraries availableon your system.
+If you want to explicity enable/disable scripting supports, use the option `-D` when using `cmake`. For example, to disable C script support, simply type
+```bash
+$ cmake -D_C_PLUGIN=OFF . && make 
+```
