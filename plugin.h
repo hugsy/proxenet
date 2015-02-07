@@ -52,9 +52,9 @@ const static UNUSED char* supported_plugins_str[] = {
 
 #ifdef _RUBY_PLUGIN
 	#if _RUBY_MINOR_ == 8
-	"Ruby 1.8",
+	"Ruby1.8",
 	#elif _RUBY_MINOR_ == 9
-	"Ruby 1.9",
+	"Ruby1.9",
 	#else
 	"Unknown Ruby version (incorrect build?)",
 	#endif
