@@ -9,7 +9,7 @@ before_script:
 - sudo apt-get install -qq cmake python-dev liblua5.2-dev ruby-dev libruby1.9.1 libperl-dev tcl-dev
 - curl --silent https://polarssl.org/download/polarssl-1.3.9-gpl.tgz | tar xfz - && cd polarssl-1.3.9 && make && sudo make install && cd ..
 
-script: PKG_CONFIG_PATH=`pwd`/pc/ make
+script: cmake . && make
 
 after_script: ./proxenet --help
 
