@@ -29,6 +29,7 @@ If you want to explicity enable/disable scripting supports, use the option `-D` 
 ### Setup the environment
 
 To spawn `proxenet` the first time, you will need to :
+
 1. generate your SSL keys (see "SSL Keys" section in the configuration section)
 2. have a valid plugin directory tree. The best way to achieve this is by cloning the `proxenet-plugins` repository.
 ```bash
