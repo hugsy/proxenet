@@ -87,8 +87,13 @@ set(EXTRA_LIBS "-lpthread")
 
 # check for polarssl (*REQUIRED*)
 find_package(PolarSSL REQUIRED)
-add_definitions(-DHAVE_POLARSSL)
-set(EXTRA_LIBS ${EXTRA_LIBS} polarssl)
+if(POLARSSL_FOUND  AND  POLARSSL_INCLUDE_DIR  AND  POLARSSL_LIBRARIES)
+  add_definitions(-DHAVE_POLARSSL)
+  set(EXTRA_LIBS ${EXTRA_LIBS} polarssl)
+else()
+  message(FATAL_ERROR "PolarSSL is required for compiling ${PROGNAME}.")
+  return()
+endif()
 
 # prepare compilation
 set(ALL_FILES ${CORE_FILES})
@@ -98,14 +103,15 @@ set(ALL_FILES ${CORE_FILES})
 
 # C
 if (USE_C_PLUGIN)
-  find_library(DL_LIBRARY
+  find_library(DL_FOUND
               NAMES dl
-              PATHS /lib /usr/lib /usr/libexec /usr/local/lib /usr/local/libexec
-              )
-  add_definitions(-DHAVE_DL)
-  set(EXTRA_LIBS ${EXTRA_LIBS} dl)
-  set(ALL_FILES ${ALL_FILES} plugin-c.c plugin-c.h)
-  set(_C_PLUGIN 1)
+              PATHS /lib /usr/lib /usr/libexec /usr/local/lib /usr/local/libexec)
+  if(DL_FOUND)
+    add_definitions(-DHAVE_DL)
+    set(EXTRA_LIBS ${EXTRA_LIBS} dl)
+    set(ALL_FILES ${ALL_FILES} plugin-c.c plugin-c.h)
+    set(_C_PLUGIN 1)
+  endif()
 endif(USE_C_PLUGIN)
 
 
@@ -171,11 +177,35 @@ if (USE_TCL_PLUGIN)
 endif(USE_TCL_PLUGIN)
 
 
+# generate config file
 add_definitions(-DHAVE_CONFIG_H)
-
-
 configure_file ("config.h.in" "config.h")
 include_directories (".")
+
+
+# wrap-up message
+message("--------------------------------------------------------------------------")
+message("${PROGNAME} will be compiled with support for:")
+if(DL_FOUND)
+  message("- C plugin")
+endif()
+if(PYTHON_FOUND)
+  message("- Python plugin")
+endif()
+if(RUBY_FOUND)
+  message("- Ruby plugin")
+endif()
+if(PERL_FOUND)
+  message("- Perl plugin")
+endif()
+if(LUA_FOUND)
+  message("- Lua plugin")
+endif()
+if(TCL_FOUND)
+  message("- Tcl plugin")
+endif()
+message("--------------------------------------------------------------------------")
+
 
 # compile and link
 add_executable(proxenet ${ALL_FILES})

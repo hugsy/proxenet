@@ -88,7 +88,7 @@ static void help()
 
 	version(false);
 	printf("Written by %s\n"
-	       "Released under: %s\n\n"
+	       "Released under: %s\n"
 	       "Compiled by %s (%s) with support for :\n",
 
 	       AUTHOR,
