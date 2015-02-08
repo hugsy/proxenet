@@ -84,7 +84,7 @@ if __name__ == "__main__":
                 recv_until(cli)
                 break
 
-            cmd = raw_input( recv_until(cli) +" ")
+            cmd = raw_input( recv_until(cli) )
             cli.send(cmd.strip()+"\n")
             if cmd.strip() == "quit":
                 do_loop = False

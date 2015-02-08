@@ -1,6 +1,7 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+
 #ifdef _PYTHON_PLUGIN
 /* Python2 API specificity : http://docs.python.org/2/c-api/intro.html#includes */
 #include <Python.h>
@@ -566,9 +567,9 @@ void proxenet_process_http_request(sock_t server_socket)
                                 /* check if request is valid  */
 				if (!is_ssl) {
 					if (!is_valid_http_request(&req.data, &req.size)) {
-							proxenet_xfree(req.data);
-							client_socket = -1;
-							break;
+                                                proxenet_xfree(req.data);
+                                                client_socket = -1;
+                                                break;
 					}
 				} else {
 					set_https_infos(&req);

@@ -1,13 +1,16 @@
+#include <alloca.h>
+#include <fcntl.h>
+#include <dirent.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
 #include <errno.h>
+#include <limits.h>
+#include <stdlib.h>
+#include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <fcntl.h>
-#include <dirent.h>
-#include <alloca.h>
 
 #include "core.h"
 #include "utils.h"
@@ -267,7 +270,7 @@ int proxenet_get_plugin_type(char* filename)
  * @param plugin_path is the path to look for plugins
  * @param plugin_name is the name of the plugin to add. If NULL, this function will try
  *        to *all* the files in the directory.
- * @return 0 on success, -1 on error
+ * @return the number of added plugins on success, -1 on error
  */
 int proxenet_add_new_plugins(char* plugin_path, char* plugin_name)
 {
@@ -277,6 +280,7 @@ int proxenet_add_new_plugins(char* plugin_path, char* plugin_name)
 	short type=-1, priority=9;
 	int d_name_len;
         bool add_all = (plugin_name==NULL)?true:false;
+        unsigned int nb_plugin_added = 0;
 
 #ifdef DEBUG
         if (add_all)
@@ -301,6 +305,40 @@ int proxenet_add_new_plugins(char* plugin_path, char* plugin_name)
                 if (!add_all && strcmp(dir_ptr->d_name, plugin_name)!=0)
                         continue;
 
+                if (dir_ptr->d_type == DT_LNK){
+                        /* if entry is a symlink, ensure it's pointing to a file in plugins_path */
+                        ssize_t l;
+                        char buf_link[PATH_MAX] = {0, };
+                        char buf_real[PATH_MAX] = {0, };
+
+                        l = readlink(dir_ptr->d_name, buf_link, PATH_MAX);
+                        if(l == -1){
+                                xlog(LOG_ERROR, "readlink failed on '%s': %d - %s\n",
+                                     dir_ptr->d_name,
+                                     errno,
+                                     strerror(errno));
+                                continue;
+                        }
+
+                        if(!realpath(buf_link, buf_real)){
+                                xlog(LOG_ERROR, "realpath failed on '%s': %d - %s\n",
+                                     dir_ptr->d_name,
+                                     errno,
+                                     strerror(errno));
+                                continue;
+                        }
+
+                        l = strlen(buf_real);
+
+                        if( strncmp(buf_real, cfg->plugins_path, l) != 0 )
+                                continue;
+
+                } else {
+                        /* if not a symlink nor regular file, continue */
+                        if (dir_ptr->d_type != DT_REG)
+                                continue;
+                }
+
                 /* if first char is not valid int, continue */
 		if (atoi(&(dir_ptr->d_name[0])) == 0)
                         continue;
@@ -318,20 +356,23 @@ int proxenet_add_new_plugins(char* plugin_path, char* plugin_name)
 		/* plugin type */
 		type = proxenet_get_plugin_type(name);
 		if (type < 0)
-                        continue;
+                continue;
 
 		/* add plugin in correct place (1: high priority, 9: low priority) */
 		proxenet_add_plugin(name, type, priority);
 
-                /* if add one plugin only, there is no need to keep looping */
-                if (!add_all)
-                        break;
+        nb_plugin_added++;
+
+        /* if add one plugin only, there is no need to keep looping */
+        if (!add_all)
+                break;
 	}
 
-	if (closedir(dir) < 0)
+	if (closedir(dir) < 0){
 		xlog(LOG_WARNING, "Error while closing '%s': %s\n", plugin_path, strerror(errno));
+        }
 
-	return 0;
+	return nb_plugin_added;
 }
 
 
