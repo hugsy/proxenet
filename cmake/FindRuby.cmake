@@ -7,10 +7,6 @@
 # _RUBY_MAJOR_
 # _RUBY_MINOR_
 
-if(RUBY_FOUND)
-  set(RUBY_FIND_QUIETLY TRUE)
-endif()
-
 find_program(RUBY_EXECUTABLE
   NAMES ruby1.9.3 ruby193 ruby1.9.2 ruby192 ruby1.9.1 ruby191 ruby1.9 ruby19 ruby1.8 ruby18 ruby
   PATHS /usr/bin /usr/local/bin /usr/pkg/bin
@@ -29,14 +25,6 @@ if(RUBY_EXECUTABLE)
   set(RUBY_INCLUDE_DIRS ${RUBY_INCLUDE_ARCH_DIR} ${RUBY_INCLUDE_DIR})
 
   # Get Ruby libraries directories
-  execute_process(
-    COMMAND ${RUBY_EXECUTABLE} -r rbconfig -e "print RbConfig::CONFIG['rubylibdir']"
-    OUTPUT_VARIABLE RUBY_LIBRARY_ARCH_DIR
-    )
-  execute_process(
-    COMMAND ${RUBY_EXECUTABLE} -r rbconfig -e "print RbConfig::CONFIG['rubyarchlibdir']"
-    OUTPUT_VARIABLE RUBY_LIBRARY_DIR
-    )
   execute_process(
     COMMAND ${RUBY_EXECUTABLE} -r rbconfig -e "print RbConfig::CONFIG['RUBY_SO_NAME']"
     OUTPUT_VARIABLE RUBY_LIB
