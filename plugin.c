@@ -307,30 +307,30 @@ int proxenet_add_new_plugins(char* plugin_path, char* plugin_name)
 
                 if (dir_ptr->d_type == DT_LNK){
                         /* if entry is a symlink, ensure it's pointing to a file in plugins_path */
-                        ssize_t l;
-                        char buf_link[PATH_MAX] = {0, };
-                        char buf_real[PATH_MAX] = {0, };
+                        ssize_t l = -1;
+                        char fullpath[PATH_MAX] = {0, };
+                        char realpath_buf[PATH_MAX] = {0, };
 
-                        l = readlink(dir_ptr->d_name, buf_link, PATH_MAX);
+                        l = snprintf(fullpath, PATH_MAX, "%s/%s", plugin_path, dir_ptr->d_name);
                         if(l == -1){
-                                xlog(LOG_ERROR, "readlink failed on '%s': %d - %s\n",
-                                     dir_ptr->d_name,
-                                     errno,
-                                     strerror(errno));
-                                continue;
-                        }
+			        xlog(LOG_ERROR, "snprintf() failed on '%s'\n",
+				     dir_ptr->d_name ,
+				     errno,
+				     strerror(errno));
+				continue;
+			}
 
-                        if(!realpath(buf_link, buf_real)){
+                        if(!realpath(fullpath, realpath_buf)){
                                 xlog(LOG_ERROR, "realpath failed on '%s': %d - %s\n",
-                                     dir_ptr->d_name,
+                                     fullpath,
                                      errno,
                                      strerror(errno));
                                 continue;
                         }
 
-                        l = strlen(buf_real);
+                        l = strlen(cfg->plugins_path);
 
-                        if( strncmp(buf_real, cfg->plugins_path, l) != 0 )
+                        if( strncmp(realpath_buf, cfg->plugins_path, l) != 0 )
                                 continue;
 
                 } else {
