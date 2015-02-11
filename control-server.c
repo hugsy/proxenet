@@ -124,7 +124,7 @@ void info_cmd(sock_t fd, char *options, unsigned int nb_options)
 
         /* generic info  */
         n = snprintf(msg, sizeof(msg),
-                     "Infos:\n"
+                     "Configuration:\n"
                      "- Listening interface: %s/%s\n"
                      "- Supported IP version: %s\n"
                      "- Logging to %s\n"
@@ -133,6 +133,7 @@ void info_cmd(sock_t fd, char *options, unsigned int nb_options)
                      "- Proxy: %s [%s]\n"
                      "- Plugins directory: %s\n"
                      "- Autoloading plugins directory: %s\n"
+                     "- Number of requests treated: %u\n"
                      ,
                      cfg->iface, cfg->port,
                      (cfg->ip_version==AF_INET)? "IPv4": (cfg->ip_version==AF_INET6)?"IPv6": "ANY",
@@ -142,7 +143,8 @@ void info_cmd(sock_t fd, char *options, unsigned int nb_options)
                      cfg->proxy.host ? cfg->proxy.host : "None",
                      cfg->proxy.host ? cfg->proxy.port : "direct",
                      cfg->plugins_path,
-                     cfg->autoload_path
+                     cfg->autoload_path,
+                     (request_id-1)
                     );
         proxenet_write(fd, (void*)msg, n);
 

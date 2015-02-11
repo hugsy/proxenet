@@ -36,11 +36,12 @@ set (VERSION "${VERSION_MAJOR}.${VERSION_MINOR}-${VERSION_REL}")
 
 # plugin cmake build path
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/ ${CMAKE_MODULE_PATH})
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIE -Wall -Wextra -Werror-implicit-function-declaration -fstack-protector-all")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIE -fPIC -Wall -Wextra -Werror-implicit-function-declaration -fstack-protector-all")
 if(PREFIX)
         set(CMAKE_INSTALL_PREFIX ${PREFIX} CACHE PATH "Install path prefix" FORCE)
 endif(PREFIX)
-set(CMAKE_SHARED_LINKER_FLAGS "-Wl,-z,relro")
+set(CMAKE_LINK_HARDEN "-Wl,-z,relro,-z,now") # Full RelRO
+set(CMAKE_LINK_HARDEN ${CMAKE_LINK_HARDEN} -pie) # PIE
 
 
 # scripts supports (if libraries can be found)
@@ -61,7 +62,7 @@ if (DEBUG)
   set(CMAKE_VERBOSE_MAKEFILE ON)
 else()
   set(CMAKE_BUILD_TYPE None)
-  set(CMAKE_C_FLAGS "-O3")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3")
   set(CMAKE_VERBOSE_MAKEFILE OFF)
 endif(DEBUG)
 
@@ -209,7 +210,7 @@ message("-----------------------------------------------------------------------
 
 # compile and link
 add_executable(proxenet ${ALL_FILES})
-target_link_libraries(proxenet ${EXTRA_LIBS})
+target_link_libraries(proxenet ${EXTRA_LIBS} ${CMAKE_LINK_HARDEN})
 
 # install
 install (TARGETS proxenet DESTINATION .)

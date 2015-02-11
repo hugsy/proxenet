@@ -34,7 +34,7 @@ typedef struct thread_info {
 		plugin_t** plugin_list;
 } tinfo_t;
 
-
+unsigned int	request_id;
 proxenet_state 	proxy_state;
 unsigned long 	active_threads_bitmask;
 sem_t 		tty_semaphore;

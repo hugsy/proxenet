@@ -54,7 +54,7 @@
 #include "plugin-tcl.h"
 #endif
 
-static long	 request_id;
+
 static pthread_mutex_t request_id_mutex;
 
 
@@ -63,16 +63,16 @@ static pthread_mutex_t request_id_mutex;
  *
  * @return the new request id
  */
-static int get_new_request_id()
+static unsigned int get_new_request_id()
 {
-	int rid;
+	unsigned int rid;
 
 	pthread_mutex_lock(&request_id_mutex);
 	rid = request_id;
 	request_id++;
         pthread_mutex_unlock(&request_id_mutex);
 #ifdef DEBUG
-	xlog(LOG_DEBUG, "Allocating ID #%d\n", rid);
+	xlog(LOG_DEBUG, "Allocating ID #%ld\n", rid);
 #endif
 	return rid;
 }
