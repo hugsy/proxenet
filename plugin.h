@@ -5,6 +5,7 @@
 
 #include "utils.h"
 #include "core.h"
+#include "config.h"
 
 typedef enum __supported_plugins_t {
 #ifdef _C_PLUGIN
