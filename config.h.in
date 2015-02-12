@@ -68,7 +68,7 @@
 #cmakedefine _RUBY_PLUGIN
 #cmakedefine _RUBY_MAJOR_      @_RUBY_MAJOR_@
 #cmakedefine _RUBY_MINOR_      @_RUBY_MINOR_@
-#cmakedefine _RUBY_VERSION_    "Ruby@_RUBY_MAJOR_@.@_RUBY_MINOR_@"
+#cmakedefine _RUBY_VERSION_    "Ruby@_RUBY_VERSION_@"
 
 #cmakedefine _PERL_PLUGIN
 
