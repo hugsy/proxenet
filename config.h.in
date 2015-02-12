@@ -62,18 +62,18 @@
 #cmakedefine _PYTHON_PLUGIN
 #cmakedefine _PYTHON_MAJOR_    @PYTHON_VERSION_MAJOR@
 #cmakedefine _PYTHON_MINOR_    @PYTHON_VERSION_MINOR@
-#cmakedefine _PYTHON_VERSION_  "Python@PYTHON_VERSION@"
+#cmakedefine _PYTHON_VERSION_  "Python@_PYTHON_VERSION_@"
 
 #cmakedefine _LUA_PLUGIN
-#cmakedefine _LUA_VERSION_     "Lua@LUA_VERSION@"
+#cmakedefine _LUA_VERSION_     "Lua@_LUA_VERSION_@"
 
 #cmakedefine _RUBY_PLUGIN
 #cmakedefine _RUBY_MAJOR_      @RUBY_VERSION_MAJOR@
 #cmakedefine _RUBY_MINOR_      @RUBY_VERSION_MINOR@
-#cmakedefine _RUBY_VERSION_    "Ruby@RUBY_VERSION@"
+#cmakedefine _RUBY_VERSION_    "Ruby@_RUBY_VERSION_@"
 
 #cmakedefine _PERL_PLUGIN
-#cmakedefine _PERL_VERSION_    "Perl@PERL_VERSION@"
+#cmakedefine _PERL_VERSION_    "Perl@_PERL_VERSION_@"
 
 #cmakedefine _TCL_PLUGIN
-#cmakedefine _TCL_VERSION_    "Tcl@TCL_VERSION@"
+#cmakedefine _TCL_VERSION_    "Tcl@_TCL_VERSION_@"
