@@ -45,9 +45,7 @@ int proxenet_ruby_load_file(plugin_t* plugin)
 
         PROXENET_ABSOLUTE_PLUGIN_PATH(filename, pathname);
 
-#if _RUBY_MINOR_ == 9
-	rb_protect(proxenet_ruby_require_cb, (VALUE) pathname, &res);
-#elif _RUBY_MINOR_ == 8
+#if (_RUBY_MAJOR_ == 2 || (_RUBY_MAJOR_ == 1 && (_RUBY_MINOR_==9 || _RUBY_MINOR_==8)))
 	rb_protect(proxenet_ruby_require_cb, (VALUE) pathname, &res);
 #else
 	abort();
@@ -269,7 +267,7 @@ char* proxenet_ruby_plugin(plugin_t* plugin, request_t* request)
 	else
 		rFunc = (ID) plugin->post_function;
 
-	proxenet_ruby_lock_vm(interpreter);
+        proxenet_ruby_lock_vm(interpreter);
 	buf = proxenet_ruby_execute_function(interpreter, rFunc, request);
 	proxenet_ruby_unlock_vm(interpreter);
 
