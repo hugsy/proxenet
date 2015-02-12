@@ -180,6 +180,12 @@ if (USE_TCL_PLUGIN)
     include_directories(${TCL_INCLUDE_PATH})
     set(EXTRA_LIBS ${EXTRA_LIBS} ${TCL_LIBRARY})
     set(ALL_FILES ${ALL_FILES} plugin-tcl.c plugin-tcl.h)
+    if(!TCL_VERSION)
+      execute_process(
+        COMMAND sh -c "echo \"puts -nonewline \\$tcl_version;exit 0\"|tclsh"
+        OUTPUT_VARIABLE TCL_VERSION
+        )
+    endif()
     set(_TCL_VERSION_ ${TCL_VERSION})
     set(_TCL_PLUGIN 1)
   endif(TCL_FOUND)
