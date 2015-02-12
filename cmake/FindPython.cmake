@@ -51,37 +51,29 @@ if(PYTHON_EXECUTABLE)
 
   if(PYTHON_LIBRARY AND PYTHON_INCLUDE_PATH)
     execute_process(
-      COMMAND ${PYTHON_EXECUTABLE} -c "import sys; sys.stdout.write(sys.version[:3])"
-      OUTPUT_VARIABLE PYTHON_VERSION
+      COMMAND ${PYTHON_EXECUTABLE} -c "import sys; sys.stdout.write(str(sys.version_info[0]))"
+      OUTPUT_VARIABLE PYTHON_VERSION_MAJOR
       )
     execute_process(
-      COMMAND ${PYTHON_EXECUTABLE} -c "import sys; sys.stdout.write(str(sys.version_info < (2,5)))"
-      OUTPUT_VARIABLE PYTHON_OLD_VERSION
+      COMMAND ${PYTHON_EXECUTABLE} -c "import sys; sys.stdout.write(str(sys.version_info[1]))"
+      OUTPUT_VARIABLE PYTHON_VERSION_MINOR
       )
-    if(${PYTHON_OLD_VERSION} STREQUAL "True")
-      message("Python >= 2.5 is needed to build python plugin, version found: ${PYTHON_VERSION}")
-    else()
-      execute_process(
-        COMMAND ${PYTHON_EXECUTABLE} -c "import sys; sys.stdout.write(str(sys.version_info[0]))"
-        OUTPUT_VARIABLE _PYTHON_MAJOR_
-        )
+    execute_process(
+      COMMAND ${PYTHON_EXECUTABLE} -c "import sys; sys.stdout.write(str(sys.version_info[2]))"
+      OUTPUT_VARIABLE PYTHON_VERSION_TEENY
+      )
+    set(PYTHON_VERSION ${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}.${PYTHON_VERSION_TEENY})
 
-      execute_process(
-        COMMAND ${PYTHON_EXECUTABLE} -c "import sys; sys.stdout.write(str(sys.version_info[1]))"
-        OUTPUT_VARIABLE _PYTHON_MINOR_
-        )
-
-      set(PYTHON_FOUND TRUE)
-    endif()
+    set(PYTHON_FOUND TRUE)
   endif()
-
   mark_as_advanced(
-    PYTHON_EXECUTABLE
+    PYTHON_FOUND
     PYTHON_INCLUDE_PATH
     PYTHON_LIBRARY
     PYTHON_LFLAGS
 
-    _PYTHON_MAJOR _PYTHON_MINOR
+    PYTHON_VERSION
+    PYTHON_VERSION_MAJOR PYTHON_VERSION_MINOR
     )
 
 endif()

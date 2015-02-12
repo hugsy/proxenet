@@ -24,6 +24,11 @@ if(PERL_EXECUTABLE)
     OUTPUT_VARIABLE PERL_LFLAGS
     )
 
+  execute_process(
+    COMMAND ${PERL_EXECUTABLE} -MConfig -e "print \"\$Config{version}\""
+    OUTPUT_VARIABLE PERL_VERSION
+    )
+
   # remove the new lines from the output by replacing them with empty strings
   string(REPLACE "\n" "" PERL_INTERNAL_DIR "${PERL_INTERNAL_DIR}")
   string(REPLACE "\n" "" PERL_CFLAGS "${PERL_CFLAGS}")
@@ -49,5 +54,6 @@ if(PERL_EXECUTABLE)
     PERL_LIBRARY
     PERL_CFLAGS
     PERL_LFLAGS
+    PERL_VERSION
     )
 endif()

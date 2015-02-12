@@ -7,12 +7,12 @@
 #include "core.h"
 
 typedef enum __supported_plugins_t {
-#ifdef _PYTHON_PLUGIN
-	_PYTHON_,
-#endif
-
 #ifdef _C_PLUGIN
 	_C_,
+#endif
+
+#ifdef _PYTHON_PLUGIN
+	_PYTHON_,
 #endif
 
 #ifdef _RUBY_PLUGIN
@@ -36,12 +36,12 @@ typedef enum __supported_plugins_t {
 
 
 static const UNUSED char* supported_plugins_str[] = {
-#ifdef _PYTHON_PLUGIN
-	_PYTHON_VERSION_,
-#endif
-
 #ifdef _C_PLUGIN
 	"C",
+#endif
+
+#ifdef _PYTHON_PLUGIN
+	_PYTHON_VERSION_,
 #endif
 
 #ifdef _RUBY_PLUGIN
@@ -49,15 +49,15 @@ static const UNUSED char* supported_plugins_str[] = {
 #endif
 
 #ifdef _PERL_PLUGIN
-	"Perl",
+	_PERL_VERSION_,
 #endif
 
 #ifdef _LUA_PLUGIN
-	"Lua",
+	_LUA_VERSION_,
 #endif
 
 #ifdef _TCL_PLUGIN
-	"Tcl",
+	_TCL_VERSION_,
 #endif
 
   NULL
@@ -65,12 +65,12 @@ static const UNUSED char* supported_plugins_str[] = {
 
 
 static const UNUSED char* plugins_extensions_str[] = {
-#ifdef _PYTHON_PLUGIN
-	".py",
-#endif
-
 #ifdef _C_PLUGIN
 	".so",
+#endif
+
+#ifdef _PYTHON_PLUGIN
+	".py",
 #endif
 
 #ifdef _RUBY_PLUGIN

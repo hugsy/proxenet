@@ -30,7 +30,7 @@ static void version(bool end)
 	printf("%s v%s\n", PROGNAME, VERSION);
 	if (end) {
 		proxenet_free_config();
-		exit(0);
+		exit(EXIT_SUCCESS);
 	}
 }
 
