@@ -104,7 +104,7 @@ static void help()
 		if (!plugin_name || !plugin_ext)
 			break;
 
-		printf("\t[+] 0x%.2x   "GREEN"%-10s"NOCOLOR" (%s)\n", i, plugin_name, plugin_ext);
+		printf("\t[+] 0x%.2x   "GREEN"%-15s"NOCOLOR" (%s)\n", i, plugin_name, plugin_ext);
 		i++;
 	}
 
