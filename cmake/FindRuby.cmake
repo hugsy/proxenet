@@ -12,7 +12,7 @@ if(RUBY_FOUND)
 endif()
 
 find_program(RUBY_EXECUTABLE
-  NAMES ruby2.1 ruby2.0 ruby1.9.3 ruby193 ruby1.9.2 ruby192 ruby1.9.1 ruby191 ruby1.9 ruby19 ruby1.8 ruby18 ruby
+  NAMES ruby2.2 ruby2.1 ruby2.0 ruby1.9.3 ruby193 ruby1.9.2 ruby192 ruby1.9.1 ruby191 ruby1.9 ruby19 ruby1.8 ruby18 ruby
   PATHS /usr/bin /usr/local/bin /usr/pkg/bin
   )
 if(RUBY_EXECUTABLE)
@@ -48,7 +48,7 @@ if(RUBY_EXECUTABLE)
     )
   set(RUBY_INCLUDE_ARCH "${RUBY_INCLUDE_DIRS}/${RUBY_ARCH}")
   find_library(RUBY_LIB
-    NAMES ruby-1.9.3 ruby1.9.3 ruby193 ruby-1.9.2 ruby1.9.2 ruby192 ruby-1.9.1 ruby1.9.1 ruby191 ruby1.9 ruby19 ruby1.8 ruby18 ruby
+    NAMES ruby2.2 ruby22 ruby2.1 ruby21 ruby2.0 ruby20 ruby-1.9.3 ruby1.9.3 ruby193 ruby-1.9.2 ruby1.9.2 ruby192 ruby-1.9.1 ruby1.9.1 ruby191 ruby1.9 ruby19 ruby1.8 ruby18 ruby
     PATHS ${RUBY_POSSIBLE_LIB_PATH} ${RUBY_RUBY_LIB_PATH}
     )
   if(RUBY_LIB AND RUBY_INCLUDE_DIRS)
