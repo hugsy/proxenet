@@ -357,7 +357,7 @@ void proxenet_free_config()
 int main (int argc, char **argv, char **envp)
 {
 	int retcode = -1;
-
+        (void) *envp;
 	/* init semaphore for unified display */
 	sem_init(&tty_semaphore, 0, 1);
 

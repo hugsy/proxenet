@@ -94,7 +94,7 @@ int proxenet_ruby_initialize_vm(plugin_t* plugin)
 #ifdef DEBUG
 	xlog(LOG_DEBUG, "%s\n", "Using Ruby 1.8 C API");
 #endif
-	interpreter->vm = (void*) ruby_top_self;
+	interpreter->vm = (void*) ruby_top_self();
 
 #else
         xlog(LOG_CRITICAL, "%s\n", "Unsupported Ruby version");
@@ -114,6 +114,8 @@ int proxenet_ruby_initialize_vm(plugin_t* plugin)
  */
 int proxenet_ruby_destroy_vm(plugin_t* plugin)
 {
+        (void)plugin;
+
 	return 0;
 }
 
@@ -197,7 +199,7 @@ static char* proxenet_ruby_execute_function(interpreter_t* interpreter, ID rFunc
 	/* build args */
 	rVM = (VALUE)interpreter->vm;
 
-	rArgs[0] = INT2FIX(request->id);
+	rArgs[0] = INT2NUM(request->id);
 	rArgs[1] = rb_str_new(request->data, request->size);
 	rArgs[2] = rb_str_new2(uri);
 

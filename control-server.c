@@ -65,6 +65,11 @@ static void _send_threads_info(sock_t fd)
 void quit_cmd(sock_t fd, char *options, unsigned int nb_options)
 {
         char *msg = "Leaving gracefully\n";
+
+        /* happy compiler means karma++ */
+        (void) options;
+        (void) nb_options;
+
         proxenet_write(fd, (void*)msg, strlen(msg));
         proxy_state = INACTIVE;
         return;
@@ -79,6 +84,9 @@ void help_cmd(sock_t fd, char *options, unsigned int nb_options)
         struct command_t *cmd;
         char *msg;
         unsigned int msglen = 20 + 80 + 3;
+
+        (void) options;
+        (void) nb_options;
 
         msg = "Command list:\n";
         proxenet_write(fd, (void*)msg, strlen(msg));
@@ -100,6 +108,10 @@ void help_cmd(sock_t fd, char *options, unsigned int nb_options)
 void pause_cmd(sock_t fd, char *options, unsigned int nb_options)
 {
         char *msg;
+
+        (void) options;
+        (void) nb_options;
+
         if (proxy_state==SLEEPING) {
                 msg = "sleep-mode -> 0\n";
                 proxy_state = ACTIVE;
@@ -121,6 +133,9 @@ void info_cmd(sock_t fd, char *options, unsigned int nb_options)
 {
         char msg[BUFSIZE] = {0, };
         int n;
+
+        (void) options;
+        (void) nb_options;
 
         /* generic info  */
         n = snprintf(msg, sizeof(msg),
@@ -171,6 +186,9 @@ void verbose_cmd(sock_t fd, char *options, unsigned int nb_options)
         char *ptr;
         int n;
 
+        (void) options;
+        (void) nb_options;
+
         ptr = strtok(options, " \n");
         if (!ptr){
                 n = snprintf(msg, BUFSIZE, "Verbose level is at %d\n", cfg->verbose);
@@ -197,6 +215,9 @@ void verbose_cmd(sock_t fd, char *options, unsigned int nb_options)
 void reload_cmd(sock_t fd, char *options, unsigned int nb_options)
 {
         char *msg;
+
+        (void) options;
+        (void) nb_options;
 
         if (get_active_threads_size() > 0) {
                 msg = "Threads still active, cannot reload";
@@ -236,6 +257,9 @@ void threads_cmd(sock_t fd, char *options, unsigned int nb_options)
         char *ptr;
         int n;
 
+        (void) options;
+        (void) nb_options;
+
         ptr = strtok(options, " \n");
         if (!ptr){
                 _send_threads_info(fd);
@@ -265,6 +289,9 @@ void plugin_cmd(sock_t fd, char *options, unsigned int nb_options)
         int n, res;
         unsigned int plugin_id;
         char* plugin_name = NULL;
+
+        (void) options;
+        (void) nb_options;
 
 
         /* usage */
