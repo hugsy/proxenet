@@ -102,7 +102,12 @@ if(TCL_LIBRARY AND TCL_INCLUDE_PATH)
   set(TCL_FOUND TRUE)
 endif()
 
-
+if(!TCL_VERSION)
+  execute_process(
+    COMMAND sh -c "echo \"puts -nonewline \\$tcl_version;exit 0\"|tclsh"
+    OUTPUT_VARIABLE TCL_VERSION
+    )
+endif()
 
 mark_as_advanced(
   TCL_INCLUDE_PATH
