@@ -4,8 +4,8 @@
 # RUBY_FOUND
 # RUBY_INCLUDE_DIRS
 # RUBY_LIBRARIES
-# _RUBY_MAJOR_
-# _RUBY_MINOR_
+# RUBY_VERSION_MAJOR RUBY_VERSION_MINOR
+# RUBY_VERSION
 
 if(RUBY_FOUND)
    set(RUBY_FIND_QUIETLY TRUE)
@@ -17,14 +17,20 @@ find_program(RUBY_EXECUTABLE
   )
 if(RUBY_EXECUTABLE)
   execute_process(
-    COMMAND ${RUBY_EXECUTABLE} -e "print RUBY_VERSION.split('.')[0]"
-    OUTPUT_VARIABLE _RUBY_MAJOR_
+    COMMAND ${RUBY_EXECUTABLE} -r rbconfig -e "print RbConfig::CONFIG['MAJOR']"
+    OUTPUT_VARIABLE RUBY_VERSION_MAJOR
     )
 
   execute_process(
-    COMMAND ${RUBY_EXECUTABLE} -e "print RUBY_VERSION.split('.')[1]"
-    OUTPUT_VARIABLE _RUBY_MINOR_
+    COMMAND ${RUBY_EXECUTABLE} -r rbconfig -e "print RbConfig::CONFIG['MINOR']"
+    OUTPUT_VARIABLE RUBY_VERSION_MINOR
     )
+
+  execute_process(
+    COMMAND ${RUBY_EXECUTABLE} -r rbconfig -e "print RbConfig::CONFIG['TEENY']"
+    OUTPUT_VARIABLE RUBY_VERSION_TEENY
+    )
+  set(RUBY_VERSION ${RUBY_VERSION_MAJOR}.${RUBY_VERSION_MINOR}.${RUBY_VERSION_TEENY})
 
   execute_process(
     COMMAND ${RUBY_EXECUTABLE} -r rbconfig -e "print RbConfig::CONFIG['rubyhdrdir'] || RbConfig::CONFIG['archdir']"
@@ -40,25 +46,38 @@ if(RUBY_EXECUTABLE)
     )
   execute_process(
     COMMAND ${RUBY_EXECUTABLE} -r rbconfig -e "print RbConfig::CONFIG['rubylibdir']"
-    OUTPUT_VARIABLE RUBY_RUBY_LIB_PATH
+    OUTPUT_VARIABLE RUBY_LIB_PATH
     )
+  execute_process(
+    COMMAND ${RUBY_EXECUTABLE} -r rbconfig -e "print RbConfig::CONFIG['archincludedir']"
+    OUTPUT_VARIABLE RUBY_ARCH_INC_DIR
+    )
+  execute_process(
+    COMMAND ${RUBY_EXECUTABLE} -r rbconfig -e "print RbConfig::CONFIG['RUBY_SO_NAME']"
+    OUTPUT_VARIABLE RUBY_SO_NAME
+    )
+
   find_path(RUBY_INCLUDE_DIRS
-    NAMES ruby.h
+    NAMES ruby.h ruby/config.h
     PATHS ${RUBY_ARCH_DIR}
     )
   set(RUBY_INCLUDE_ARCH "${RUBY_INCLUDE_DIRS}/${RUBY_ARCH}")
   find_library(RUBY_LIB
-    NAMES ruby2.2 ruby22 ruby2.1 ruby21 ruby2.0 ruby20 ruby-1.9.3 ruby1.9.3 ruby193 ruby-1.9.2 ruby1.9.2 ruby192 ruby-1.9.1 ruby1.9.1 ruby191 ruby1.9 ruby19 ruby1.8 ruby18 ruby
+    NAMES ${RUBY_SO_NAME}
     PATHS ${RUBY_POSSIBLE_LIB_PATH} ${RUBY_RUBY_LIB_PATH}
     )
+
   if(RUBY_LIB AND RUBY_INCLUDE_DIRS)
     set(RUBY_FOUND TRUE)
+    set(RUBY_INCLUDE_DIRS "${RUBY_INCLUDE_DIRS};${RUBY_INCLUDE_ARCH};${RUBY_ARCH_INC_DIR}/ruby-${RUBY_VERSION}")
+    set(RUBY_LIBRARIES ${RUBY_LIB})
   endif()
-  set(RUBY_INCLUDE_DIRS "${RUBY_INCLUDE_DIRS};${RUBY_INCLUDE_ARCH}")
+
   mark_as_advanced(
     RUBY_INCLUDE_DIRS
-    RUBY_LIBRARY_DIRS
+    RUBY_LIBRARIES
     RUBY_LIB
-    _RUBY_MAJOR_ _RUBY_MINOR_
+    RUBY_VERSION_MAJOR RUBY_VERSION_MINOR
+    RUBY_VERSION
     )
 endif()

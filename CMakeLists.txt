@@ -4,7 +4,7 @@
 #
 #
 
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 3.0)
 project(proxenet C)
 
 # extra variables
@@ -148,7 +148,9 @@ if (USE_RUBY_PLUGIN)
     include_directories(${RUBY_INCLUDE_DIRS})
     set(EXTRA_LIBS ${EXTRA_LIBS} ${RUBY_LIBRARIES})
     set(ALL_FILES ${ALL_FILES} plugin-ruby.c plugin-ruby.h)
-    set(_RUBY_VERSION_ ${_RUBY_MAJOR_}.${_RUBY_MINOR_})
+    set(_RUBY_MAJOR_ ${RUBY_VERSION_MAJOR})
+    set(_RUBY_MINOR_ ${RUBY_VERSION_MINOR})
+    set(_RUBY_VERSION_ ${RUBY_VERSION})
     set(_RUBY_PLUGIN 1)
   endif(RUBY_FOUND)
 endif(USE_RUBY_PLUGIN)
