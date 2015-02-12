@@ -94,7 +94,7 @@ int proxenet_ruby_initialize_vm(plugin_t* plugin)
 #ifdef DEBUG
 	xlog(LOG_DEBUG, "%s\n", "Using Ruby 1.8 C API");
 #endif
-	interpreter->vm = (void*) ruby_top_self();
+	interpreter->vm = (void*) ruby_top_self;
 
 #else
         xlog(LOG_CRITICAL, "%s\n", "Unsupported Ruby version");
