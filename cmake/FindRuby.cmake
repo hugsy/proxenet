@@ -12,7 +12,7 @@ if(RUBY_FOUND)
 endif()
 
 find_program(RUBY_EXECUTABLE
-  NAMES ruby2.2 ruby2.1 ruby2.0 ruby1.9.3 ruby193 ruby1.9.2 ruby192 ruby1.9.1 ruby191 ruby1.9 ruby19 ruby1.8 ruby18 ruby
+  NAMES ruby2.2 ruby22 ruby2.1 ruby21 ruby2.0 ruby2 ruby1.9.3 ruby193 ruby1.9.2 ruby192 ruby1.9.1 ruby191 ruby1.9 ruby19 ruby1.8 ruby18 ruby
   PATHS /usr/bin /usr/local/bin /usr/pkg/bin
   )
 if(RUBY_EXECUTABLE)
