@@ -61,57 +61,92 @@ static void proxenet_ssl_debug(void *who, int level, const char *str )
 /**
  *
  */
-int proxenet_ssl_init_server_context(ssl_atom_t *server)
+static inline int _proxenet_ssl_init_context(ssl_atom_t* ssl_atom, int type)
 {
 	int retcode = -1;
-	char ssl_error_buffer[128] = {0, };
-	proxenet_ssl_context_t *context = &(server->context);
+        char ssl_error_buffer[128] = {0, };
+	proxenet_ssl_context_t *context = &(ssl_atom->context);
+        char *certfile, *keyfile, *keyfile_pwd;
 
-	entropy_init( &(server->entropy) );
+
+        switch (type) {
+                case SSL_IS_SERVER:
+                        certfile = cfg->certfile;
+                        keyfile = cfg->keyfile;
+                        keyfile_pwd = cfg->keyfile_pwd;
+                        break;
+
+                case SSL_IS_CLIENT:
+                        certfile = cfg->sslcli_certfile;
+                        keyfile = cfg->sslcli_keyfile;
+                        keyfile_pwd = cfg->sslcli_keyfile_pwd;
+                        break;
+
+                default:
+                        /* happy compiler */
+                        xlog(LOG_DEBUG, "%s\n", "Should never be there, autokill !");
+                        abort();
+        }
+
+
+	entropy_init( &(ssl_atom->entropy) );
 
 	/* init rng */
-	retcode = ctr_drbg_init( &(server->ctr_drbg), entropy_func, &(server->entropy),
-				 (const unsigned char*)PROGNAME, strlen(PROGNAME));
+	retcode = ctr_drbg_init( &(ssl_atom->ctr_drbg), entropy_func, &(ssl_atom->entropy), NULL, 0);
 	if( retcode != 0 ) {
-		error_strerror(retcode, ssl_error_buffer, 127);
 		xlog(LOG_ERROR, "ctr_drbg_init returned %d\n", retcode);
 		return -1;
 	}
 
-	/* checking certificate */
-	x509_crt_init( &(server->cert) );
-	retcode = x509_crt_parse_file(&(server->cert), cfg->certfile);
+        /* checking ssl_atom certificate */
+	x509_crt_init( &(ssl_atom->cert) );
+	retcode = x509_crt_parse_file(&(ssl_atom->cert), certfile);
 	if(retcode) {
 		error_strerror(retcode, ssl_error_buffer, 127);
 		xlog(LOG_CRITICAL, "Failed to parse certificate: %s\n", ssl_error_buffer);
 		return -1;
 	}
 
+#ifdef DEBUG_SSL
+        proxenet_xzero(buf, sizeof(buf));
+        retcode = x509_crt_info( buf, sizeof(buf)-1, "    ", &(ssl_atom->cert) );
+        if(retcode < 0){
+                xlog(LOG_DEBUG, "Failed to get certificate information : %d\n", retcode);
+        } else {
+                xlog(LOG_DEBUG, "%s\n", buf);
+        }
+#endif
+
 	/* checking private key */
-	rsa_init(&(server->rsa), RSA_PKCS_V15, 0);
-	pk_init( &(server->pkey) );
-	retcode = pk_parse_keyfile(&(server->pkey), cfg->keyfile, cfg->keyfile_pwd);
+	rsa_init(&(ssl_atom->rsa), RSA_PKCS_V15, 0);
+	pk_init( &(ssl_atom->pkey) );
+	retcode = pk_parse_keyfile(&(ssl_atom->pkey), keyfile, keyfile_pwd);
 	if(retcode) {
 		error_strerror(retcode, ssl_error_buffer, 127);
-		rsa_free(&(server->rsa));
+		rsa_free(&(ssl_atom->rsa));
 		xlog(LOG_CRITICAL, "Failed to parse key: %s\n", ssl_error_buffer);
 		return -1;
 	}
 
-	/* init server context */
+	/* init ssl context */
 	if (ssl_init(context) != 0)
 		return -1;
 
-	ssl_set_endpoint(context, SSL_IS_SERVER );
-	ssl_set_authmode(context, SSL_VERIFY_NONE );
-	ssl_set_rng(context, ctr_drbg_random, &(server->ctr_drbg) );
-	ssl_set_ca_chain(context, server->cert.next, NULL, NULL );
-	ssl_set_own_cert(context, &(server->cert), &(server->pkey));
+	ssl_set_endpoint(context, type );
+	ssl_set_authmode(context, SSL_VERIFY_OPTIONAL );
+	ssl_set_rng(context, ctr_drbg_random, &(ssl_atom->ctr_drbg) );
+	ssl_set_ca_chain(context, &(ssl_atom->cert), NULL, NULL);
+        ssl_set_own_cert(context, &(ssl_atom->cert), &(ssl_atom->pkey));
 
 #ifdef DEBUG_SSL
-	ssl_set_dbg(context, proxenet_ssl_debug, "SERVER");
+        if (type==SSL_IS_CLIENT) {
+                ssl_set_dbg(context, proxenet_ssl_debug, "CLIENT");
+        } else {
+                ssl_set_dbg(context, proxenet_ssl_debug, "SERVER");
+        }
 #endif
-	server->is_valid = true;
+
+	ssl_atom->is_valid = true;
 
 	return 0;
 }
@@ -120,39 +155,19 @@ int proxenet_ssl_init_server_context(ssl_atom_t *server)
 /**
  *
  */
-int proxenet_ssl_init_client_context(ssl_atom_t* client)
+int proxenet_ssl_init_server_context(ssl_atom_t *server)
 {
-	int retcode = -1;
-	proxenet_ssl_context_t *context = &(client->context);
-
-	entropy_init( &(client->entropy) );
-
-	/* init rng */
-	retcode = ctr_drbg_init( &(client->ctr_drbg), entropy_func, &(client->entropy),
-				 NULL, 0);
-	if( retcode != 0 ) {
-		xlog(LOG_ERROR, "ctr_drbg_init returned %d\n", retcode);
-		return -1;
-	}
-
-	/* init ssl context */
-	if (ssl_init(context) != 0)
-		return -1;
-
-	ssl_set_endpoint(context, SSL_IS_CLIENT );
-	ssl_set_authmode(context, SSL_VERIFY_OPTIONAL );
-	ssl_set_rng(context, ctr_drbg_random, &(client->ctr_drbg) );
-	ssl_set_ca_chain(context, &(client->cert), NULL, NULL);
-
-#ifdef DEBUG_SSL
-	ssl_set_dbg(context, proxenet_ssl_debug, "CLIENT");
-#endif
-
-	client->is_valid = true;
-
-	return 0;
+	return _proxenet_ssl_init_context(server, SSL_IS_SERVER);
 }
 
+
+/**
+ *
+ */
+int proxenet_ssl_init_client_context(ssl_atom_t* client)
+{
+	return _proxenet_ssl_init_context(client, SSL_IS_CLIENT);
+}
 
 
 /**

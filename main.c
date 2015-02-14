@@ -91,6 +91,7 @@ static void usage(int retcode)
 		"\t-k, --keyfile=/path/to/ssl.key\t\tSpecify SSL private key file to use (default: '%s')\n"
                 "\t--keyfile-passphrase=MyPwd\t\tSpecify the password for this SSL key (default: '%s')\n"
                 "\t--sslcli-certfile=/path/to/ssl.crt\tPath to the SSL client certificate to use\n"
+                "\t--sslcli-domain=my.ssl.domain.com\tDomain to use for invoking the client certificate (default: '%s')\n"
                 "\t--sslcli-keyfile=/path/to/key.crt\tPath to the SSL client certificate private key\n"
                 "\t--sslcli-keyfile-passphrase=MyPwd\tSpecify the password for the SSL client certificate private key (default: '%s')\n"
                 ,
@@ -98,6 +99,7 @@ static void usage(int retcode)
                 CFG_DEFAULT_SSL_CERTFILE,
 		CFG_DEFAULT_SSL_KEYFILE,
                 CFG_DEFAULT_SSL_KEYFILE_PWD,
+                CFG_DEFAULT_SSL_CLIENT_DOMAIN,
                 CFG_DEFAULT_SSL_KEYFILE_PWD
                );
 
@@ -191,27 +193,35 @@ static int parse_options (int argc, char** argv)
 	int curopt, curopt_idx;
 	char *logfile, *plugin_path;
         char *keyfile, *keyfile_pwd, *certfile;
-        char *sslcli_keyfile, *sslcli_keyfile_pwd, *sslcli_certfile;
+        char *sslcli_keyfile, *sslcli_keyfile_pwd, *sslcli_certfile, *sslcli_domain;
 	char *proxy_host, *proxy_port;
 
 	proxy_host = proxy_port = NULL;
 
-	const struct option long_opts[] = {
-		{ "help",                     0, 0, 'h' },
-		{ "verbose",                  0, 0, 'v' },
-		{ "nb-threads",               1, 0, 't' },
-		{ "lbind",                    1, 0, 'b' },
-		{ "lport",                    1, 0, 'p' },
-		{ "logfile",                  1, 0, 'l' },
-		{ "certfile",                 1, 0, 'c' },
-		{ "keyfile",                  1, 0, 'k' },
-                { "keyfile-passphrase",       1, 0, 'K' },
-		{ "plugins",                  1, 0, 'x' },
-		{ "proxy-host",               1, 0, 'X' },
-		{ "proxy-port",               1, 0, 'P' },
-		{ "no-color",                 0, 0, 'n' },
-		{ "version",                  0, 0, 'V' },
-                { "daemon",                   0, 0, 'd' },
+	const struct option long_opts[]  = {
+                { "version",                           0, 0, 'V' },
+		{ "help",                              0, 0, 'h' },
+		{ "verbose",                           0, 0, 'v' },
+                { "daemon",                            0, 0, 'd' },
+                { "no-color",                          0, 0, 'n' },
+                { "plugins",                           1, 0, 'x' },
+                { "logfile",                           1, 0, 'l' },
+
+		{ "nb-threads",                        1, 0, 't' },
+		{ "bind",                              1, 0, 'b' },
+		{ "port",                              1, 0, 'p' },
+		{ "proxy-host",                        1, 0, 'X' },
+		{ "proxy-port",                        1, 0, 'P' },
+
+		{ "certfile",                          1, 0, 'c' },
+		{ "keyfile",                           1, 0, 'k' },
+                { "keyfile-passphrase",                1, 0, 'K' },
+
+		{ "sslcli-certfile",                   1, 0, 'z' },
+                { "sslcli-domain",                     1, 0, 'Z' },
+		{ "sslcli-keyfile",                    1, 0, 'y' },
+                { "sslcli-keyfile-passphrase",         1, 0, 'Y' },
+
 		{ 0, 0, 0, 0 }
 	};
 
@@ -233,6 +243,7 @@ static int parse_options (int argc, char** argv)
         keyfile_pwd		= CFG_DEFAULT_SSL_KEYFILE_PWD;
 
 	sslcli_certfile		= NULL;
+        sslcli_domain		= CFG_DEFAULT_SSL_CLIENT_DOMAIN;
         sslcli_keyfile		= NULL;
         sslcli_keyfile_pwd	= CFG_DEFAULT_SSL_KEYFILE_PWD;
 
@@ -240,7 +251,7 @@ static int parse_options (int argc, char** argv)
 	/* parse command line arguments */
 	while (1) {
 		curopt_idx = 0;
-		curopt = getopt_long (argc,argv,"dn46Vhvb:p:l:t:c:k:K:x:X:P:",long_opts, &curopt_idx);
+		curopt = getopt_long (argc,argv,"dn46Vhvb:p:l:t:c:k:K:x:X:P:z:y:Y:",long_opts, &curopt_idx);
 		if (curopt == -1) break;
 
 		switch (curopt) {
@@ -264,6 +275,12 @@ static int parse_options (int argc, char** argv)
 			case '6': cfg->ip_version = AF_INET6; break;
 			case 'x': plugin_path = optarg; break;
                         case 'd': cfg->daemon = true; break;
+
+                        case 'z': sslcli_certfile = optarg; break;
+                        case 'Z': sslcli_domain = optarg; break;
+                        case 'y': sslcli_keyfile = optarg; break;
+                        case 'Y': sslcli_keyfile_pwd = optarg; break;
+
 			case '?':
 			default:
 				usage (EXIT_FAILURE);
@@ -321,8 +338,8 @@ static int parse_options (int argc, char** argv)
         /* validate proxenet client certificate paramaters */
         /* check ssl client certificate if provided */
         if (sslcli_certfile && sslcli_keyfile) {
-                cfg->sslcli_crtfile = cfg_get_valid_file(sslcli_certfile);
-                if (!cfg->sslcli_crtfile)
+                cfg->sslcli_certfile = cfg_get_valid_file(sslcli_certfile);
+                if (!cfg->sslcli_certfile)
                         return -1;
                 /* check ssl private key associated with the client certificate */
                 cfg->sslcli_keyfile = cfg_get_valid_file(sslcli_keyfile);
@@ -331,6 +348,10 @@ static int parse_options (int argc, char** argv)
                 /* get the key passphrase */
                 cfg->sslcli_keyfile_pwd = proxenet_xstrdup2(sslcli_keyfile_pwd);
                 if (!cfg->sslcli_keyfile_pwd)
+                        return -1;
+                /* get the domain */
+                cfg->sslcli_domain = proxenet_xstrdup2(sslcli_domain);
+                if(!cfg->sslcli_domain)
                         return -1;
         }
 
