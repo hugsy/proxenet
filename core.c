@@ -460,9 +460,9 @@ void proxenet_process_http_request(sock_t server_socket)
 	ssl_context_t ssl_context;
 	bool is_ssl;
 	sigset_t emptyset;
+        bool is_new_http_connection = false;
 
 	client_socket = retcode = n = -1;
-
 	proxenet_xzero(&req, sizeof(request_t));
 	proxenet_xzero(&ssl_context, sizeof(ssl_context_t));
 
@@ -557,23 +557,40 @@ void proxenet_process_http_request(sock_t server_socket)
 					client_socket = -1;
 					break;
 				}
+
+                                is_new_http_connection = true;
 			}
 
-			req.type   = REQUEST;
-			req.id     = get_new_request_id();
+
+			req.type = REQUEST;
+                        if (is_new_http_connection)
+                                req.id = get_new_request_id();
+
 
                         /* if proxenet does not relay to another proxy */
 			if (!cfg->proxy.host) {
-                                /* check if request is valid  */
-				if (!is_ssl) {
-					if (!is_valid_http_request(&req.data, &req.size)) {
-                                                proxenet_xfree(req.data);
-                                                client_socket = -1;
-                                                break;
-					}
-				} else {
-					set_https_infos(&req);
-				}
+
+                                if (is_new_http_connection) {
+                                        /* check if request is valid  */
+                                        if (is_ssl) {
+                                                set_https_infos(&req);
+                                        } else {
+                                                /* this is a new connection, validate the headers content */
+                                                if (!is_valid_http_request(&req.data, &req.size)) {
+                                                        proxenet_xfree(req.data);
+                                                        client_socket = -1;
+                                                        break;
+                                                }
+                                        }
+                                }
+#ifdef DEBUG
+                                else {
+                                        /* if here, at least 1 request has been to server */
+                                        /* so simply forward  */
+                                        /* e.g. using HTTP/1.1 100 Continue */
+                                        xlog(LOG_DEBUG, "[%d] Continuing HTTP stream '%d'->'%d'\n", req.id, client_socket, server_socket);
+                                }
+#endif
 			}
 
 
@@ -603,7 +620,7 @@ void proxenet_process_http_request(sock_t server_socket)
 				/* extremist action: any error on any plugin discard the whole request */
 				req.id = 0;
 				proxenet_xfree( req.data );
-				continue;
+				break;
 			}
 
 #ifdef DEBUG
@@ -653,7 +670,7 @@ void proxenet_process_http_request(sock_t server_socket)
 				/* extremist action: any error on any plugin discard the whole request */
 				req.id = 0;
 				proxenet_xfree(req.data);
-				continue;
+				break;
 			}
 
 			/* send modified data to client */
