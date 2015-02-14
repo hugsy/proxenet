@@ -17,10 +17,22 @@ typedef struct __proxenet_config {
 		FILE* logfile_fd;
 		char* port;
 		char* iface;
+
+                /* plugin paths */
 		char* plugins_path;
                 char* autoload_path;
-		char* certfile;
-		char* keyfile;
+
+                /* proxenet SSL certificate for SSL interception */
+		char* certfile;                      // realpath to proxenet certificate
+		char* keyfile;                       // realpath to proxenet private key
+                char* keyfile_pwd;                   // password to unlock the private key
+
+                /* client-side SSL certificate */
+                char* sslcli_crtfile;                // realpath to SSL client certificate
+		char* sslcli_keyfile;                // realpath to SSL client private key
+                char* sslcli_keyfile_pwd;            // password to unlock the client private key
+                char* domain;                        // domain to use the client the certificate
+
 		int ip_version;
 		struct _proxy_t {
 				char* host;

@@ -43,35 +43,65 @@ static void usage(int retcode)
 	FILE* fd;
 	fd = (retcode == 0) ? stdout : stderr;
 
+        /* header  */
 	fprintf(fd,
 		"\n"RED"SYNTAX:"NOCOLOR"\n"
 		"\t%s "GREEN"[OPTIONS+]"NOCOLOR"\n"
-		"\n"RED"OPTIONS:"NOCOLOR"\n"
-		"\t-t, --nb-threads=N\t\t\tNumber of threads (default: %d)\n"
-		"\t-b, --lbind=bindaddr\t\t\tBind local address (default: %s)\n"
-		"\t-p, --lport=N\t\t\t\tBind local port file (default: %s)\n"
-		"\t-l, --logfile=/path/to/logfile\t\tLog actions in file\n"
-		"\t-x, --plugins=/path/to/plugins/dir\tSpecify plugins directory (default: %s)\n"
-		"\t-X, --proxy-host=proxyhost\t\tForward to proxy\n"
-		"\t-P  --proxy-port=proxyport\t\tSpecify port for proxy (default: %s)\n"
-		"\t-k, --key=/path/to/ssl.key\t\tSpecify SSL key to use (default: %s)\n"
-		"\t-c, --cert=/path/to/ssl.crt\t\tSpecify SSL cert to use (default: %s)\n"
-		"\t-v, --verbose\t\t\t\tIncrease verbosity (default: 0)\n"
-		"\t-n, --no-color\t\t\t\tDisable colored output\n"
-		"\t-4, \t\t\t\t\tIPv4 only (default)\n"
-		"\t-6, \t\t\t\t\tIPv6 only (default: IPv4)\n"
-                "\t-d, --daemon\t\t\t\tStart as daemon\n"
+		"\n"RED"OPTIONS:"NOCOLOR"\n",
+                PROGNAME
+               );
+
+        /* general options help */
+        fprintf(fd,
+                BLUE"General:"NOCOLOR"\n"
 		"\t-h, --help\t\t\t\tShow help\n"
 		"\t-V, --version\t\t\t\tShow version\n"
-		,
-		PROGNAME,
-		CFG_DEFAULT_NB_THREAD,
+                "\t-d, --daemon\t\t\t\tStart as daemon\n"
+		"\t-v, --verbose\t\t\t\tIncrease verbosity (default: 0)\n"
+		"\t-n, --no-color\t\t\t\tDisable colored output (better for )\n"
+		"\t-l, --logfile=/path/to/logfile\t\tLog actions in file (default stdout)\n"
+                "\t-x, --plugins=/path/to/plugins/dir\tSpecify plugins directory (default: '%s')\n"
+                ,
+
+                CFG_DEFAULT_PLUGINS_PATH
+               );
+
+        /* network options */
+        fprintf(fd,
+                BLUE"Network:"NOCOLOR"\n"
+		"\t-4 \t\t\t\t\tIPv4 only (default)\n"
+		"\t-6 \t\t\t\t\tIPv6 only (default: IPv4)\n"
+		"\t-t, --nb-threads=N\t\t\tNumber of threads (default: %d)\n"
+		"\t-b, --bind=bindaddr\t\t\tBind local address (default: '%s')\n"
+		"\t-p, --port=N\t\t\t\tBind local port file (default: '%s')\n"
+		"\t-X, --proxy-host=proxyhost\t\tForward to proxy\n"
+		"\t-P  --proxy-port=proxyport\t\tSpecify port for proxy (default: '%s')\n"
+                ,
+
+                CFG_DEFAULT_NB_THREAD,
 		CFG_DEFAULT_BIND_ADDR,
-		CFG_DEFAULT_PORT,
-		CFG_DEFAULT_PLUGINS_PATH,
-		CFG_DEFAULT_PROXY_PORT,
+		CFG_DEFAULT_BIND_PORT,
+		CFG_DEFAULT_PROXY_PORT
+               );
+
+        /* ssl options */
+        fprintf(fd,
+                BLUE"SSL:"NOCOLOR"\n"
+                "\t-c, --certfile=/path/to/ssl.crt\t\tSpecify SSL cert to use (default: '%s')\n"
+		"\t-k, --keyfile=/path/to/ssl.key\t\tSpecify SSL private key file to use (default: '%s')\n"
+                "\t--keyfile-passphrase=MyPwd\t\tSpecify the password for this SSL key (default: '%s')\n"
+                "\t--sslcli-certfile=/path/to/ssl.crt\tPath to the SSL client certificate to use\n"
+                "\t--sslcli-keyfile=/path/to/key.crt\tPath to the SSL client certificate private key\n"
+                "\t--sslcli-keyfile-passphrase=MyPwd\tSpecify the password for the SSL client certificate private key (default: '%s')\n"
+                ,
+
+                CFG_DEFAULT_SSL_CERTFILE,
 		CFG_DEFAULT_SSL_KEYFILE,
-		CFG_DEFAULT_SSL_CERTFILE);
+                CFG_DEFAULT_SSL_KEYFILE_PWD,
+                CFG_DEFAULT_SSL_KEYFILE_PWD
+               );
+
+        fprintf(fd, "\n");
 
 	exit(retcode);
 }
@@ -124,6 +154,33 @@ static void help()
 
 
 /**
+ * Check that an argument is a valid file path by
+ * - solving the path
+ * - ensuring result is read accessible
+ *
+ * @param param is the parameter to validate
+ * @return the real (no symlink) full path of the file it is valid
+ * @return NULL in any other case
+ */
+static char* cfg_get_valid_file(char* param)
+{
+        char buf[PATH_MAX+1]={0, };
+
+	if (!realpath(param, buf)){
+		xlog(LOG_CRITICAL, "realpath(%s) failed: %s\n", param, strerror(errno));
+		return NULL;
+	}
+
+	if ( !is_readable_file(buf) ){
+		xlog(LOG_CRITICAL, "Failed to read private key '%s'\n", param);
+		return NULL;
+	}
+
+        return proxenet_xstrdup2(buf);
+}
+
+
+/**
  * Checks command line arguments once and for all. Handles (de)allocation for config_t structure
  *
  * @return 0 if successfully parsed and allocated
@@ -132,31 +189,34 @@ static void help()
 static int parse_options (int argc, char** argv)
 {
 	int curopt, curopt_idx;
-	char *logfile, *plugin_path, *keyfile, *certfile;
+	char *logfile, *plugin_path;
+        char *keyfile, *keyfile_pwd, *certfile;
+        char *sslcli_keyfile, *sslcli_keyfile_pwd, *sslcli_certfile;
 	char *proxy_host, *proxy_port;
 
 	proxy_host = proxy_port = NULL;
 
 	const struct option long_opts[] = {
-		{ "help",       0, 0, 'h' },
-		{ "verbose",    0, 0, 'v' },
-		{ "nb-threads", 1, 0, 't' },
-		{ "lbind",      1, 0, 'b' },
-		{ "lport",      1, 0, 'p' },
-		{ "logfile",    1, 0, 'l' },
-		{ "certfile",   1, 0, 'c' },
-		{ "keyfile",    1, 0, 'k' },
-		{ "plugins",    1, 0, 'x' },
-		{ "proxy-host", 1, 0, 'X' },
-		{ "proxy-port", 1, 0, 'P' },
-		{ "no-color",   0, 0, 'n' },
-		{ "version",    0, 0, 'V' },
-                { "daemon",     0, 0, 'd' },
+		{ "help",                     0, 0, 'h' },
+		{ "verbose",                  0, 0, 'v' },
+		{ "nb-threads",               1, 0, 't' },
+		{ "lbind",                    1, 0, 'b' },
+		{ "lport",                    1, 0, 'p' },
+		{ "logfile",                  1, 0, 'l' },
+		{ "certfile",                 1, 0, 'c' },
+		{ "keyfile",                  1, 0, 'k' },
+                { "keyfile-passphrase",       1, 0, 'K' },
+		{ "plugins",                  1, 0, 'x' },
+		{ "proxy-host",               1, 0, 'X' },
+		{ "proxy-port",               1, 0, 'P' },
+		{ "no-color",                 0, 0, 'n' },
+		{ "version",                  0, 0, 'V' },
+                { "daemon",                   0, 0, 'd' },
 		{ 0, 0, 0, 0 }
 	};
 
 	cfg->iface		= CFG_DEFAULT_BIND_ADDR;
-	cfg->port		= CFG_DEFAULT_PORT;
+	cfg->port		= CFG_DEFAULT_BIND_PORT;
 	cfg->logfile_fd		= CFG_DEFAULT_OUTPUT;
 	cfg->nb_threads		= CFG_DEFAULT_NB_THREAD;
 	cfg->use_color		= true;
@@ -166,14 +226,21 @@ static int parse_options (int argc, char** argv)
         cfg->daemon		= false;
 
 	plugin_path		= CFG_DEFAULT_PLUGINS_PATH;
-	keyfile			= CFG_DEFAULT_SSL_KEYFILE;
+        logfile			= NULL;
+
 	certfile		= CFG_DEFAULT_SSL_CERTFILE;
-	logfile			= NULL;
+	keyfile			= CFG_DEFAULT_SSL_KEYFILE;
+        keyfile_pwd		= CFG_DEFAULT_SSL_KEYFILE_PWD;
+
+	sslcli_certfile		= NULL;
+        sslcli_keyfile		= NULL;
+        sslcli_keyfile_pwd	= CFG_DEFAULT_SSL_KEYFILE_PWD;
+
 
 	/* parse command line arguments */
 	while (1) {
 		curopt_idx = 0;
-		curopt = getopt_long (argc,argv,"dn46Vhvb:p:l:t:c:k:x:X:P:",long_opts, &curopt_idx);
+		curopt = getopt_long (argc,argv,"dn46Vhvb:p:l:t:c:k:K:x:X:P:",long_opts, &curopt_idx);
 		if (curopt == -1) break;
 
 		switch (curopt) {
@@ -184,11 +251,12 @@ static int parse_options (int argc, char** argv)
 			case 't': cfg->nb_threads = (unsigned short)atoi(optarg); break;
 			case 'X':
 				proxy_host = optarg;
-				proxy_port = CFG_DEFAULT_PROXY_PORT;
+                                proxy_port = CFG_DEFAULT_PROXY_PORT;
 				break;
 			case 'P': proxy_port = optarg; break;
 			case 'c': certfile = optarg; break;
 			case 'k': keyfile = optarg; break;
+                        case 'K': keyfile_pwd = optarg; break;
 			case 'h': help(); break;
 			case 'V': version(true); break;
 			case 'n': cfg->use_color = false; break;
@@ -236,27 +304,35 @@ static int parse_options (int argc, char** argv)
         xlog(LOG_DEBUG, "Valid plugin tree for '%s' and '%s'\n", cfg->plugins_path, cfg->autoload_path);
 #endif
 
+        /* validate proxenet SSL configuration for interception */
 	/* check ssl certificate */
-	cfg->certfile = realpath(certfile, NULL);
-	if (cfg->certfile == NULL){
-		xlog(LOG_CRITICAL, "realpath(certfile) failed: %s\n", strerror(errno));
+	cfg->certfile = cfg_get_valid_file(certfile);
+	if (!cfg->certfile)
 		return -1;
-	}
-	if ( !is_readable_file(cfg->certfile) ) {
-		xlog(LOG_CRITICAL, "Failed to read certificate '%s'\n", cfg->certfile);
-		return -1;
-	}
-
 	/* check ssl key */
-	cfg->keyfile = realpath(keyfile, NULL);
-	if (cfg->certfile == NULL){
-		xlog(LOG_CRITICAL, "realpath(certfile) failed: %s\n", strerror(errno));
+	cfg->keyfile = cfg_get_valid_file(keyfile);
+	if (!cfg->certfile)
 		return -1;
-	}
-	if ( !is_readable_file(cfg->keyfile) ){
-		xlog(LOG_CRITICAL, "Failed to read private key '%s'\n", cfg->keyfile);
-		return -1;
-	}
+        /* get the key passphrase */
+        cfg->keyfile_pwd = proxenet_xstrdup2(keyfile_pwd);
+        if (!cfg->keyfile_pwd)
+                return -1;
+
+        /* validate proxenet client certificate paramaters */
+        /* check ssl client certificate if provided */
+        if (sslcli_certfile && sslcli_keyfile) {
+                cfg->sslcli_crtfile = cfg_get_valid_file(sslcli_certfile);
+                if (!cfg->sslcli_crtfile)
+                        return -1;
+                /* check ssl private key associated with the client certificate */
+                cfg->sslcli_keyfile = cfg_get_valid_file(sslcli_keyfile);
+                if (!cfg->sslcli_keyfile)
+                        return -1;
+                /* get the key passphrase */
+                cfg->sslcli_keyfile_pwd = proxenet_xstrdup2(sslcli_keyfile_pwd);
+                if (!cfg->sslcli_keyfile_pwd)
+                        return -1;
+        }
 
 	/* check proxy values (if any) */
 	if ( proxy_port && !proxy_host) {
@@ -265,13 +341,13 @@ static int parse_options (int argc, char** argv)
 	}
 
 	if (proxy_host) {
-		cfg->proxy.host = strdup(proxy_host);
+		cfg->proxy.host = proxenet_xstrdup2(proxy_host);
 		if (!cfg->proxy.host) {
 			xlog(LOG_CRITICAL, "proxy %s\n", strerror(errno));
 			return -1;
 		}
 
-		cfg->proxy.port = strdup(proxy_port);
+		cfg->proxy.port = proxenet_xstrdup2(proxy_port);
 		if (!cfg->proxy.port) {
 			xlog(LOG_CRITICAL, "proxy_port %s\n", strerror(errno));
 			return -1;
@@ -321,7 +397,7 @@ int proxenet_init_config(int argc, char** argv)
 
 
 /**
- * deallocate all data related to cfg
+ * free all data related to cfg
  */
 void proxenet_free_config()
 {
@@ -337,8 +413,10 @@ void proxenet_free_config()
 	if (cfg->certfile)
 		proxenet_xfree(cfg->certfile);
 
-	if (cfg->keyfile)
+	if (cfg->keyfile){
 		proxenet_xfree(cfg->keyfile);
+                proxenet_xfree(cfg->keyfile_pwd);
+        }
 
 	if(cfg->logfile_fd)
 		fclose(cfg->logfile_fd);
@@ -348,6 +426,7 @@ void proxenet_free_config()
 		proxenet_xfree(cfg->proxy.port);
 	}
 
+        return;
 }
 
 

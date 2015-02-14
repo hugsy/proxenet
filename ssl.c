@@ -90,7 +90,7 @@ int proxenet_ssl_init_server_context(ssl_atom_t *server)
 	/* checking private key */
 	rsa_init(&(server->rsa), RSA_PKCS_V15, 0);
 	pk_init( &(server->pkey) );
-	retcode = pk_parse_keyfile(&(server->pkey), cfg->keyfile, "");
+	retcode = pk_parse_keyfile(&(server->pkey), cfg->keyfile, cfg->keyfile_pwd);
 	if(retcode) {
 		error_strerror(retcode, ssl_error_buffer, 127);
 		rsa_free(&(server->rsa));

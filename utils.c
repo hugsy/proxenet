@@ -160,7 +160,7 @@ void proxenet_xzero(void* buf, size_t buflen)
 
 
 /**
- * Wrapper for strdup
+ * Wrapper for strdup, ensures a NULL byte will be at the end of the buffer
  *
  * @param data : the source buffer to duplicate
  * @param len : the maximum size for the string (null byte is appended)
@@ -171,12 +171,24 @@ char* proxenet_xstrdup(const char *data, size_t len)
 
 	s = proxenet_xmalloc(len+1);
 	if (!memcpy(s, data, len)) {
-		xlog(LOG_ERROR, "Failed to strdup '%s'\n", data);
+		xlog(LOG_ERROR, "Failed to strdup(): %s\n", strerror(errno));
 		proxenet_xfree(s);
 		return NULL;
 	}
 
 	return s;
+}
+
+
+/**
+ * Wrapper for proxenet_xstrdup() using strlen() for determining argument length.
+ * Should not be used if NULL bytes are in data.
+ *
+ * @param data : the source buffer to duplicate
+ */
+char* proxenet_xstrdup2(const char *data)
+{
+        return proxenet_xstrdup(data, strlen(data));
 }
 
 

@@ -50,6 +50,7 @@ void 	proxenet_xfree(void* ptr);
 void 	proxenet_xzero(void* buf, size_t buflen);
 void* 	proxenet_xrealloc(void* oldptr, size_t new_size);
 char*	proxenet_xstrdup(const char *data, size_t len);
+char*	proxenet_xstrdup2(const char *data);
 bool	is_valid_plugin_path(char*, char**, char**);
 bool	is_file(char*);
 bool	is_readable_file(char*);
