@@ -16,6 +16,7 @@ List of some nice references found on about interacting high levels VM with C
 * http://stackoverflow.com/questions/2801346/embedding-ruby-calling-a-function-from-c
 * http://clalance.blogspot.com.au/2011/01/writing-ruby-extensions-in-c-part-12.html
 * http://media.pragprog.com/titles/ruby3/ext_ruby.pdf
+* https://silverhammermba.github.io/emberb/c/
 
 ### lua
 * http://pgl.yoyo.org/luai/i/lua_getfenv

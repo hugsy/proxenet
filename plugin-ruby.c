@@ -15,12 +15,19 @@
 #include <alloca.h>
 #include <string.h>
 #include <ruby.h>
+#include <ruby/thread.h>
 
 #include "core.h"
 #include "plugin.h"
 #include "plugin-ruby.h"
 #include "utils.h"
 #include "main.h"
+
+struct proxenet_ruby_args {
+        VALUE rVM;
+        ID rFunc;
+        VALUE rArgs[3];
+};
 
 
 /**
@@ -46,7 +53,8 @@ int proxenet_ruby_load_file(plugin_t* plugin)
         PROXENET_ABSOLUTE_PLUGIN_PATH(filename, pathname);
 
 #if (_RUBY_MAJOR_ == 2 || (_RUBY_MAJOR_ == 1 && (_RUBY_MINOR_==9 || _RUBY_MINOR_==8)))
-	rb_protect(proxenet_ruby_require_cb, (VALUE) pathname, &res);
+	/* rb_protect(proxenet_ruby_require_cb, (VALUE) pathname, &res); */
+	rb_load_protect( rb_str_new_cstr(pathname), 0, &res );
 #else
 	abort();
 #endif
@@ -86,7 +94,7 @@ int proxenet_ruby_initialize_vm(plugin_t* plugin)
 #ifdef DEBUG
 	xlog(LOG_DEBUG, "%s\n", "Using Ruby 1.9 C API");
 #endif
-	interpreter->vm = (void*) rb_cObject;
+	interpreter->vm = (void*) rb_mKernel;
 
 #elif (_RUBY_MAJOR_ == 1 && _RUBY_MINOR_ == 8)
 #ifdef DEBUG
@@ -98,6 +106,8 @@ int proxenet_ruby_initialize_vm(plugin_t* plugin)
         xlog(LOG_CRITICAL, "%s\n", "Unsupported Ruby version");
 	abort();
 #endif
+
+        ruby_script(PROGNAME);
 
 	ruby_init_loadpath();
 
@@ -181,34 +191,53 @@ int proxenet_ruby_initialize_function(plugin_t* plugin, req_t type)
 
 
 /**
+ * this function will safely be executed (gvl acquired)
+ * this should not create a blocking/bottleneck situation since the access to rb_mKernel is
+ * mutex-protected by proxenet before
+ *
+ *
+ */
+static void* _safe_call_func(void* arg)
+{
+        struct proxenet_ruby_args* args = (struct proxenet_ruby_args*) arg;
+        VALUE rRet = rb_funcall2(args->rVM, args->rFunc, 3, args->rArgs);
+        return (void*)rRet;
+}
+
+
+/**
  *
  */
 static char* proxenet_ruby_execute_function(interpreter_t* interpreter, ID rFunc, request_t* request)
 {
 	char *buf, *data;
 	int buflen, i;
-	VALUE rArgs[3], rRet, rVM;
+	VALUE rRet;
 	char *uri;
+
+        struct proxenet_ruby_args args;
 
 	uri = get_request_full_uri(request);
 	if (!uri)
 		return NULL;
 
 	/* build args */
-	rVM = (VALUE)interpreter->vm;
+	args.rVM = (VALUE)interpreter->vm;
 
-	rArgs[0] = INT2NUM(request->id);
-	rArgs[1] = rb_str_new(request->data, request->size);
-	rArgs[2] = rb_str_new2(uri);
+        args.rFunc = rFunc;
+
+	args.rArgs[0] = INT2NUM(request->id);
+	args.rArgs[1] = rb_str_new(request->data, request->size);
+	args.rArgs[2] = rb_str_new2(uri);
 
         for(i=0; i<3; i++) {
-                rb_gc_register_address(&rArgs[i]);
+                rb_gc_register_address(&args.rArgs[i]);
 	}
 
-	/* function call */
-	rRet = rb_funcall2(rVM, rFunc, 3, rArgs);
+	/* safe function call */
+        rRet = (VALUE)rb_thread_call_with_gvl( _safe_call_func, (void*) &args);
 	if (!rRet) {
-		xlog(LOG_ERROR, "%s\n", "Function call failed");
+		xlog(LOG_ERROR, "%s\n", "[ruby] funcall2() failed");
 		data = NULL;
 		goto call_end;
 	}
@@ -216,7 +245,7 @@ static char* proxenet_ruby_execute_function(interpreter_t* interpreter, ID rFunc
 	rb_check_type(rRet, T_STRING);
 
         for(i=0; i<3; i++) {
-                rb_gc_unregister_address(&rArgs[i]);
+                rb_gc_unregister_address(&args.rArgs[i]);
 	}
 
 	/* copy result to exploitable buffer */
