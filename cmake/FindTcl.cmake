@@ -104,7 +104,7 @@ endif()
 
 if(!TCL_VERSION)
   execute_process(
-    COMMAND sh -c "echo \"puts -nonewline \\$tcl_version;exit 0\"|tclsh"
+    COMMAND sh -c "echo \"puts -nonewline \\$tcl_version;exit 0\"|${TCL_TCLSH}"
     OUTPUT_VARIABLE TCL_VERSION
     )
 endif()
