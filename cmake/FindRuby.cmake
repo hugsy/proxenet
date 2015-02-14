@@ -78,7 +78,7 @@ if(RUBY_EXECUTABLE)
     set(RUBY_LIBRARIES ${RUBY_LIB})
   endif()
 
-  if(!RUBY_OLD_VERSION)
+  if(RUBY_OLD_VERSION)
     set(RUBY_FOUND FALSE)
     set(RUBY_NOT_FOUND TRUE)
   endif()
