@@ -28,7 +28,7 @@ if(RUBY_EXECUTABLE)
 
   if(${RUBY_VERSION_MAJOR} STREQUAL "1")
     message(FATAL_ERROR "Your system is running Ruby ${RUBY_VERSION_MAJOR}.${RUBY_VERSION_MINOR}. Ruby2.x is required for compiling ${PROGNAME}.")
-    return()
+    set(RUBY_OLD_VERSION TRUE)
   endif()
 
   execute_process(
@@ -73,16 +73,19 @@ if(RUBY_EXECUTABLE)
     )
 
   if(RUBY_LIB AND RUBY_INCLUDE_DIRS)
-    set(RUBY_FOUND TRUE)
-    set(RUBY_INCLUDE_DIRS "${RUBY_INCLUDE_DIRS};${RUBY_INCLUDE_ARCH};${RUBY_ARCH_INC_DIR}/ruby-${RUBY_VERSION}")
-    set(RUBY_LIBRARIES ${RUBY_LIB})
+    if(!RUBY_OLD_VERSION)
+      set(RUBY_FOUND TRUE)
+      set(RUBY_INCLUDE_DIRS "${RUBY_INCLUDE_DIRS};${RUBY_INCLUDE_ARCH};${RUBY_ARCH_INC_DIR}/ruby-${RUBY_VERSION}")
+      set(RUBY_LIBRARIES ${RUBY_LIB})
+
+      mark_as_advanced(
+        RUBY_INCLUDE_DIRS
+        RUBY_LIBRARIES
+        RUBY_LIB
+        RUBY_VERSION_MAJOR RUBY_VERSION_MINOR
+        RUBY_VERSION
+        )
+    endif()
   endif()
 
-  mark_as_advanced(
-    RUBY_INCLUDE_DIRS
-    RUBY_LIBRARIES
-    RUBY_LIB
-    RUBY_VERSION_MAJOR RUBY_VERSION_MINOR
-    RUBY_VERSION
-    )
 endif()
