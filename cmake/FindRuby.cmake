@@ -26,6 +26,11 @@ if(RUBY_EXECUTABLE)
     OUTPUT_VARIABLE RUBY_VERSION_MINOR
     )
 
+  if(${RUBY_VERSION_MAJOR} STREQUAL "1")
+    message(FATAL_ERROR "Your system is running Ruby ${RUBY_VERSION_MAJOR}.${RUBY_VERSION_MINOR}. Ruby2.x is required for compiling ${PROGNAME}.")
+    return()
+  endif()
+
   execute_process(
     COMMAND ${RUBY_EXECUTABLE} -r rbconfig -e "print RbConfig::CONFIG['TEENY']"
     OUTPUT_VARIABLE RUBY_VERSION_TEENY
