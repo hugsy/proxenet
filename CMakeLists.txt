@@ -53,6 +53,8 @@ option(USE_RUBY18_PLUGIN      "Add Ruby 1.8 script support"            OFF)
 option(USE_RUBY_PLUGIN        "Use Ruby 1.9/2.x script support"        ON)
 option(USE_PERL_PLUGIN        "Add Perl script support"                ON)
 option(USE_TCL_PLUGIN         "Add Tcl script support"                 ON)
+option(USE_JAVA_PLUGIN        "Add Java script support"                ON)
+
 option(DEBUG                  "Enable Debug"                           OFF)
 option(DEBUG_SSL              "Enable SSL debug"                       OFF)
 
@@ -185,6 +187,19 @@ if (USE_TCL_PLUGIN)
   endif(TCL_FOUND)
 endif(USE_TCL_PLUGIN)
 
+# java
+if (USE_JAVA_PLUGIN)
+  find_package(Java)
+  if(Java_FOUND)
+    include_directories(${Java_INCLUDE_DIRS})
+    set(EXTRA_LIBS ${EXTRA_LIBS} ${Java_LIBRARIES})
+    set(ALL_FILES ${ALL_FILES} plugin-java.c plugin-java.h)
+    set(_JAVA_VERSION_ ${Java_VERSION_STRING})
+    set(JAVA_MAJOR_VERSION_ ${Java_MAJOR_VERSION_STRING})
+    set(_JAVA_PLUGIN 1)
+  endif(Java_FOUND)
+endif(USE_JAVA_PLUGIN)
+
 
 # generate config file
 add_definitions(-DHAVE_CONFIG_H)
@@ -212,6 +227,9 @@ if(LUA_FOUND)
 endif()
 if(TCL_FOUND)
   message("- Tcl plugin: ${_TCL_VERSION_}")
+endif()
+if(Java_FOUND)
+  message("- Java plugin: ${_JAVA_VERSION_}")
 endif()
 message("--------------------------------------------------------------------------")
 

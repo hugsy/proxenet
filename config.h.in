@@ -19,6 +19,7 @@
 #define CFG_DEFAULT_PROXY_PORT                "8080"                    // if relay is enabled, use this port as default
 #define CFG_DEFAULT_NB_THREAD                 10                        // default number of threads
 #define CFG_DEFAULT_TRY_EXIT_MAX              3                         // default number for attempting to kill the process gently
+#define CFG_DEFAULT_PLUGIN_PRIORITY           5                         // default priority for plugins
 #define CFG_DEFAULT_OUTPUT                    stdout                    // default output file stream
 #define CFG_DEFAULT_PLUGINS_PATH              "./proxenet-plugins"      // default location of plugins
 #define CFG_DEFAULT_PLUGINS_AUTOLOAD_PATH     "/autoload"               // default name of autoload dir (*Must* start with a '/')
@@ -77,4 +78,9 @@
 #cmakedefine _PERL_VERSION_    "Perl@_PERL_VERSION_@"
 
 #cmakedefine _TCL_PLUGIN
-#cmakedefine _TCL_VERSION_    "Tcl@_TCL_VERSION_@"
+#cmakedefine _TCL_VERSION_     "Tcl@_TCL_VERSION_@"
+
+#cmakedefine _JAVA_PLUGIN
+#cmakedefine _JAVA_MAJOR_      @Java_VERSION_MAJOR@
+#cmakedefine _JAVA_MINOR_      @Java_VERSION_MINOR@
+#cmakedefine _JAVA_VERSION_    "Java@_JAVA_VERSION_@"

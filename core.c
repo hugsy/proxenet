@@ -54,6 +54,10 @@
 #include "plugin-tcl.h"
 #endif
 
+#ifdef _JAVA_PLUGIN
+#include "plugin-java.h"
+#endif
+
 
 static pthread_mutex_t request_id_mutex;
 
@@ -226,6 +230,23 @@ void proxenet_initialize_plugins()
 
 				break;
 #endif
+
+#ifdef _JAVA_PLUGIN
+			case _JAVA_:
+				if (proxenet_java_initialize_vm(plugin) < 0) {
+					plugin->state = INACTIVE;
+					xlog(LOG_ERROR, "%s\n", "Failed to init Java VM");
+					goto delete_plugin;
+				}
+
+				if (proxenet_java_load_file(plugin) < 0) {
+					plugin->state = INACTIVE;
+					xlog(LOG_ERROR, "Failed to load %s\n", plugin->filename);
+					goto delete_plugin;
+				}
+
+				break;
+#endif
 			default:
 				break;
 		}
@@ -302,6 +323,11 @@ void proxenet_destroy_plugins_vm()
 				break;
 #endif
 
+#ifdef _JAVA_PLUGIN
+			case _JAVA_:
+				proxenet_java_destroy_vm(p);
+				break;
+#endif
 			default:
 				break;
 
@@ -402,6 +428,12 @@ static int proxenet_apply_plugins(request_t *request)
 #ifdef _TCL_PLUGIN
 			case _TCL_:
 				plugin_function = proxenet_tcl_plugin;
+				break;
+#endif
+
+#ifdef _JAVA_PLUGIN
+			case _JAVA_:
+				plugin_function = proxenet_java_plugin;
 				break;
 #endif
 			default:

@@ -33,6 +33,9 @@ typedef enum __supported_plugins_t {
 	_TCL_,
 #endif
 
+#ifdef _JAVA_PLUGIN
+	_JAVA_,
+#endif
   END_VALUE
 } supported_plugins_t;
 
@@ -62,6 +65,10 @@ static const UNUSED char* supported_plugins_str[] = {
 	_TCL_VERSION_,
 #endif
 
+#ifdef _JAVA_PLUGIN
+	_JAVA_VERSION_,
+#endif
+
   NULL
 };
 
@@ -87,14 +94,18 @@ static const UNUSED char* plugins_extensions_str[] = {
 	".lua",
 #endif
 
-#ifdef _LUA_PLUGIN
+#ifdef _TCL_PLUGIN
 	".tcl",
+#endif
+
+#ifdef _JAVA_PLUGIN
+	".class",
 #endif
 
   NULL
 };
 
-#define MAX_VMS 6
+#define MAX_VMS 10
 
 typedef struct _http_request_fields
 {

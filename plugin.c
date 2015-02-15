@@ -263,8 +263,11 @@ int proxenet_get_plugin_type(char* filename)
 
 
 /**
- * Plugin name structure *MUST* be  `PLUGIN_DIR/<priority><name>.<ext>`
- * with priority in [1, 9]
+ * Plugin name structure *MUST* be  `PLUGIN_DIR/[<priority>]<name>.<ext>`
+ * <priority> is an int in [1, 9]. If <priority> is found as the first char of the
+ * file name, it will be applied to the plugin. If no priority is specify, a default
+ * priority will be applied.
+ *
  * If a file does not match this pattern, it will be discarded
  *
  * @param plugin_path is the path to look for plugins
@@ -277,7 +280,7 @@ int proxenet_add_new_plugins(char* plugin_path, char* plugin_name)
 	struct dirent *dir_ptr=NULL;
 	DIR *dir = NULL;
 	char* name = NULL;
-	short type=-1, priority=9;
+	short type=-1, priority;
 	int d_name_len;
         bool add_all = (plugin_name==NULL)?true:false;
         unsigned int nb_plugin_added = 0;
@@ -339,9 +342,11 @@ int proxenet_add_new_plugins(char* plugin_path, char* plugin_name)
                                 continue;
                 }
 
-                /* if first char is not valid int, continue */
-		if (atoi(&(dir_ptr->d_name[0])) == 0)
-                        continue;
+                /* if first char is valid integer, this will be the plugin priority */
+		if (atoi(&(dir_ptr->d_name[0])) > 0)
+                        priority = (unsigned short)atoi(&(dir_ptr->d_name[0]));
+                else
+                        priority = (unsigned short) CFG_DEFAULT_PLUGIN_PRIORITY;
 
 		/* plugin name  */
 		d_name_len = strlen(dir_ptr->d_name);

@@ -124,6 +124,9 @@ int proxenet_ruby_destroy_vm(plugin_t* plugin)
 {
         (void)plugin;
 
+        if(count_plugins_by_type(_RUBY_))
+		return -1;
+
 	return 0;
 }
 
