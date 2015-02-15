@@ -72,31 +72,38 @@ IF(Java_JAVA_EXECUTABLE)
 ENDIF(Java_JAVA_EXECUTABLE)
 
 
-  if(!$ENV{JAVA_HOME})
-    message("Cannot find JAVA_HOME. Please setup the path to the base of the Java JDK to JAVA_HOME before compiling.")
-  endif()
+if( Java_VERSION_MINOR LESS 6 )
+  message("-- WARNING: Your system is running Java ${Java_VERSION_MAJOR}.${Java_VERSION_MINOR}. Java JDK 1.6+ is required for compiling ${PROGNAME}.")
+  set(Java_OLD_VERSION TRUE)
+else()
+  set(Java_OLD_VERSION FALSE)
+endif()
 
-  message("-- Found JAVA_HOME as $ENV{JAVA_HOME}")
-  set(JAVA_ROOT "$ENV{JAVA_HOME}")
-  set(_JAVA_POSSIBLE_INCLUDE_DIRS ${JAVA_ROOT}/include)
-  set(_JAVA_POSSIBLE_LIBRARIES_PATH ${JAVA_ROOT}/jre/lib/)
+if(!$ENV{JAVA_HOME})
+  message("Cannot find JAVA_HOME. Please setup the path to the base of the Java JDK to JAVA_HOME before compiling.")
+endif()
 
-  find_path(Java_INCLUDE_DIRS
-    NAMES jni.h
-    PATHS ${_JAVA_POSSIBLE_INCLUDE_DIRS}
-    )
-  if(Java_INCLUDE_DIRS)
-    set(Java_INCLUDE_DIRS ${Java_INCLUDE_DIRS} ${Java_INCLUDE_DIRS}/linux)
-  endif()
+message("-- Found JAVA_HOME as $ENV{JAVA_HOME}")
+set(JAVA_ROOT "$ENV{JAVA_HOME}")
+set(_JAVA_POSSIBLE_INCLUDE_DIRS ${JAVA_ROOT}/include)
+set(_JAVA_POSSIBLE_LIBRARIES_PATH ${JAVA_ROOT}/jre/lib/)
 
-  find_library(Java_LIBRARIES
-    NAMES jvm
-    PATHS ${_JAVA_POSSIBLE_LIBRARIES_PATH}/amd64/server
-    )
+find_path(Java_INCLUDE_DIRS
+  NAMES jni.h
+  PATHS ${_JAVA_POSSIBLE_INCLUDE_DIRS}
+  )
+if(Java_INCLUDE_DIRS)
+  set(Java_INCLUDE_DIRS ${Java_INCLUDE_DIRS} ${Java_INCLUDE_DIRS}/linux)
+endif()
+
+find_library(Java_LIBRARIES
+  NAMES jvm
+  PATHS ${_JAVA_POSSIBLE_LIBRARIES_PATH}/amd64/server
+  )
 
 include(FindPackageHandleStandardArgs)
 
-if (Java_INCLUDE_DIRS AND Java_LIBRARIES)
+if (NOT Java_OLD_VERSION AND Java_INCLUDE_DIRS AND Java_LIBRARIES)
   set(Java_FOUND TRUE)
   mark_as_advanced(
     Java_FOUND
@@ -105,7 +112,7 @@ if (Java_INCLUDE_DIRS AND Java_LIBRARIES)
     Java_VERSION_STRING
     Java_VERSION_MAJOR
     Java_VERSION_MINOR
-  )
+    )
 else()
   set(Java_FOUND FALSE)
   set(Java_NOT_FOUND TRUE)

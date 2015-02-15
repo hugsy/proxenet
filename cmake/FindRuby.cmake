@@ -26,8 +26,8 @@ if(RUBY_EXECUTABLE)
     OUTPUT_VARIABLE RUBY_VERSION_MINOR
     )
 
-  if(${RUBY_VERSION_MAJOR} STREQUAL "1")
-    message("Your system is running Ruby ${RUBY_VERSION_MAJOR}.${RUBY_VERSION_MINOR}. Ruby2.x is required for compiling ${PROGNAME}.")
+  if(NOT( ${RUBY_VERSION_MAJOR} EQUAL 2 ))
+    message("-- WARNING: Your system is running Ruby ${RUBY_VERSION_MAJOR}.${RUBY_VERSION_MINOR}. Ruby2.x is required for compiling ${PROGNAME}.")
     set(RUBY_OLD_VERSION TRUE)
   endif()
 

@@ -64,16 +64,33 @@ if(PYTHON_EXECUTABLE)
       )
     set(PYTHON_VERSION ${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}.${PYTHON_VERSION_TEENY})
 
-    set(PYTHON_FOUND TRUE)
-  endif()
-  mark_as_advanced(
-    PYTHON_FOUND
-    PYTHON_INCLUDE_PATH
-    PYTHON_LIBRARY
-    PYTHON_LFLAGS
 
-    PYTHON_VERSION
-    PYTHON_VERSION_MAJOR PYTHON_VERSION_MINOR
-    )
+    if( ${PYTHON_VERSION_MAJOR} EQUAL 3 )
+      set(PYTHON_FOUND TRUE) # if Python3.x
+
+    elseif( ${PYTHON_VERSION_MAJOR} EQUAL 2)
+      if( ${PYTHON_VERSION_MINOR} GREATER 5)
+        set(PYTHON_FOUND TRUE) # if Python2.6+
+      else()
+        set(PYTHON_FOUND FALSE)
+        message("-- WARNING: Your system is running Python ${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}. Python2.6+ is required for compiling ${PROGNAME}.")
+      endif()
+    else()
+      message("-- WARNING: Your system is running an unknown Python version. Python2.6+ is required for compiling ${PROGNAME}.")
+      set(PYTHON_FOUND FALSE)
+    endif()
+
+  endif()
+
+  if(PYTHON_FOUND)
+    mark_as_advanced(
+      PYTHON_FOUND
+      PYTHON_INCLUDE_PATH
+      PYTHON_LIBRARY
+      PYTHON_LFLAGS
+      PYTHON_VERSION
+      PYTHON_VERSION_MAJOR PYTHON_VERSION_MINOR
+      )
+  endif()
 
 endif()
