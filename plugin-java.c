@@ -12,6 +12,7 @@
 
 #include <jni.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include "core.h"
 #include "utils.h"
@@ -176,7 +177,7 @@ static char* proxenet_java_execute_function(plugin_t* plugin, request_t *request
 	if (!uri)
 		return NULL;
 
-        if (plugin->type==REQUEST)
+        if (request->type==REQUEST)
                 meth = CFG_REQUEST_PLUGIN_FUNCTION;
         else
                 meth = CFG_RESPONSE_PLUGIN_FUNCTION;
