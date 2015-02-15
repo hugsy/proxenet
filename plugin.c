@@ -353,11 +353,6 @@ int proxenet_add_new_plugins(char* plugin_path, char* plugin_name)
 		if (d_name_len > 510) continue;
 		name = dir_ptr->d_name;
 
-		/* plugin priority (discard if invalid) */
-		priority = (unsigned short)atoi(name);
-		if ( !(1 <= priority && priority <= 9) )
-			continue;
-
 		/* plugin type */
 		type = proxenet_get_plugin_type(name);
 		if (type < 0)
