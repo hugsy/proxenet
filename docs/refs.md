@@ -27,3 +27,7 @@ List of some nice references found on about interacting high levels VM with C
 * http://tmml.sourceforge.net/doc/tcl/#DIVid81d4430
 * http://www.tcl.tk/man/tcl8.0/TclLib/
 * https://github.com/weechat/weechat/blob/master/src/plugins/tcl/weechat-tcl.c
+
+### java
+* http://docs.oracle.com/javase/7/docs/technotes/guides/jni/spec/invocation.html
+* http://www.ishaanguliani.com/content/calling-java-functions-c-linux-ubuntu-jni
