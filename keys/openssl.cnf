@@ -54,8 +54,8 @@ commonName_max				= 64
 
 0.organizationName_default      = World Domination Corp.
 organizationalUnitName_default  = BlackHats
-localityName_default	        = localhost
-stateOrProvinceName_default     = localdomain
+localityName_default	        = *
+stateOrProvinceName_default     = *
 countryName_default             = US
 emailAddress_default            = proxenet@worldomination.corp
 commonName_default              = *

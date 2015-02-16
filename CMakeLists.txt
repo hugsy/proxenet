@@ -67,6 +67,10 @@ else()
   set(CMAKE_VERBOSE_MAKEFILE OFF)
 endif(DEBUG)
 
+if (DEBUG_SSL)
+  set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -DDEBUG_SSL")
+endif(DEBUG_SSL)
+
 # main files to compile
 set(CORE_FILES
 control-server.c control-server.h

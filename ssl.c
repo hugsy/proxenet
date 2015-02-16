@@ -1,5 +1,5 @@
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+#include "config.h"
 #endif
 
 #include <stdio.h>
@@ -50,7 +50,7 @@ static void proxenet_ssl_debug(void *who, int level, const char *str )
 	strncpy(buf+k, str, l);
 
 	if (str[l-1] == '\n') {
-		xlog(LOG_DEBUG, "%s - %s", (char*)who, buf);
+		xlog(LOG_DEBUG, "%s[%d] - %s", (char*)who, level, buf);
 		proxenet_xzero(buf, 2048);
 	}
 }
@@ -66,26 +66,29 @@ static inline int _proxenet_ssl_init_context(ssl_atom_t* ssl_atom, int type)
 	int retcode = -1;
         char ssl_error_buffer[128] = {0, };
 	proxenet_ssl_context_t *context = &(ssl_atom->context);
-        char *certfile, *keyfile, *keyfile_pwd;
+        char *certfile, *keyfile, *keyfile_pwd, *domain;
+        const char* type_str = (type==SSL_IS_CLIENT)?"CLIENT":"SERVER";
+	bool use_ssl_client_auth = (type==SSL_IS_CLIENT && cfg->sslcli_certfile && cfg->sslcli_keyfile)?true:false;
+
+        certfile = keyfile = keyfile_pwd = domain = NULL;
 
 
-        switch (type) {
-                case SSL_IS_SERVER:
-                        certfile = cfg->certfile;
-                        keyfile = cfg->keyfile;
-                        keyfile_pwd = cfg->keyfile_pwd;
-                        break;
-
-                case SSL_IS_CLIENT:
-                        certfile = cfg->sslcli_certfile;
-                        keyfile = cfg->sslcli_keyfile;
-                        keyfile_pwd = cfg->sslcli_keyfile_pwd;
-                        break;
-
-                default:
-                        /* happy compiler */
-                        xlog(LOG_DEBUG, "%s\n", "Should never be there, autokill !");
-                        abort();
+        /* We only define a certificate if we're a server, or the user requested SSL cert auth */
+        if (type==SSL_IS_SERVER) {
+                certfile = cfg->certfile;
+                keyfile = cfg->keyfile;
+                keyfile_pwd = cfg->keyfile_pwd;
+        } else if(use_ssl_client_auth){
+                certfile = cfg->sslcli_certfile;
+                keyfile = cfg->sslcli_keyfile;
+                keyfile_pwd = cfg->sslcli_keyfile_pwd;
+                domain = cfg->sslcli_domain;
+#ifdef DEBUG
+                xlog(LOG_DEBUG, "Configuring SSL client cert='%s' key='%s' domain='%s'\n",
+                     certfile,
+                     keyfile,
+                     domain);
+#endif
         }
 
 
@@ -98,35 +101,44 @@ static inline int _proxenet_ssl_init_context(ssl_atom_t* ssl_atom, int type)
 		return -1;
 	}
 
-        /* checking ssl_atom certificate */
-	x509_crt_init( &(ssl_atom->cert) );
-	retcode = x509_crt_parse_file(&(ssl_atom->cert), certfile);
-	if(retcode) {
-		error_strerror(retcode, ssl_error_buffer, 127);
-		xlog(LOG_CRITICAL, "Failed to parse certificate: %s\n", ssl_error_buffer);
-		return -1;
-	}
 
+        if (type==SSL_IS_SERVER || use_ssl_client_auth){
+                /* checking ssl_atom certificate */
+                x509_crt_init( &(ssl_atom->cert) );
+                retcode = x509_crt_parse_file(&(ssl_atom->cert), certfile);
+                if(retcode) {
+                        error_strerror(retcode, ssl_error_buffer, 127);
+                        xlog(LOG_CRITICAL, "Failed to parse %s certificate: %s\n", type_str, ssl_error_buffer);
+                        return -1;
+                }
+
+#ifdef DEBUG
+                xlog(LOG_DEBUG, "Parsed %s certificate '%s'\n", type_str, certfile);
+#endif
 #ifdef DEBUG_SSL
-        proxenet_xzero(buf, sizeof(buf));
-        retcode = x509_crt_info( buf, sizeof(buf)-1, "    ", &(ssl_atom->cert) );
-        if(retcode < 0){
-                xlog(LOG_DEBUG, "Failed to get certificate information : %d\n", retcode);
-        } else {
-                xlog(LOG_DEBUG, "%s\n", buf);
-        }
+                proxenet_xzero(buf, sizeof(buf));
+                retcode = x509_crt_info( buf, sizeof(buf)-1, "\t", &(ssl_atom->cert) );
+                if(retcode < 0){
+                        xlog(LOG_DEBUG, "Failed to get %s certificate information : %d\n", type_str, retcode);
+                } else {
+                        xlog(LOG_DEBUG, "Certificate '%s' information:\n%s\n", certfile, buf);
+                }
 #endif
 
-	/* checking private key */
-	rsa_init(&(ssl_atom->rsa), RSA_PKCS_V15, 0);
-	pk_init( &(ssl_atom->pkey) );
-	retcode = pk_parse_keyfile(&(ssl_atom->pkey), keyfile, keyfile_pwd);
-	if(retcode) {
-		error_strerror(retcode, ssl_error_buffer, 127);
-		rsa_free(&(ssl_atom->rsa));
-		xlog(LOG_CRITICAL, "Failed to parse key: %s\n", ssl_error_buffer);
-		return -1;
-	}
+                /* checking private key */
+                rsa_init(&(ssl_atom->rsa), RSA_PKCS_V15, 0);
+                pk_init( &(ssl_atom->pkey) );
+                retcode = pk_parse_keyfile(&(ssl_atom->pkey), keyfile, keyfile_pwd);
+                if(retcode) {
+                        error_strerror(retcode, ssl_error_buffer, 127);
+                        rsa_free(&(ssl_atom->rsa));
+                        xlog(LOG_CRITICAL, "Failed to parse key: %s\n", ssl_error_buffer);
+                        return -1;
+                }
+#ifdef DEBUG
+                xlog(LOG_DEBUG, "Loaded %s private key '%s'\n", type_str, keyfile);
+#endif
+        }
 
 	/* init ssl context */
 	if (ssl_init(context) != 0)
@@ -135,15 +147,14 @@ static inline int _proxenet_ssl_init_context(ssl_atom_t* ssl_atom, int type)
 	ssl_set_endpoint(context, type );
 	ssl_set_authmode(context, SSL_VERIFY_OPTIONAL );
 	ssl_set_rng(context, ctr_drbg_random, &(ssl_atom->ctr_drbg) );
-	ssl_set_ca_chain(context, &(ssl_atom->cert), NULL, NULL);
-        ssl_set_own_cert(context, &(ssl_atom->cert), &(ssl_atom->pkey));
+
+        if (type==SSL_IS_SERVER || use_ssl_client_auth){
+                ssl_set_ca_chain(context, &(ssl_atom->cert), NULL, "app.sostest.getzclinicalcloud.com");
+                ssl_set_own_cert(context, &(ssl_atom->cert), &(ssl_atom->pkey));
+        }
 
 #ifdef DEBUG_SSL
-        if (type==SSL_IS_CLIENT) {
-                ssl_set_dbg(context, proxenet_ssl_debug, "CLIENT");
-        } else {
-                ssl_set_dbg(context, proxenet_ssl_debug, "SERVER");
-        }
+        ssl_set_dbg(context, proxenet_ssl_debug, stderr);
 #endif
 
 	ssl_atom->is_valid = true;
@@ -201,6 +212,46 @@ int proxenet_ssl_handshake(proxenet_ssl_context_t* ctx)
 
 	} while( retcode != 0 );
 
+
+#ifdef DEBUG
+        proxenet_xzero(buf, sizeof(buf));
+        strncat(buf, "SSL Handshake: ", sizeof(buf)-strlen(buf)-1);
+        if (retcode) {
+                snprintf(buf+strlen(buf), sizeof(buf)-strlen(buf)-1,
+                         RED"fail"NOCOLOR" [%d]",
+                         retcode);
+        } else {
+                snprintf(buf+strlen(buf), sizeof(buf)-strlen(buf)-1,
+                         GREEN"success"NOCOLOR" [proto='%s',cipher='%s']",
+                         ssl_get_version( ctx ),
+                         ssl_get_ciphersuite( ctx ) );
+        }
+        xlog(LOG_DEBUG, "%s\n", buf);
+#endif
+
+#ifdef DEBUG_SSL
+        proxenet_xzero(buf, sizeof(buf));
+
+        /* check certificate */
+        proxenet_xzero(buf, sizeof(buf));
+        strncat(buf, "Verify X509 cert: ", sizeof(buf)-strlen(buf)-1);
+        retcode = ssl_get_verify_result( ctx );
+        if( retcode != 0 ) {
+                snprintf(buf+strlen(buf), sizeof(buf)-strlen(buf)-1, RED"failed"NOCOLOR" [%d]\n", retcode);
+                if( retcode & BADCERT_EXPIRED )
+                        strncat(buf, "\t[-] certificate expired\n", sizeof(buf)-strlen(buf)-1);
+                if( retcode & BADCERT_REVOKED )
+                        strncat(buf, "\t[-] certificate revoked\n", sizeof(buf)-strlen(buf)-1);
+                if( retcode & BADCERT_CN_MISMATCH )
+                        strncat(buf, "\t[-] CN mismatch\n", sizeof(buf)-strlen(buf)-1);
+                if( retcode & BADCERT_NOT_TRUSTED )
+                        strncat(buf, "\t[-] self-signed or not signed by a trusted CA\n", sizeof(buf)-strlen(buf)-1);
+        } else {
+                strncat(buf, GREEN"ok\n"NOCOLOR, sizeof(buf)-strlen(buf)-1);
+        }
+        xlog(LOG_DEBUG, "%s", buf);
+
+#endif
 	return retcode;
 }
 
@@ -234,6 +285,7 @@ void proxenet_ssl_finish(ssl_atom_t* ssl, bool is_server)
 	if (is_server)
 		pk_free( &ssl->pkey );
 }
+
 
 /**
  *
