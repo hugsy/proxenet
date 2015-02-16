@@ -69,16 +69,16 @@ static pthread_mutex_t request_id_mutex;
  */
 static unsigned int get_new_request_id()
 {
-	unsigned int rid;
+        unsigned int rid;
 
-	pthread_mutex_lock(&request_id_mutex);
-	rid = request_id;
-	request_id++;
+        pthread_mutex_lock(&request_id_mutex);
+        rid = request_id;
+        request_id++;
         pthread_mutex_unlock(&request_id_mutex);
 #ifdef DEBUG
-	xlog(LOG_DEBUG, "Allocating ID #%ld\n", rid);
+        xlog(LOG_DEBUG, "Allocating ID #%ld\n", rid);
 #endif
-	return rid;
+        return rid;
 }
 
 
@@ -90,7 +90,7 @@ static unsigned int get_new_request_id()
  */
 void proxenet_init_once_plugins(int argc, char** argv, char** envp)
 {
-	proxenet_perl_preinitialisation(argc, argv, envp);
+        proxenet_perl_preinitialisation(argc, argv, envp);
 }
 
 
@@ -101,7 +101,7 @@ void proxenet_init_once_plugins(int argc, char** argv, char** envp)
  */
 void proxenet_delete_once_plugins()
 {
-	proxenet_perl_postdeletion();
+        proxenet_perl_postdeletion();
 }
 #endif
 
@@ -111,168 +111,168 @@ void proxenet_delete_once_plugins()
  */
 void proxenet_initialize_plugins()
 {
-	plugin_t *plugin      = plugins_list;
-	plugin_t *prec_plugin = NULL;
-	plugin_t *next_plugin = NULL;
+        plugin_t *plugin      = plugins_list;
+        plugin_t *prec_plugin = NULL;
+        plugin_t *next_plugin = NULL;
 
 
-	while(plugin) {
+        while(plugin) {
 
-		switch (plugin->type) {
+                switch (plugin->type) {
 
 #ifdef _PYTHON_PLUGIN
-			case _PYTHON_:
-				if (proxenet_python_initialize_vm(plugin) < 0) {
-					plugin->state = INACTIVE;
-					xlog(LOG_ERROR, "%s\n", "Failed to init Python VM");
-					goto delete_plugin;
-				}
+                        case _PYTHON_:
+                                if (proxenet_python_initialize_vm(plugin) < 0) {
+                                        plugin->state = INACTIVE;
+                                        xlog(LOG_ERROR, "%s\n", "Failed to init Python VM");
+                                        goto delete_plugin;
+                                }
 
-				if (proxenet_python_initialize_function(plugin, REQUEST) < 0) {
-					plugin->state = INACTIVE;
-					xlog(LOG_ERROR, "Failed to init %s in %s\n", CFG_REQUEST_PLUGIN_FUNCTION, plugin->name);
-					goto delete_plugin;
-				}
+                                if (proxenet_python_initialize_function(plugin, REQUEST) < 0) {
+                                        plugin->state = INACTIVE;
+                                        xlog(LOG_ERROR, "Failed to init %s in %s\n", CFG_REQUEST_PLUGIN_FUNCTION, plugin->name);
+                                        goto delete_plugin;
+                                }
 
-				if (proxenet_python_initialize_function(plugin, RESPONSE) < 0) {
-					plugin->state = INACTIVE;
-					xlog(LOG_ERROR, "Failed to init %s in %s\n", CFG_RESPONSE_PLUGIN_FUNCTION, plugin->name);
-					goto delete_plugin;
-				}
-				break;
+                                if (proxenet_python_initialize_function(plugin, RESPONSE) < 0) {
+                                        plugin->state = INACTIVE;
+                                        xlog(LOG_ERROR, "Failed to init %s in %s\n", CFG_RESPONSE_PLUGIN_FUNCTION, plugin->name);
+                                        goto delete_plugin;
+                                }
+                                break;
 #endif
 
 #ifdef _C_PLUGIN
-			case _C_:
-				if (proxenet_c_initialize_vm(plugin) < 0) {
-					plugin->state = INACTIVE;
-					xlog(LOG_ERROR, "%s\n", "Failed to init C VM");
-					goto delete_plugin;
-				}
+                        case _C_:
+                                if (proxenet_c_initialize_vm(plugin) < 0) {
+                                        plugin->state = INACTIVE;
+                                        xlog(LOG_ERROR, "%s\n", "Failed to init C VM");
+                                        goto delete_plugin;
+                                }
 
-				if (proxenet_c_initialize_function(plugin, REQUEST) < 0) {
-					plugin->state = INACTIVE;
-					xlog(LOG_ERROR, "Failed to init %s in %s\n", CFG_REQUEST_PLUGIN_FUNCTION, plugin->name);
-					goto delete_plugin;
-				}
+                                if (proxenet_c_initialize_function(plugin, REQUEST) < 0) {
+                                        plugin->state = INACTIVE;
+                                        xlog(LOG_ERROR, "Failed to init %s in %s\n", CFG_REQUEST_PLUGIN_FUNCTION, plugin->name);
+                                        goto delete_plugin;
+                                }
 
-				if (proxenet_c_initialize_function(plugin, RESPONSE) < 0) {
-					plugin->state = INACTIVE;
-					xlog(LOG_ERROR, "Failed to init %s in %s\n", CFG_RESPONSE_PLUGIN_FUNCTION, plugin->name);
-					goto delete_plugin;
-				}
-				break;
+                                if (proxenet_c_initialize_function(plugin, RESPONSE) < 0) {
+                                        plugin->state = INACTIVE;
+                                        xlog(LOG_ERROR, "Failed to init %s in %s\n", CFG_RESPONSE_PLUGIN_FUNCTION, plugin->name);
+                                        goto delete_plugin;
+                                }
+                                break;
 #endif
 
 #ifdef _RUBY_PLUGIN
-			case _RUBY_:
-				if (proxenet_ruby_initialize_vm(plugin) < 0) {
-					plugin->state = INACTIVE;
-					xlog(LOG_ERROR, "%s\n", "Failed to init Ruby VM");
-					goto delete_plugin;
-				}
-				if (proxenet_ruby_initialize_function(plugin, REQUEST) < 0) {
-					plugin->state = INACTIVE;
-					xlog(LOG_ERROR, "Failed to init %s in %s\n", CFG_REQUEST_PLUGIN_FUNCTION, plugin->name);
-					goto delete_plugin;
-				}
+                        case _RUBY_:
+                                if (proxenet_ruby_initialize_vm(plugin) < 0) {
+                                        plugin->state = INACTIVE;
+                                        xlog(LOG_ERROR, "%s\n", "Failed to init Ruby VM");
+                                        goto delete_plugin;
+                                }
+                                if (proxenet_ruby_initialize_function(plugin, REQUEST) < 0) {
+                                        plugin->state = INACTIVE;
+                                        xlog(LOG_ERROR, "Failed to init %s in %s\n", CFG_REQUEST_PLUGIN_FUNCTION, plugin->name);
+                                        goto delete_plugin;
+                                }
 
-				if (proxenet_ruby_initialize_function(plugin, RESPONSE) < 0) {
-					plugin->state = INACTIVE;
-					xlog(LOG_ERROR, "Failed to init %s in %s\n", CFG_RESPONSE_PLUGIN_FUNCTION, plugin->name);
-					goto delete_plugin;
-				}
+                                if (proxenet_ruby_initialize_function(plugin, RESPONSE) < 0) {
+                                        plugin->state = INACTIVE;
+                                        xlog(LOG_ERROR, "Failed to init %s in %s\n", CFG_RESPONSE_PLUGIN_FUNCTION, plugin->name);
+                                        goto delete_plugin;
+                                }
 
-				break;
+                                break;
 #endif
 
 #ifdef _PERL_PLUGIN
-			case _PERL_:
-				if (proxenet_perl_initialize_vm(plugin) < 0) {
-					plugin->state = INACTIVE;
-					plugin->type = -1;
-					xlog(LOG_ERROR, "%s\n", "Failed to init Perl VM");
-					goto delete_plugin;
-				}
-				break;
+                        case _PERL_:
+                                if (proxenet_perl_initialize_vm(plugin) < 0) {
+                                        plugin->state = INACTIVE;
+                                        plugin->type = -1;
+                                        xlog(LOG_ERROR, "%s\n", "Failed to init Perl VM");
+                                        goto delete_plugin;
+                                }
+                                break;
 #endif
 
 #ifdef _LUA_PLUGIN
-			case _LUA_:
-				if (proxenet_lua_initialize_vm(plugin) < 0) {
-					plugin->state = INACTIVE;
-					xlog(LOG_ERROR, "%s\n", "Failed to init Lua VM");
-					goto delete_plugin;
-				}
+                        case _LUA_:
+                                if (proxenet_lua_initialize_vm(plugin) < 0) {
+                                        plugin->state = INACTIVE;
+                                        xlog(LOG_ERROR, "%s\n", "Failed to init Lua VM");
+                                        goto delete_plugin;
+                                }
 
-				if (proxenet_lua_load_file(plugin) < 0) {
-					plugin->state = INACTIVE;
-					xlog(LOG_ERROR, "Failed to load %s\n", plugin->filename);
-					goto delete_plugin;
-				}
+                                if (proxenet_lua_load_file(plugin) < 0) {
+                                        plugin->state = INACTIVE;
+                                        xlog(LOG_ERROR, "Failed to load %s\n", plugin->filename);
+                                        goto delete_plugin;
+                                }
 
-				break;
+                                break;
 #endif
 
 #ifdef _TCL_PLUGIN
-			case _TCL_:
-				if (proxenet_tcl_initialize_vm(plugin) < 0) {
-					plugin->state = INACTIVE;
-					xlog(LOG_ERROR, "%s\n", "Failed to init Lua VM");
-					goto delete_plugin;
-				}
+                        case _TCL_:
+                                if (proxenet_tcl_initialize_vm(plugin) < 0) {
+                                        plugin->state = INACTIVE;
+                                        xlog(LOG_ERROR, "%s\n", "Failed to init Lua VM");
+                                        goto delete_plugin;
+                                }
 
-				if (proxenet_tcl_load_file(plugin) < 0) {
-					plugin->state = INACTIVE;
-					xlog(LOG_ERROR, "Failed to load %s\n", plugin->filename);
-					goto delete_plugin;
-				}
+                                if (proxenet_tcl_load_file(plugin) < 0) {
+                                        plugin->state = INACTIVE;
+                                        xlog(LOG_ERROR, "Failed to load %s\n", plugin->filename);
+                                        goto delete_plugin;
+                                }
 
-				break;
+                                break;
 #endif
 
 #ifdef _JAVA_PLUGIN
-			case _JAVA_:
-				if (proxenet_java_initialize_vm(plugin) < 0) {
-					plugin->state = INACTIVE;
-					xlog(LOG_ERROR, "%s\n", "Failed to init Java VM");
-					goto delete_plugin;
-				}
+                        case _JAVA_:
+                                if (proxenet_java_initialize_vm(plugin) < 0) {
+                                        plugin->state = INACTIVE;
+                                        xlog(LOG_ERROR, "%s\n", "Failed to init Java VM");
+                                        goto delete_plugin;
+                                }
 
-				if (proxenet_java_load_file(plugin) < 0) {
-					plugin->state = INACTIVE;
-					xlog(LOG_ERROR, "Failed to load %s\n", plugin->filename);
-					goto delete_plugin;
-				}
+                                if (proxenet_java_load_file(plugin) < 0) {
+                                        plugin->state = INACTIVE;
+                                        xlog(LOG_ERROR, "Failed to load %s\n", plugin->filename);
+                                        goto delete_plugin;
+                                }
 
-				break;
+                                break;
 #endif
-			default:
-				break;
-		}
+                        default:
+                                break;
+                }
 
-		if (cfg->verbose > 1)
-			xlog(LOG_INFO, "Successfully initialiazed '%s'\n", plugin->filename);
+                if (cfg->verbose > 1)
+                        xlog(LOG_INFO, "Successfully initialiazed '%s'\n", plugin->filename);
 
-		prec_plugin = plugin;
-		plugin = plugin->next;
-		continue;
+                prec_plugin = plugin;
+                plugin = plugin->next;
+                continue;
 
 
-delete_plugin:
-		if(prec_plugin) {
-			prec_plugin->next = plugin->next;
-		} else {
-			plugins_list = plugin->next;
-		}
+        delete_plugin:
+                if(prec_plugin) {
+                        prec_plugin->next = plugin->next;
+                } else {
+                        plugins_list = plugin->next;
+                }
 
-		if (cfg->verbose > 1)
-			xlog(LOG_ERROR, "Removing '%s' from plugin list\n", plugin->filename);
+                if (cfg->verbose > 1)
+                        xlog(LOG_ERROR, "Removing '%s' from plugin list\n", plugin->filename);
 
-		next_plugin = plugin->next;
-		proxenet_remove_plugin(plugin);
-		plugin = next_plugin;
-	}
+                next_plugin = plugin->next;
+                proxenet_remove_plugin(plugin);
+                plugin = next_plugin;
+        }
 
 }
 
@@ -282,57 +282,57 @@ delete_plugin:
  */
 void proxenet_destroy_plugins_vm()
 {
-	plugin_t *p;
+        plugin_t *p;
 
-	for (p=plugins_list; p!=NULL; p=p->next) {
+        for (p=plugins_list; p!=NULL; p=p->next) {
 
-		switch (p->type) {
+                switch (p->type) {
 #ifdef _PYTHON_PLUGIN
-			case _PYTHON_:
-				proxenet_python_destroy_vm(p);
-				break;
+                        case _PYTHON_:
+                                proxenet_python_destroy_vm(p);
+                                break;
 #endif
 
 #ifdef _C_PLUGIN
-			case _C_:
-				proxenet_c_destroy_vm(p);
-				break;
+                        case _C_:
+                                proxenet_c_destroy_vm(p);
+                                break;
 #endif
 
 #ifdef _RUBY_PLUGIN
-			case _RUBY_:
-				proxenet_ruby_destroy_vm(p);
-				break;
+                        case _RUBY_:
+                                proxenet_ruby_destroy_vm(p);
+                                break;
 #endif
 
 #ifdef _PERL_PLUGIN
-			case _PERL_:
-				proxenet_perl_destroy_vm(p);
-				break;
+                        case _PERL_:
+                                proxenet_perl_destroy_vm(p);
+                                break;
 #endif
 
 #ifdef _LUA_PLUGIN
-			case _LUA_:
-				proxenet_lua_destroy_vm(p);
-				break;
+                        case _LUA_:
+                                proxenet_lua_destroy_vm(p);
+                                break;
 #endif
 
 #ifdef _TCL_PLUGIN
-			case _TCL_:
-				proxenet_tcl_destroy_vm(p);
-				break;
+                        case _TCL_:
+                                proxenet_tcl_destroy_vm(p);
+                                break;
 #endif
 
 #ifdef _JAVA_PLUGIN
-			case _JAVA_:
-				proxenet_java_destroy_vm(p);
-				break;
+                        case _JAVA_:
+                                proxenet_java_destroy_vm(p);
+                                break;
 #endif
-			default:
-				break;
+                        default:
+                                break;
 
-		}
-	}
+                }
+        }
 }
 
 
@@ -345,37 +345,37 @@ void proxenet_destroy_plugins_vm()
  */
 int proxenet_toggle_plugin(int plugin_id)
 {
-	plugin_t *plugin;
+        plugin_t *plugin;
 
-	for (plugin=plugins_list; plugin!=NULL; plugin=plugin->next) {
+        for (plugin=plugins_list; plugin!=NULL; plugin=plugin->next) {
 
-		if (plugin->id == plugin_id) {
-			switch (plugin->state){
+                if (plugin->id == plugin_id) {
+                        switch (plugin->state){
 
-				case INACTIVE:
-					plugin->state = ACTIVE;
-					break;
+                                case INACTIVE:
+                                        plugin->state = ACTIVE;
+                                        break;
 
-				case ACTIVE:
-					plugin->state = INACTIVE;
-					break;
+                                case ACTIVE:
+                                        plugin->state = INACTIVE;
+                                        break;
 
-				default:
-					break;
-			}
+                                default:
+                                        break;
+                        }
 
-			xlog(LOG_INFO,
-			     "Plugin %d '%s' is now %sACTIVE\n",
-			     plugin->id,
-			     plugin->name,
-			     (plugin->state==INACTIVE ? "IN" : ""));
+                        xlog(LOG_INFO,
+                             "Plugin %d '%s' is now %sACTIVE\n",
+                             plugin->id,
+                             plugin->name,
+                             (plugin->state==INACTIVE ? "IN" : ""));
 
-			return (plugin->state==INACTIVE ? 0 : 1);
+                        return (plugin->state==INACTIVE ? 0 : 1);
 
-		}
-	}
+                }
+        }
 
-	return -1;
+        return -1;
 }
 
 
@@ -384,97 +384,97 @@ int proxenet_toggle_plugin(int plugin_id)
  */
 static int proxenet_apply_plugins(request_t *request)
 {
-	plugin_t *p = NULL;
-	char *old_data = NULL;;
-	char* (*plugin_function)(plugin_t*, request_t*) = NULL;
+        plugin_t *p = NULL;
+        char *old_data = NULL;;
+        char* (*plugin_function)(plugin_t*, request_t*) = NULL;
 
-	for (p=plugins_list; p!=NULL; p=p->next) {
+        for (p=plugins_list; p!=NULL; p=p->next) {
 
-		if (p->state == INACTIVE)
-			continue;
+                if (p->state == INACTIVE)
+                        continue;
 
-		switch (p->type) {
+                switch (p->type) {
 
 #ifdef _PYTHON_PLUGIN
-			case _PYTHON_:
-				plugin_function = proxenet_python_plugin;
-				break;
+                        case _PYTHON_:
+                                plugin_function = proxenet_python_plugin;
+                                break;
 #endif
 
 #ifdef _C_PLUGIN
-			case _C_:
-				plugin_function = proxenet_c_plugin;
-				break;
+                        case _C_:
+                                plugin_function = proxenet_c_plugin;
+                                break;
 #endif
 
 #ifdef _RUBY_PLUGIN
-			case _RUBY_:
-				plugin_function = proxenet_ruby_plugin;
-				break;
+                        case _RUBY_:
+                                plugin_function = proxenet_ruby_plugin;
+                                break;
 #endif
 
 #ifdef _PERL_PLUGIN
-			case _PERL_:
-				plugin_function = proxenet_perl_plugin;
-				break;
+                        case _PERL_:
+                                plugin_function = proxenet_perl_plugin;
+                                break;
 #endif
 
 #ifdef _LUA_PLUGIN
-			case _LUA_:
-				plugin_function = proxenet_lua_plugin;
-				break;
+                        case _LUA_:
+                                plugin_function = proxenet_lua_plugin;
+                                break;
 #endif
 
 #ifdef _TCL_PLUGIN
-			case _TCL_:
-				plugin_function = proxenet_tcl_plugin;
-				break;
+                        case _TCL_:
+                                plugin_function = proxenet_tcl_plugin;
+                                break;
 #endif
 
 #ifdef _JAVA_PLUGIN
-			case _JAVA_:
-				plugin_function = proxenet_java_plugin;
-				break;
+                        case _JAVA_:
+                                plugin_function = proxenet_java_plugin;
+                                break;
 #endif
-			default:
-				xlog(LOG_CRITICAL, "Type %d not supported (yet)\n", p->type);
-				return -1;
-		}
+                        default:
+                                xlog(LOG_CRITICAL, "Type %d not supported (yet)\n", p->type);
+                                return -1;
+                }
 
 #ifdef DEBUG
-		xlog(LOG_DEBUG,
-		     "Calling %s plugin id %d: %s:%s\n",
-		     supported_plugins_str[p->type],
-		     p->id,
-		     p->name,
-		     request->type==REQUEST?CFG_REQUEST_PLUGIN_FUNCTION:CFG_RESPONSE_PLUGIN_FUNCTION);
+                xlog(LOG_DEBUG,
+                     "Calling %s plugin id %d: %s:%s\n",
+                     supported_plugins_str[p->type],
+                     p->id,
+                     p->name,
+                     request->type==REQUEST?CFG_REQUEST_PLUGIN_FUNCTION:CFG_RESPONSE_PLUGIN_FUNCTION);
 #endif
 
-		old_data = request->data;
-		request->data = (*plugin_function)(p, request);
+                old_data = request->data;
+                request->data = (*plugin_function)(p, request);
 
-		if (request->data) {
-			/*
-			 * If new_data is different, it means a new buffer was allocated by
-			 * (*plugin_function)(). The old_data can then be free-ed.
-			 */
-			proxenet_xfree(old_data);
+                if (request->data) {
+                        /*
+                         * If new_data is different, it means a new buffer was allocated by
+                         * (*plugin_function)(). The old_data can then be free-ed.
+                         */
+                        proxenet_xfree(old_data);
 
-		} else {
-			/* Otherwise (data different or error), use the original data */
-			request->data = old_data;
-		}
+                } else {
+                        /* Otherwise (data different or error), use the original data */
+                        request->data = old_data;
+                }
 
-		/* Additionnal check for dummy plugin coder */
-		if (!request->data || request->size == 0) {
-			xlog(LOG_CRITICAL, "Plugin '%s' is invalid", p->name);
-			p->state = INACTIVE;
+                /* Additionnal check for dummy plugin coder */
+                if (!request->data || request->size == 0) {
+                        xlog(LOG_CRITICAL, "Plugin '%s' is invalid", p->name);
+                        p->state = INACTIVE;
 
-			return -1;
-		}
-	}
+                        return -1;
+                }
+        }
 
-	return 0;
+        return 0;
 }
 
 
@@ -484,72 +484,72 @@ static int proxenet_apply_plugins(request_t *request)
  */
 void proxenet_process_http_request(sock_t server_socket)
 {
-	sock_t client_socket;
-	request_t req;
-	int retcode, n;
-	fd_set rfds;
-	struct timespec ts;
-	ssl_context_t ssl_context;
-	bool is_ssl;
-	sigset_t emptyset;
+        sock_t client_socket;
+        request_t req;
+        int retcode, n;
+        fd_set rfds;
+        struct timespec ts;
+        ssl_context_t ssl_context;
+        bool is_ssl;
+        sigset_t emptyset;
         bool is_new_http_connection = false;
 
-	client_socket = retcode = n = -1;
-	proxenet_xzero(&req, sizeof(request_t));
-	proxenet_xzero(&ssl_context, sizeof(ssl_context_t));
+        client_socket = retcode = n = -1;
+        proxenet_xzero(&req, sizeof(request_t));
+        proxenet_xzero(&ssl_context, sizeof(ssl_context_t));
 
-	/* wait for any event on sockets */
-	for(;;) {
+        /* wait for any event on sockets */
+        for(;;) {
 
-		if (server_socket < 0) {
-			xlog(LOG_ERROR, "%s\n", "Sock browser->proxy died unexpectedly");
-			break;
-		}
+                if (server_socket < 0) {
+                        xlog(LOG_ERROR, "%s\n", "Sock browser->proxy died unexpectedly");
+                        break;
+                }
 
-		ts.tv_sec  = HTTP_TIMEOUT_SOCK;
-		ts.tv_nsec = 0;
+                ts.tv_sec  = HTTP_TIMEOUT_SOCK;
+                ts.tv_nsec = 0;
 
-		FD_ZERO(&rfds);
-		FD_SET(server_socket, &rfds);
-		if (client_socket > 0)
-			FD_SET(client_socket, &rfds);
+                FD_ZERO(&rfds);
+                FD_SET(server_socket, &rfds);
+                if (client_socket > 0)
+                        FD_SET(client_socket, &rfds);
 
-		sigemptyset(&emptyset);
-		retcode = pselect(FD_SETSIZE, &rfds, NULL, NULL, &ts, &emptyset);
-		if (retcode < 0) {
-			if (errno == EINTR) {
-				continue;
-			} else {
-				xlog(LOG_CRITICAL, "[thread] pselect returned %d: %s\n", retcode, strerror(errno));
-				break;
-			}
-		}
+                sigemptyset(&emptyset);
+                retcode = pselect(FD_SETSIZE, &rfds, NULL, NULL, &ts, &emptyset);
+                if (retcode < 0) {
+                        if (errno == EINTR) {
+                                continue;
+                        } else {
+                                xlog(LOG_CRITICAL, "[thread] pselect returned %d: %s\n", retcode, strerror(errno));
+                                break;
+                        }
+                }
 
-		if (retcode == 0) {
-			break;
-		}
+                if (retcode == 0) {
+                        break;
+                }
 
-		is_ssl = ssl_context.use_ssl;
+                is_ssl = ssl_context.use_ssl;
 
-		/* is there data from web browser to proxy ? */
-		if( FD_ISSET(server_socket, &rfds ) ) {
+                /* is there data from web browser to proxy ? */
+                if( FD_ISSET(server_socket, &rfds ) ) {
 
-			if(is_ssl) {
-				n = proxenet_read_all(server_socket,
-						      &req.data,
-						      &(ssl_context.server.context));
-			} else {
-				n = proxenet_read_all(server_socket, &req.data, NULL);
-			}
+                        if(is_ssl) {
+                                n = proxenet_read_all(server_socket,
+                                                      &req.data,
+                                                      &(ssl_context.server.context));
+                        } else {
+                                n = proxenet_read_all(server_socket, &req.data, NULL);
+                        }
 #ifdef DEBUG
-			xlog(LOG_DEBUG, "[%d] Got %dB from client (%s)\n", req.id, n, (is_ssl)?"SSL":"PLAIN");
+                        xlog(LOG_DEBUG, "Got %dB from client (%s)\n", n, (is_ssl)?"SSL":"PLAIN");
 #endif
 
-			if (n < 0) {
+                        if (n < 0) {
 #ifdef DEBUG
                                 xlog(LOG_CRITICAL, "[%d] Error during read, end thread\n", req.id);
 #endif
-				break;
+                                break;
                         }
 
                         if (n == 0){
@@ -560,47 +560,47 @@ void proxenet_process_http_request(sock_t server_socket)
                         }
 
                         /* from here, n can only be positive */
-			req.size = (size_t) n;
+                        req.size = (size_t) n;
 
-			/* is connection to server not established ? -> new request */
-			if (client_socket < 0) {
+                        /* is connection to server not established ? -> new request */
+                        if (client_socket < 0) {
 
-				retcode = create_http_socket(&req, &server_socket, &client_socket, &ssl_context);
-				if (retcode < 0) {
-					xlog(LOG_ERROR, "[%d] Failed to create %s->server socket\n", req.id, PROGNAME);
-					proxenet_xfree(req.data);
-					client_socket = -1;
-					break;
-				}
+                                retcode = create_http_socket(&req, &server_socket, &client_socket, &ssl_context);
+                                if (retcode < 0) {
+                                        xlog(LOG_ERROR, "Failed to create %s->server socket\n", PROGNAME);
+                                        proxenet_xfree(req.data);
+                                        client_socket = -1;
+                                        break;
+                                }
 
 
-				if (ssl_context.use_ssl) {
-					if (ssl_context.server.is_valid && ssl_context.client.is_valid) {
+                                if (ssl_context.use_ssl) {
+                                        if (ssl_context.server.is_valid && ssl_context.client.is_valid) {
 #ifdef DEBUG
-						xlog(LOG_DEBUG, "[%d] SSL interception established\n", req.id);
+                                                xlog(LOG_DEBUG, "SSL interception client <-> %s <-> server established\n", PROGNAME);
 #endif
-						proxenet_xfree(req.data);
-						continue;
+                                                proxenet_xfree(req.data);
+                                                continue;
 
-					}
+                                        }
 
-					xlog(LOG_ERROR, "[%d] Failed to establish interception\n", req.id);
-					proxenet_xfree(req.data);
-					client_socket = -1;
-					break;
-				}
+                                        xlog(LOG_ERROR, "%s\n", "Failed to establish interception");
+                                        proxenet_xfree(req.data);
+                                        client_socket = -1;
+                                        break;
+                                }
 
                                 is_new_http_connection = true;
-			}
+                        }
 
 
-			req.type = REQUEST;
+                        req.type = REQUEST;
                         if (is_new_http_connection)
                                 req.id = get_new_request_id();
 
 
                         /* if proxenet does not relay to another proxy */
-			if (!cfg->proxy.host) {
+                        if (!cfg->proxy.host) {
 
                                 if (is_new_http_connection) {
                                         /* check if request is valid  */
@@ -620,149 +620,156 @@ void proxenet_process_http_request(sock_t server_socket)
                                         /* if here, at least 1 request has been to server */
                                         /* so simply forward  */
                                         /* e.g. using HTTP/1.1 100 Continue */
-                                        xlog(LOG_DEBUG, "[%d] Continuing HTTP stream '%d'->'%d'\n", req.id, client_socket, server_socket);
+                                        xlog(LOG_DEBUG, "Resuming stream '%d'->'%d'\n", client_socket, server_socket);
                                 }
 #endif
-			}
+                        }
 
 
-			if (cfg->verbose) {
-				xlog(LOG_INFO, "New request %d to '%s:%d'\n",
-				     req.id,
-				     req.http_infos.hostname,
-				     req.http_infos.port);
+                        if (cfg->verbose) {
+                                xlog(LOG_INFO, "New request %d to '%s:%d'\n",
+                                     req.id,
+                                     req.http_infos.hostname,
+                                     req.http_infos.port);
 
-				if (cfg->verbose > 1)
-					xlog(LOG_INFO, "%s %s://%s:%d%s %s\n",
-					     req.http_infos.method,
-					     req.http_infos.proto,
-					     req.http_infos.hostname,
-					     req.http_infos.port,
-					     req.http_infos.uri,
-					     req.http_infos.version);
+                                if (cfg->verbose > 1)
+                                        xlog(LOG_INFO, "%s %s://%s:%d%s %s\n",
+                                             req.http_infos.method,
+                                             req.http_infos.proto,
+                                             req.http_infos.hostname,
+                                             req.http_infos.port,
+                                             req.http_infos.uri,
+                                             req.http_infos.version);
 
-			}
-
-#ifdef DEBUG
-			xlog(LOG_DEBUG, "[%d] Sending buffer %d bytes (%s) - pre-plugins\n",
-			     req.id, req.size, (req.http_infos.is_ssl)?"SSL":"PLAIN");
-#endif
-			/* hook request with all plugins in plugins_list  */
-			if ( proxenet_apply_plugins(&req) < 0) {
-				/* extremist action: any error on any plugin discard the whole request */
-				req.id = 0;
-				proxenet_xfree( req.data );
-				break;
-			}
+                        }
 
 #ifdef DEBUG
-			xlog(LOG_DEBUG, "[%d] Sending buffer %d bytes (%s) - post-plugins\n",
-			     req.id, req.size, (req.http_infos.is_ssl)?"SSL":"PLAIN");
+                        xlog(LOG_DEBUG, "[%d] Sending buffer %d bytes (%s) - pre-plugins\n",
+                             req.id, req.size, (req.http_infos.is_ssl)?"SSL":"PLAIN");
 #endif
-			/* send modified data */
-			if (is_ssl) {
-				retcode = proxenet_ssl_write(&(ssl_context.client.context), req.data, req.size);
-			} else {
-				retcode = proxenet_write(client_socket, req.data, req.size);
-			}
-
-			proxenet_xfree(req.data);
-
-			if (retcode < 0) {
-				xlog(LOG_ERROR, "[%d] %s\n", req.id, "Failed to write to server");
-				if (req.id)
-					req.id = 0;
-				break;
-			}
-
-		} /* end FD_ISSET(data_from_browser) */
-
-
-		/* is there data from remote server to proxy ? */
-		if( client_socket > 0 && FD_ISSET(client_socket, &rfds ) ) {
-
-			if (is_ssl)
-				n = proxenet_read_all(client_socket, &req.data, &ssl_context.client.context);
-			else
-				n = proxenet_read_all(client_socket, &req.data, NULL);
+                        /* hook request with all plugins in plugins_list  */
+                        if ( proxenet_apply_plugins(&req) < 0) {
+                                /* extremist action: any error on any plugin discard the whole request */
+                                req.id = 0;
+                                proxenet_xfree( req.data );
+                                break;
+                        }
 
 #ifdef DEBUG
-			xlog(LOG_DEBUG, "[%d] Got %dB from server\n", req.id, n);
+                        xlog(LOG_DEBUG, "Sending buffer %d bytes (%s) - post-plugins\n",
+                             req.size, (req.http_infos.is_ssl)?"SSL":"PLAIN");
 #endif
+                        /* send modified data */
+                        if (is_ssl) {
+                                retcode = proxenet_ssl_write(&(ssl_context.client.context), req.data, req.size);
+                        } else {
+                                retcode = proxenet_write(client_socket, req.data, req.size);
+                        }
 
-			if (n <= 0)
-				break;
+                        proxenet_xfree(req.data);
 
-			/* update request data structure */
-			req.type   = RESPONSE;
-			req.size   = n;
+                        if (retcode < 0) {
+                                xlog(LOG_ERROR, "[%d] %s\n", req.id, "Failed to write to server");
+                                if (req.id)
+                                        req.id = 0;
+                                break;
+                        }
 
-			/* execute response hooks */
-			if ( proxenet_apply_plugins(&req) < 0) {
-				/* extremist action: any error on any plugin discard the whole request */
-				req.id = 0;
-				proxenet_xfree(req.data);
-				break;
-			}
-
-			/* send modified data to client */
-			if (is_ssl)
-				retcode = proxenet_ssl_write(&(ssl_context.server.context), req.data, req.size);
-			else
-				retcode = proxenet_write(server_socket, req.data, req.size);
-
-			if (retcode < 0) {
-				xlog(LOG_ERROR, "[%d] %s\n", req.id, "proxy->client: write failed");
-			}
-
-			proxenet_xfree(req.data);
-
-		}  /* end FD_ISSET(data_from_server) */
-
-	}  /* end for(;;) { select() } */
-
-
-	if (req.id) {
 #ifdef DEBUG
-		xlog(LOG_DEBUG, "Free-ing request %d\n", req.id);
+                        xlog(LOG_DEBUG, "Written %d bytes on %s socket #%d\n",
+                             retcode, (req.http_infos.is_ssl)?"SSL":"PLAIN", client_socket);
 #endif
-		proxenet_xfree(req.http_infos.method);
-		proxenet_xfree(req.http_infos.hostname);
-		proxenet_xfree(req.http_infos.uri);
-		proxenet_xfree(req.http_infos.version);
-	}
 
-	/* close client socket */
-	if (client_socket > 0) {
+                } /* end FD_ISSET(data_from_browser) */
+
+
+                /* is there data from remote server to proxy ? */
+                if( client_socket > 0 && FD_ISSET(client_socket, &rfds ) ) {
+
+                        if (is_ssl)
+                                n = proxenet_read_all(client_socket, &req.data, &ssl_context.client.context);
+                        else
+                                n = proxenet_read_all(client_socket, &req.data, NULL);
+
 #ifdef DEBUG
-		xlog(LOG_DEBUG, "Closing proxy->server socket #%d\n", client_socket);
+                        xlog(LOG_DEBUG, "Got %dB from server\n", n);
 #endif
-		if (ssl_context.client.is_valid) {
-			proxenet_ssl_finish(&(ssl_context.client), false);
-			close_socket_ssl(client_socket, &ssl_context.client.context);
 
-		} else {
-			close_socket(client_socket);
-		}
-	}
+                        if (n <= 0)
+                                break;
+
+                        /* update request data structure */
+                        req.type   = RESPONSE;
+
+                        /* from here, n can only be positive */
+                        req.size   = (size_t) n;
+
+                        /* execute response hooks */
+                        if ( proxenet_apply_plugins(&req) < 0) {
+                                /* extremist action: any error on any plugin discard the whole request */
+                                req.id = 0;
+                                proxenet_xfree(req.data);
+                                break;
+                        }
+
+                        /* send modified data to client */
+                        if (is_ssl)
+                                retcode = proxenet_ssl_write(&(ssl_context.server.context), req.data, req.size);
+                        else
+                                retcode = proxenet_write(server_socket, req.data, req.size);
+
+                        if (retcode < 0) {
+                                xlog(LOG_ERROR, "[%d] %s\n", req.id, "proxy->client: write failed");
+                        }
+
+                        proxenet_xfree(req.data);
+
+                }  /* end FD_ISSET(data_from_server) */
+
+        }  /* end for(;;) { select() } */
 
 
-	/* close local socket */
-	if (server_socket > 0) {
+        if (req.id) {
 #ifdef DEBUG
-		xlog(LOG_DEBUG, "Closing browser->proxy socket #%d\n", server_socket);
+                xlog(LOG_DEBUG, "Free-ing request %d\n", req.id);
 #endif
-		if (ssl_context.server.is_valid) {
-			proxenet_ssl_finish(&(ssl_context.server), true);
-			close_socket_ssl(server_socket, &ssl_context.server.context);
+                proxenet_xfree(req.http_infos.method);
+                proxenet_xfree(req.http_infos.hostname);
+                proxenet_xfree(req.http_infos.uri);
+                proxenet_xfree(req.http_infos.version);
+        }
 
-		} else {
-			close_socket(server_socket);
-		}
-	}
+        /* close client socket */
+        if (client_socket > 0) {
+#ifdef DEBUG
+                xlog(LOG_DEBUG, "Closing proxy->server socket #%d\n", client_socket);
+#endif
+                if (ssl_context.client.is_valid) {
+                        proxenet_ssl_finish(&(ssl_context.client), false);
+                        close_socket_ssl(client_socket, &ssl_context.client.context);
 
-	/* and that's all folks */
-	return;
+                } else {
+                        close_socket(client_socket);
+                }
+        }
+
+
+        /* close local socket */
+        if (server_socket > 0) {
+#ifdef DEBUG
+                xlog(LOG_DEBUG, "Closing browser->proxy socket #%d\n", server_socket);
+#endif
+                if (ssl_context.server.is_valid) {
+                        proxenet_ssl_finish(&(ssl_context.server), true);
+                        close_socket_ssl(server_socket, &ssl_context.server.context);
+
+                } else {
+                        close_socket(server_socket);
+                }
+        }
+
+        /* and that's all folks */
+        return;
 }
 
 
@@ -771,24 +778,24 @@ void proxenet_process_http_request(sock_t server_socket)
  */
 static void* process_thread_job(void* arg)
 {
-	tinfo_t* tinfo = (tinfo_t*) arg;
-	pthread_t parent_tid;
+        tinfo_t* tinfo = (tinfo_t*) arg;
+        pthread_t parent_tid;
 
-	active_threads_bitmask |= 1 << tinfo->thread_num;
-	parent_tid = tinfo->main_tid;
+        active_threads_bitmask |= 1 << tinfo->thread_num;
+        parent_tid = tinfo->main_tid;
 
-	/* treat request */
-	proxenet_process_http_request(tinfo->sock);
+        /* treat request */
+        proxenet_process_http_request(tinfo->sock);
 
-	/* purge thread */
-	proxenet_xfree(arg);
+        /* purge thread */
+        proxenet_xfree(arg);
 
-	/* signal main thread (parent) to clean up */
-	if (pthread_kill(parent_tid, SIGCHLD) < 0){
-		xlog(LOG_ERROR, "Sending SIGCHLD failed: %s\n", strerror(errno));
-	}
+        /* signal main thread (parent) to clean up */
+        if (pthread_kill(parent_tid, SIGCHLD) < 0){
+                xlog(LOG_ERROR, "Sending SIGCHLD failed: %s\n", strerror(errno));
+        }
 
-	pthread_exit(NULL);
+        pthread_exit(NULL);
 }
 
 
@@ -797,7 +804,7 @@ static void* process_thread_job(void* arg)
  */
 bool is_thread_active(int idx)
 {
-	return active_threads_bitmask & (1<<idx);
+        return active_threads_bitmask & (1<<idx);
 }
 
 
@@ -806,12 +813,12 @@ bool is_thread_active(int idx)
  */
 unsigned int get_active_threads_size()
 {
-	int i,n;
+        int i,n;
 
-	for (i=0, n=0; i<cfg->nb_threads; i++)
-		if (is_thread_active(i)) n++;
+        for (i=0, n=0; i<cfg->nb_threads; i++)
+                if (is_thread_active(i)) n++;
 
-	return n;
+        return n;
 }
 
 
@@ -820,17 +827,17 @@ unsigned int get_active_threads_size()
  */
 static int proxenet_start_new_thread(sock_t conn, int tnum, pthread_t* thread, pthread_attr_t* tattr)
 {
-	tinfo_t* tinfo;
-	void* tfunc;
+        tinfo_t* tinfo;
+        void* tfunc;
 
-	tinfo = (tinfo_t*)proxenet_xmalloc(sizeof(tinfo_t));
-	tfunc = &process_thread_job;
+        tinfo = (tinfo_t*)proxenet_xmalloc(sizeof(tinfo_t));
+        tfunc = &process_thread_job;
 
-	tinfo->thread_num = tnum;
-	tinfo->sock = conn;
-	tinfo->main_tid = pthread_self();
+        tinfo->thread_num = tnum;
+        tinfo->sock = conn;
+        tinfo->main_tid = pthread_self();
 
-	return pthread_create(thread, tattr, tfunc, (void*)tinfo);
+        return pthread_create(thread, tattr, tfunc, (void*)tinfo);
 }
 
 
@@ -839,27 +846,27 @@ static int proxenet_start_new_thread(sock_t conn, int tnum, pthread_t* thread, p
  */
 static void purge_zombies()
 {
-	/* simple threads heartbeat based on pthread_kill response */
-	int i, retcode;
+        /* simple threads heartbeat based on pthread_kill response */
+        int i, retcode;
 
-	for (i=0; i < cfg->nb_threads; i++) {
-		if (!is_thread_active(i)) continue;
+        for (i=0; i < cfg->nb_threads; i++) {
+                if (!is_thread_active(i)) continue;
 
-		retcode = pthread_kill(threads[i], 0);
-		if (retcode == ESRCH) {
-			retcode = pthread_join(threads[i], NULL);
-			if (retcode) {
-				xlog(LOG_ERROR, "xloop: failed to join Thread-%d: %s\n",
-				     i, strerror(errno));
-			} else {
+                retcode = pthread_kill(threads[i], 0);
+                if (retcode == ESRCH) {
+                        retcode = pthread_join(threads[i], NULL);
+                        if (retcode) {
+                                xlog(LOG_ERROR, "xloop: failed to join Thread-%d: %s\n",
+                                     i, strerror(errno));
+                        } else {
 #ifdef DEBUG
-				xlog(LOG_DEBUG, "Thread-%d finished\n", i);
+                                xlog(LOG_DEBUG, "Thread-%d finished\n", i);
 #endif
-				/* mark thread as inactive */
-				active_threads_bitmask &= (unsigned long long)~(1<<i);
-			}
-		}
-	}
+                                /* mark thread as inactive */
+                                active_threads_bitmask &= (unsigned long long)~(1<<i);
+                        }
+                }
+        }
 }
 
 
@@ -868,38 +875,38 @@ static void purge_zombies()
  */
 static void kill_zombies()
 {
-	int i, retcode;
+        int i, retcode;
 
-	for (i=0; i<cfg->nb_threads; i++) {
-		if (!is_thread_active(i))
-			continue;
+        for (i=0; i<cfg->nb_threads; i++) {
+                if (!is_thread_active(i))
+                        continue;
 
-		retcode = pthread_join(threads[i], NULL);
-		if (retcode) {
-			xlog(LOG_ERROR, "xloop: failed to join Thread-%d: %s\n", i, strerror(retcode));
+                retcode = pthread_join(threads[i], NULL);
+                if (retcode) {
+                        xlog(LOG_ERROR, "xloop: failed to join Thread-%d: %s\n", i, strerror(retcode));
 #ifdef DEBUG
-			switch(retcode) {
-				case EDEADLK:
-					xlog(LOG_ERROR, "%s\n", "Deadlock detected");
-					break;
-				case EINVAL:
-					xlog(LOG_ERROR, "%s\n", "Thread not joinable");
-					break;
-				case ESRCH:
-					xlog(LOG_ERROR, "%s\n", "No thread matches this Id");
-					break;
-				default :
-					xlog(LOG_ERROR, "Unknown errcode %d\n", retcode);
-					break;
-			}
+                        switch(retcode) {
+                                case EDEADLK:
+                                        xlog(LOG_ERROR, "%s\n", "Deadlock detected");
+                                        break;
+                                case EINVAL:
+                                        xlog(LOG_ERROR, "%s\n", "Thread not joinable");
+                                        break;
+                                case ESRCH:
+                                        xlog(LOG_ERROR, "%s\n", "No thread matches this Id");
+                                        break;
+                                default :
+                                        xlog(LOG_ERROR, "Unknown errcode %d\n", retcode);
+                                        break;
+                        }
 #endif
-		}
+                }
 #ifdef DEBUG
-		else {
-			xlog(LOG_DEBUG, "Thread-%d finished\n", i);
-		}
+                else {
+                        xlog(LOG_DEBUG, "Thread-%d finished\n", i);
+                }
 #endif
-	}
+        }
 }
 
 
@@ -913,20 +920,20 @@ static void kill_zombies()
  */
 int proxenet_initialize_plugins_list()
 {
-	if(proxenet_add_new_plugins(cfg->autoload_path, NULL) < 0) {
-		xlog(LOG_ERROR, "%s\n", "Failed to build plugins list, leaving");
-		return -1;
-	}
+        if(proxenet_add_new_plugins(cfg->autoload_path, NULL) < 0) {
+                xlog(LOG_ERROR, "%s\n", "Failed to build plugins list, leaving");
+                return -1;
+        }
 
-	if(cfg->verbose) {
-		xlog(LOG_INFO, "%s\n", "Plugins loaded");
-		if (cfg->verbose > 1) {
-			xlog(LOG_INFO, "%d plugin(s) found\n", proxenet_plugin_list_size());
-			proxenet_print_plugins_list(-1);
-		}
-	}
+        if(cfg->verbose) {
+                xlog(LOG_INFO, "%s\n", "Plugins loaded");
+                if (cfg->verbose > 1) {
+                        xlog(LOG_INFO, "%d plugin(s) found\n", proxenet_plugin_list_size());
+                        proxenet_print_plugins_list(-1);
+                }
+        }
 
-	return 0;
+        return 0;
 }
 
 
@@ -935,10 +942,10 @@ int proxenet_initialize_plugins_list()
  */
 int get_new_thread_id()
 {
-	int tnum;
+        int tnum;
 
-	for(tnum=0; is_thread_active(tnum) && tnum<cfg->nb_threads; tnum++);
-	return (tnum >= cfg->nb_threads) ? -1 : tnum;
+        for(tnum=0; is_thread_active(tnum) && tnum<cfg->nb_threads; tnum++);
+        return (tnum >= cfg->nb_threads) ? -1 : tnum;
 }
 
 
@@ -947,157 +954,157 @@ int get_new_thread_id()
  */
 void xloop(sock_t sock, sock_t ctl_sock)
 {
-	fd_set sock_set;
-	int retcode;
-	pthread_attr_t pattr;
-	int tid;
-	sock_t conn;
-	sigset_t curmask, oldmask;
-	sock_t ctl_cli_sock = -1;
+        fd_set sock_set;
+        int retcode;
+        pthread_attr_t pattr;
+        int tid;
+        sock_t conn;
+        sigset_t curmask, oldmask;
+        sock_t ctl_cli_sock = -1;
 
-	/* prepare threads  */
-	proxenet_xzero(threads, sizeof(pthread_t) * MAX_THREADS);
+        /* prepare threads  */
+        proxenet_xzero(threads, sizeof(pthread_t) * MAX_THREADS);
 
-	if (pthread_attr_init(&pattr)) {
-		xlog(LOG_ERROR, "%s\n", "Failed to pthread_attr_init");
-		return;
-	}
+        if (pthread_attr_init(&pattr)) {
+                xlog(LOG_ERROR, "%s\n", "Failed to pthread_attr_init");
+                return;
+        }
 
-	pthread_attr_setdetachstate(&pattr, PTHREAD_CREATE_JOINABLE);
+        pthread_attr_setdetachstate(&pattr, PTHREAD_CREATE_JOINABLE);
 
-	/* block useful signal */
-	sigemptyset(&curmask);
-	sigaddset(&curmask, SIGTERM);
-	sigaddset(&curmask, SIGINT);
-	sigaddset(&curmask, SIGCHLD);
-	if (pthread_sigmask(SIG_BLOCK, &curmask, &oldmask) < 0) {
-		xlog(LOG_ERROR, "sigprocmask failed : %s\n", strerror(errno));
-		return;
-	}
+        /* block useful signal */
+        sigemptyset(&curmask);
+        sigaddset(&curmask, SIGTERM);
+        sigaddset(&curmask, SIGINT);
+        sigaddset(&curmask, SIGCHLD);
+        if (pthread_sigmask(SIG_BLOCK, &curmask, &oldmask) < 0) {
+                xlog(LOG_ERROR, "sigprocmask failed : %s\n", strerror(errno));
+                return;
+        }
 
-	/* proxenet is now running :) */
-	proxy_state = ACTIVE;
+        /* proxenet is now running :) */
+        proxy_state = ACTIVE;
 
-	/* big loop  */
-	while (proxy_state != INACTIVE) {
-		FD_ZERO(&sock_set);
+        /* big loop  */
+        while (proxy_state != INACTIVE) {
+                FD_ZERO(&sock_set);
 
-		FD_SET(sock, &sock_set);
-		FD_SET(ctl_sock, &sock_set);
-		if (ctl_cli_sock > 0)
-			FD_SET(ctl_cli_sock, &sock_set);
+                FD_SET(sock, &sock_set);
+                FD_SET(ctl_sock, &sock_set);
+                if (ctl_cli_sock > 0)
+                        FD_SET(ctl_cli_sock, &sock_set);
 
-		purge_zombies();
+                purge_zombies();
 
-		/* set asynchronous listener */
-		struct timespec timeout = {
-			.tv_sec = 5,
-			.tv_nsec = 0
-		};
+                /* set asynchronous listener */
+                struct timespec timeout = {
+                        .tv_sec = 5,
+                        .tv_nsec = 0
+                };
 
-		retcode = pselect(FD_SETSIZE, &sock_set, NULL, NULL, &timeout, &oldmask);
+                retcode = pselect(FD_SETSIZE, &sock_set, NULL, NULL, &timeout, &oldmask);
 
-		if (retcode < 0) {
-			if (errno != EINTR) {
-				xlog(LOG_ERROR, "[main] pselect() returned %d: %s\n", retcode, strerror(errno));
-				proxy_state = INACTIVE;
-				break;
-			} else {
-				continue;
-			}
-		}
+                if (retcode < 0) {
+                        if (errno != EINTR) {
+                                xlog(LOG_ERROR, "[main] pselect() returned %d: %s\n", retcode, strerror(errno));
+                                proxy_state = INACTIVE;
+                                break;
+                        } else {
+                                continue;
+                        }
+                }
 
-		if (retcode == 0)
-			continue;
+                if (retcode == 0)
+                        continue;
 
-		if (proxy_state == INACTIVE)
-			break;
+                if (proxy_state == INACTIVE)
+                        break;
 
-		/* event on the listening socket -> new request */
-		if( FD_ISSET(sock, &sock_set) && proxy_state != SLEEPING) {
+                /* event on the listening socket -> new request */
+                if( FD_ISSET(sock, &sock_set) && proxy_state != SLEEPING) {
 #ifdef DEBUG
-			xlog(LOG_DEBUG, "%s\n", "Incoming listening event");
+                        xlog(LOG_DEBUG, "%s\n", "Incoming listening event");
 #endif
 
-			tid = get_new_thread_id();
-			if(tid < 0) {
-				continue;
-			}
+                        tid = get_new_thread_id();
+                        if(tid < 0) {
+                                continue;
+                        }
 
-			struct sockaddr addr;
-			socklen_t addrlen = 0;
+                        struct sockaddr addr;
+                        socklen_t addrlen = 0;
 
-			proxenet_xzero(&addr, sizeof(struct sockaddr));
+                        proxenet_xzero(&addr, sizeof(struct sockaddr));
 
-			conn = accept(sock, &addr, &addrlen);
-			if (conn < 0) {
-				if(errno != EINTR)
-					xlog(LOG_ERROR, "[main] accept() failed: %s\n", strerror(errno));
-				continue;
-			}
+                        conn = accept(sock, &addr, &addrlen);
+                        if (conn < 0) {
+                                if(errno != EINTR)
+                                        xlog(LOG_ERROR, "[main] accept() failed: %s\n", strerror(errno));
+                                continue;
+                        }
 
-			retcode = proxenet_start_new_thread(conn, tid, &threads[tid], &pattr);
-			if (retcode < 0) {
-				xlog(LOG_ERROR, "[main] %s\n", "Error while spawn new thread");
-				continue;
-			}
+                        retcode = proxenet_start_new_thread(conn, tid, &threads[tid], &pattr);
+                        if (retcode < 0) {
+                                xlog(LOG_ERROR, "[main] %s\n", "Error while spawn new thread");
+                                continue;
+                        }
 
-		} /* end if _socket_event */
+                } /* end if _socket_event */
 
 
-		/* event on control listening socket */
-		if( FD_ISSET(ctl_sock, &sock_set) ) {
+                /* event on control listening socket */
+                if( FD_ISSET(ctl_sock, &sock_set) ) {
 #ifdef DEBUG
-			xlog(LOG_DEBUG, "%s\n", "Incoming control event");
+                        xlog(LOG_DEBUG, "%s\n", "Incoming control event");
 #endif
-			struct sockaddr_un sun_cli;
-			socklen_t sun_cli_len = 0;
-			int new_conn = -1;
+                        struct sockaddr_un sun_cli;
+                        socklen_t sun_cli_len = 0;
+                        int new_conn = -1;
 
-			proxenet_xzero(&sun_cli, sizeof(struct sockaddr_un));
+                        proxenet_xzero(&sun_cli, sizeof(struct sockaddr_un));
 
-			new_conn = accept(ctl_sock, (struct sockaddr *)&sun_cli, &sun_cli_len);
-			if (new_conn < 0) {
-				xlog(LOG_ERROR, "[main] control accept() failed: %s\n", strerror(errno));
-				continue;
-			}
+                        new_conn = accept(ctl_sock, (struct sockaddr *)&sun_cli, &sun_cli_len);
+                        if (new_conn < 0) {
+                                xlog(LOG_ERROR, "[main] control accept() failed: %s\n", strerror(errno));
+                                continue;
+                        }
 
-			if (ctl_cli_sock < 0) {
-				ctl_cli_sock = new_conn;
-				xlog(LOG_INFO, "%s\n", "New connection on Control socket");
-				proxenet_write(ctl_cli_sock, CONTROL_MOTD, strlen(CONTROL_MOTD));
-				proxenet_write(ctl_cli_sock, CONTROL_PROMPT, strlen(CONTROL_PROMPT));
+                        if (ctl_cli_sock < 0) {
+                                ctl_cli_sock = new_conn;
+                                xlog(LOG_INFO, "%s\n", "New connection on Control socket");
+                                proxenet_write(ctl_cli_sock, CONTROL_MOTD, strlen(CONTROL_MOTD));
+                                proxenet_write(ctl_cli_sock, CONTROL_PROMPT, strlen(CONTROL_PROMPT));
 
-			} else {
-				if(new_conn > 0) {
-					xlog(LOG_ERROR, "%s\n", "Denied control connection: already established");
-					if(close_socket(new_conn) < 0) {
-						xlog(LOG_ERROR, "Failed to close socket: %s\n", strerror(errno));
-					}
-				}
-			}
+                        } else {
+                                if(new_conn > 0) {
+                                        xlog(LOG_ERROR, "%s\n", "Denied control connection: already established");
+                                        if(close_socket(new_conn) < 0) {
+                                                xlog(LOG_ERROR, "Failed to close socket: %s\n", strerror(errno));
+                                        }
+                                }
+                        }
 
-		}/* end if _control_listening_event */
-
-
-		/* event on control socket */
-		if( ctl_cli_sock > 0 && FD_ISSET(ctl_cli_sock, &sock_set) ) {
-
-			if (proxenet_handle_control_event(&ctl_cli_sock) < 0) {
-				close_socket(ctl_cli_sock);
-				ctl_cli_sock = -1;
-			}
-
-		} /* end if _control_event */
-
-	}  /* endof while(!INACTIVE) */
+                }/* end if _control_listening_event */
 
 
-	kill_zombies();
-	proxenet_destroy_plugins_vm();
-	pthread_attr_destroy(&pattr);
+                /* event on control socket */
+                if( ctl_cli_sock > 0 && FD_ISSET(ctl_cli_sock, &sock_set) ) {
 
-	return;
+                        if (proxenet_handle_control_event(&ctl_cli_sock) < 0) {
+                                close_socket(ctl_cli_sock);
+                                ctl_cli_sock = -1;
+                        }
+
+                } /* end if _control_event */
+
+        }  /* endof while(!INACTIVE) */
+
+
+        kill_zombies();
+        proxenet_destroy_plugins_vm();
+        pthread_attr_destroy(&pattr);
+
+        return;
 }
 
 
@@ -1108,30 +1115,30 @@ void xloop(sock_t sock, sock_t ctl_sock)
 void sighandler(int signum)
 {
 #ifdef DEBUG
-	xlog(LOG_DEBUG, "Received signal %s [%d]\n", strsignal(signum), signum);
+        xlog(LOG_DEBUG, "Received signal %s [%d]\n", strsignal(signum), signum);
 #endif
 
-	switch(signum) {
+        switch(signum) {
 
-		case SIGTERM:
-		case SIGINT:
-			if (proxy_state != INACTIVE)
-				proxy_state = INACTIVE;
+                case SIGTERM:
+                case SIGINT:
+                        if (proxy_state != INACTIVE)
+                                proxy_state = INACTIVE;
 
-			cfg->try_exit++;
-			xlog(LOG_INFO, "%s, %d/%d\n", "Trying to leave", cfg->try_exit, cfg->try_exit_max);
+                        cfg->try_exit++;
+                        xlog(LOG_INFO, "%s, %d/%d\n", "Trying to leave", cfg->try_exit, cfg->try_exit_max);
 
-			if (cfg->try_exit == cfg->try_exit_max) {
-				xlog(LOG_CRITICAL, "%s\n", "Failed to exit properly");
-				abort();
-			}
+                        if (cfg->try_exit == cfg->try_exit_max) {
+                                xlog(LOG_CRITICAL, "%s\n", "Failed to exit properly");
+                                abort();
+                        }
 
-			break;
+                        break;
 
-		case SIGCHLD:
-			purge_zombies();
-			break;
-	}
+                case SIGCHLD:
+                        purge_zombies();
+                        break;
+        }
 }
 
 
@@ -1140,18 +1147,18 @@ void sighandler(int signum)
  */
 void initialize_sigmask(struct sigaction *saction)
 {
-	memset(saction, 0, sizeof(struct sigaction));
+        memset(saction, 0, sizeof(struct sigaction));
 
-	saction->sa_handler = sighandler;
-	saction->sa_flags = SA_RESTART|SA_NOCLDSTOP;
-	sigemptyset(&(saction->sa_mask));
+        saction->sa_handler = sighandler;
+        saction->sa_flags = SA_RESTART|SA_NOCLDSTOP;
+        sigemptyset(&(saction->sa_mask));
 
-	sigaction(SIGINT,  saction, NULL);
-	sigaction(SIGTERM, saction, NULL);
-	sigaction(SIGCHLD, saction, NULL);
+        sigaction(SIGINT,  saction, NULL);
+        sigaction(SIGTERM, saction, NULL);
+        sigaction(SIGCHLD, saction, NULL);
 
-	saction->sa_handler = SIG_IGN;
-	sigaction(SIGPIPE,  saction, NULL);
+        saction->sa_handler = SIG_IGN;
+        sigaction(SIGPIPE,  saction, NULL);
 }
 
 
@@ -1160,57 +1167,57 @@ void initialize_sigmask(struct sigaction *saction)
  */
 int proxenet_start()
 {
-	sock_t control_socket, listening_socket;
-	struct sigaction saction;
+        sock_t control_socket, listening_socket;
+        struct sigaction saction;
 
-	/* create control socket */
-	control_socket = create_control_socket();
-	if (control_socket < 0) {
-		xlog(LOG_CRITICAL, "Cannot create control socket: %s\n", strerror(errno));
-		return -1;
-	}
-
-#ifdef DEBUG
-	xlog(LOG_INFO, "Control socket: %d\n", control_socket);
-#endif
-
-	/* create listening socket */
-	listening_socket = create_bind_socket(cfg->iface, cfg->port);
-	if (listening_socket < 0) {
-		xlog(LOG_CRITICAL, "Cannot create bind socket: %s\n", strerror(errno));
-		return -1;
-	}
+        /* create control socket */
+        control_socket = create_control_socket();
+        if (control_socket < 0) {
+                xlog(LOG_CRITICAL, "Cannot create control socket: %s\n", strerror(errno));
+                return -1;
+        }
 
 #ifdef DEBUG
-	xlog(LOG_INFO, "Bind socket: %d\n", listening_socket);
+        xlog(LOG_INFO, "Control socket: %d\n", control_socket);
 #endif
 
-	/* init everything */
-	initialize_sigmask(&saction);
+        /* create listening socket */
+        listening_socket = create_bind_socket(cfg->iface, cfg->port);
+        if (listening_socket < 0) {
+                xlog(LOG_CRITICAL, "Cannot create bind socket: %s\n", strerror(errno));
+                return -1;
+        }
 
-	plugins_list = NULL;
-	proxy_state = INACTIVE;
-	active_threads_bitmask = 0;
+#ifdef DEBUG
+        xlog(LOG_INFO, "Bind socket: %d\n", listening_socket);
+#endif
 
-	/* set up plugins */
-	if( proxenet_initialize_plugins_list() < 0 )
-		return -1;
+        /* init everything */
+        initialize_sigmask(&saction);
 
-	proxenet_initialize_plugins(); // call *MUST* succeed or abort()
+        plugins_list = NULL;
+        proxy_state = INACTIVE;
+        active_threads_bitmask = 0;
 
-	/* setting request counter  */
-	request_id = 0;
-	get_new_request_id();
+        /* set up plugins */
+        if( proxenet_initialize_plugins_list() < 0 )
+                return -1;
 
-	/* prepare threads and start looping */
-	xloop(listening_socket, control_socket);
+        proxenet_initialize_plugins(); // call *MUST* succeed or abort()
 
-	/* clean context */
-	proxenet_remove_all_plugins();
+        /* setting request counter  */
+        request_id = 0;
+        get_new_request_id();
 
-	close_socket(listening_socket);
-	close_socket(control_socket);
+        /* prepare threads and start looping */
+        xloop(listening_socket, control_socket);
 
-	unlink(CONTROL_SOCK_PATH);
-	return 0;
+        /* clean context */
+        proxenet_remove_all_plugins();
+
+        close_socket(listening_socket);
+        close_socket(control_socket);
+
+        unlink(CONTROL_SOCK_PATH);
+        return 0;
 }

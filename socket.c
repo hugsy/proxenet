@@ -266,6 +266,7 @@ int proxenet_read_all(sock_t sock, char** ptr, proxenet_ssl_context_t* ssl)
 		}
 		if (ret < 0) {
 			proxenet_xfree(data);
+                        xlog(LOG_ERROR, "Error when read():[%d] %s\n", ret, strerror(errno));
 			return -1;
 		}
 
@@ -296,9 +297,9 @@ int proxenet_read_all(sock_t sock, char** ptr, proxenet_ssl_context_t* ssl)
 		return 0;
 	}
 
-	*ptr = (char*)proxenet_xrealloc(data, total_bytes_read+1);
+	*ptr = (char*)proxenet_xrealloc(data, total_bytes_read);
 #ifdef DEBUG
-	xlog(LOG_DEBUG, "Truncating buffer to %d bytes\n", total_bytes_read+1);
+	xlog(LOG_DEBUG, "Truncating buffer to %d bytes\n", total_bytes_read);
 #endif
 
 	return total_bytes_read;

@@ -466,7 +466,6 @@ int main (int argc, char **argv, char **envp)
 	if (retcode<0)
 		return EXIT_FAILURE;
 
-
 #ifdef _PERL_PLUGIN
 	/* perform plugin pre-initialisation -- currently done only for Perl */
 	proxenet_init_once_plugins(argc, argv, envp);
