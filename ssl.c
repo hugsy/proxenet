@@ -117,7 +117,7 @@ static inline int _proxenet_ssl_init_context(ssl_atom_t* ssl_atom, int type)
 #endif
 #ifdef DEBUG_SSL
                 proxenet_xzero(errbuf, sizeof(errbuf));
-                retcode = x509_crt_info( buf, sizeof(errbuf)-1, "\t", &(ssl_atom->cert) );
+                retcode = x509_crt_info( errbuf, sizeof(errbuf)-1, "\t", &(ssl_atom->cert) );
                 if(retcode < 0){
                         xlog(LOG_DEBUG, "Failed to get %s certificate information : %d\n", type_str, retcode);
                 } else {
