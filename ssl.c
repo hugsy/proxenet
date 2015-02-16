@@ -34,24 +34,24 @@
  * Compatible with PolarSSL 1.3+ API
  */
 
+
+static char errbuf[2048] = {0, };
+
+
 #ifdef DEBUG_SSL
-
-static char buf[2048] = {0, };
-
-
 /**
  *
  */
 static void proxenet_ssl_debug(void *who, int level, const char *str )
 {
 	size_t l = strlen(str);
-	size_t k = strlen(buf);
+	size_t k = strlen(errbuf);
 
-	strncpy(buf+k, str, l);
+	strncpy(errbuf+k, str, l);
 
 	if (str[l-1] == '\n') {
-		xlog(LOG_DEBUG, "%s[%d] - %s", (char*)who, level, buf);
-		proxenet_xzero(buf, 2048);
+		xlog(LOG_DEBUG, "%s[%d] - %s", (char*)who, level, errbuf);
+		proxenet_xzero(errbuf, 2048);
 	}
 }
 
@@ -116,12 +116,12 @@ static inline int _proxenet_ssl_init_context(ssl_atom_t* ssl_atom, int type)
                 xlog(LOG_DEBUG, "Parsed %s certificate '%s'\n", type_str, certfile);
 #endif
 #ifdef DEBUG_SSL
-                proxenet_xzero(buf, sizeof(buf));
-                retcode = x509_crt_info( buf, sizeof(buf)-1, "\t", &(ssl_atom->cert) );
+                proxenet_xzero(errbuf, sizeof(errbuf));
+                retcode = x509_crt_info( buf, sizeof(errbuf)-1, "\t", &(ssl_atom->cert) );
                 if(retcode < 0){
                         xlog(LOG_DEBUG, "Failed to get %s certificate information : %d\n", type_str, retcode);
                 } else {
-                        xlog(LOG_DEBUG, "Certificate '%s' information:\n%s\n", certfile, buf);
+                        xlog(LOG_DEBUG, "Certificate '%s' information:\n%s\n", certfile, errbuf);
                 }
 #endif
 
@@ -214,42 +214,42 @@ int proxenet_ssl_handshake(proxenet_ssl_context_t* ctx)
 
 
 #ifdef DEBUG
-        proxenet_xzero(buf, sizeof(buf));
-        strncat(buf, "SSL Handshake: ", sizeof(buf)-strlen(buf)-1);
+        proxenet_xzero(errbuf, sizeof(errbuf));
+        strncat(errbuf, "SSL Handshake: ", sizeof(errbuf)-strlen(errbuf)-1);
         if (retcode) {
-                snprintf(buf+strlen(buf), sizeof(buf)-strlen(buf)-1,
+                snprintf(errbuf+strlen(errbuf), sizeof(errbuf)-strlen(errbuf)-1,
                          RED"fail"NOCOLOR" [%d]",
                          retcode);
         } else {
-                snprintf(buf+strlen(buf), sizeof(buf)-strlen(buf)-1,
+                snprintf(errbuf+strlen(errbuf), sizeof(errbuf)-strlen(errbuf)-1,
                          GREEN"success"NOCOLOR" [proto='%s',cipher='%s']",
                          ssl_get_version( ctx ),
                          ssl_get_ciphersuite( ctx ) );
         }
-        xlog(LOG_DEBUG, "%s\n", buf);
+        xlog(LOG_DEBUG, "%s\n", errbuf);
 #endif
 
 #ifdef DEBUG_SSL
-        proxenet_xzero(buf, sizeof(buf));
+        proxenet_xzero(errbuf, sizeof(errbuf));
 
         /* check certificate */
-        proxenet_xzero(buf, sizeof(buf));
-        strncat(buf, "Verify X509 cert: ", sizeof(buf)-strlen(buf)-1);
+        proxenet_xzero(errbuf, sizeof(errbuf));
+        strncat(errbuf, "Verify X509 cert: ", sizeof(errbuf)-strlen(errbuf)-1);
         retcode = ssl_get_verify_result( ctx );
         if( retcode != 0 ) {
-                snprintf(buf+strlen(buf), sizeof(buf)-strlen(buf)-1, RED"failed"NOCOLOR" [%d]\n", retcode);
+                snprintf(errbuf+strlen(errbuf), sizeof(errbuf)-strlen(errbuf)-1, RED"failed"NOCOLOR" [%d]\n", retcode);
                 if( retcode & BADCERT_EXPIRED )
-                        strncat(buf, "\t[-] certificate expired\n", sizeof(buf)-strlen(buf)-1);
+                        strncat(errbuf, "\t[-] certificate expired\n", sizeof(errbuf)-strlen(errbuf)-1);
                 if( retcode & BADCERT_REVOKED )
-                        strncat(buf, "\t[-] certificate revoked\n", sizeof(buf)-strlen(buf)-1);
+                        strncat(errbuf, "\t[-] certificate revoked\n", sizeof(errbuf)-strlen(errbuf)-1);
                 if( retcode & BADCERT_CN_MISMATCH )
-                        strncat(buf, "\t[-] CN mismatch\n", sizeof(buf)-strlen(buf)-1);
+                        strncat(errbuf, "\t[-] CN mismatch\n", sizeof(errbuf)-strlen(errbuf)-1);
                 if( retcode & BADCERT_NOT_TRUSTED )
-                        strncat(buf, "\t[-] self-signed or not signed by a trusted CA\n", sizeof(buf)-strlen(buf)-1);
+                        strncat(errbuf, "\t[-] self-signed or not signed by a trusted CA\n", sizeof(errbuf)-strlen(errbuf)-1);
         } else {
-                strncat(buf, GREEN"ok\n"NOCOLOR, sizeof(buf)-strlen(buf)-1);
+                strncat(errbuf, GREEN"ok\n"NOCOLOR, sizeof(errbuf)-strlen(errbuf)-1);
         }
-        xlog(LOG_DEBUG, "%s", buf);
+        xlog(LOG_DEBUG, "%s", errbuf);
 
 #endif
 	return retcode;
