@@ -79,6 +79,7 @@ http.c http.h
 main.c main.h
 socket.c socket.h
 ssl.c ssl.h
+minica.c minica.h
 utils.c utils.h
 plugin.c plugin.h
 )

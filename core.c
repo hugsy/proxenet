@@ -582,13 +582,6 @@ void proxenet_process_http_request(sock_t server_socket)
 #endif
                                                 proxenet_xfree(req.data);
                                                 is_new_http_connection = true;
-
-                                                char buf[1024]={0,};
-                                                n = proxenet_read_all(server_socket,
-                                                      buf,
-                                                      &(ssl_context.server.context));
-
-                                                printf("BUF[%d]=%s\n", n, buf);
                                                 continue;
 
                                         }

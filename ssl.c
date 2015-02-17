@@ -24,6 +24,7 @@
 #include "utils.h"
 #include "main.h"
 #include "ssl.h"
+#include "minica.h"
 
 
 /*
@@ -66,10 +67,6 @@ static void proxenet_ssl_debug(void *who, int level, const char *str )
  */
 static inline int _proxenet_ssl_init_context(ssl_atom_t* ssl_atom, int type)
 {
-
-#ifdef DEBUG_SSL
-        debug_set_log_mode(POLARSSL_DEBUG_LOG_FULL);
-#endif
         int retcode = -1;
         char ssl_error_buffer[128] = {0, };
         proxenet_ssl_context_t *context = &(ssl_atom->context);
@@ -82,9 +79,16 @@ static inline int _proxenet_ssl_init_context(ssl_atom_t* ssl_atom, int type)
 
         /* We only define a certificate if we're a server, or the user requested SSL cert auth */
         if (type==SSL_IS_SERVER) {
-                certfile = cfg->certfile;
+                if (proxenet_lookup_crt("google.com", &certfile) < 0){
+                        certfile = cfg->certfile;
+                }
+
                 keyfile = cfg->keyfile;
                 keyfile_pwd = cfg->keyfile_pwd;
+#ifdef DEBUG
+                xlog(LOG_DEBUG, "Using Server CRT '%s'\n", certfile);
+#endif
+
         }
         else if(use_ssl_client_auth){
                 certfile = cfg->sslcli_certfile;
