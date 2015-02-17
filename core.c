@@ -554,7 +554,7 @@ void proxenet_process_http_request(sock_t server_socket)
 
                         if (n == 0){
 #ifdef DEBUG
-                                xlog(LOG_DEBUG, "[%d] Empty socket from client\n", req.id);
+                                xlog(LOG_DEBUG, "[%d] Socket EOF from client\n", req.id);
 #endif
                                 break;
                         }
@@ -627,8 +627,7 @@ void proxenet_process_http_request(sock_t server_socket)
 
 
                         if (cfg->verbose) {
-                                xlog(LOG_INFO, "New request %d to '%s:%d'\n",
-                                     req.id,
+                                xlog(LOG_INFO, "New request to '%s:%d'\n",
                                      req.http_infos.hostname,
                                      req.http_infos.port);
 
@@ -644,8 +643,8 @@ void proxenet_process_http_request(sock_t server_socket)
                         }
 
 #ifdef DEBUG
-                        xlog(LOG_DEBUG, "[%d] Sending buffer %d bytes (%s) - pre-plugins\n",
-                             req.id, req.size, (req.http_infos.is_ssl)?"SSL":"PLAIN");
+                        xlog(LOG_DEBUG, "Sending buffer %d bytes (%s) - pre-plugins\n",
+                             req.size, (req.http_infos.is_ssl)?"SSL":"PLAIN");
 #endif
                         /* hook request with all plugins in plugins_list  */
                         if ( proxenet_apply_plugins(&req) < 0) {
@@ -691,12 +690,21 @@ void proxenet_process_http_request(sock_t server_socket)
                         else
                                 n = proxenet_read_all(client_socket, &req.data, NULL);
 
-#ifdef DEBUG
-                        xlog(LOG_DEBUG, "Got %dB from server\n", n);
-#endif
 
-                        if (n <= 0)
+                        if (n < 0){
+#ifdef DEBUG
+                                xlog(LOG_DEBUG, "Read failed: %d\n", n);
+#endif
                                 break;
+                        }
+
+                        if (n==0){
+#ifdef DEBUG
+                                xlog(LOG_DEBUG, "Socket EOF from server\n", n);
+#endif
+                                break;
+                        }
+
 
                         /* update request data structure */
                         req.type   = RESPONSE;

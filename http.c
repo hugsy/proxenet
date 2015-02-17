@@ -257,11 +257,18 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
 	if (use_proxy) {
 		host = cfg->proxy.host;
 		port = cfg->proxy.port;
-
 	} else {
 		host = http_infos->hostname;
 		port = sport;
 	}
+
+#ifdef DEBUG
+        xlog(LOG_DEBUG, "Relay request %d to %s '%s:%s'\n",
+             req->id,
+             use_proxy?"PROXY":"",
+             host, port);
+#endif
+
 
 	retcode = create_connect_socket(host, port);
 	if (retcode < 0) {
@@ -270,81 +277,84 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
 		else
 			generic_http_error_page(*server_sock, "Unknown error in <i>create_connect_socket</i>");
 
-		retcode = -1;
+		return -1;
 
-	} else {
-		*client_sock = retcode;
-
-		/* if ssl, set up ssl interception */
-		if (http_infos->is_ssl) {
-
-			if (use_proxy) {
-				char *connect_buf = NULL;
-
-				/* 0. set up proxy->proxy ssl session (i.e. forward CONNECT request) */
-				retcode = proxenet_write(*client_sock, req->data, req->size);
-				if (retcode < 0) {
-					xlog(LOG_ERROR, "%s failed to CONNECT to proxy\n", PROGNAME);
-					return -1;
-				}
-
-				/* read response */
-				retcode = proxenet_read_all(*client_sock, &connect_buf, NULL);
-				if (retcode < 0) {
-					xlog(LOG_ERROR, "%s Failed to read from proxy\n", PROGNAME);
-					return -1;
-				}
-
-				/* expect HTTP 200 */
-				if (   (strncmp(connect_buf, "HTTP/1.0 200", 12) != 0)
-				    && (strncmp(connect_buf, "HTTP/1.1 200", 12) != 0)) {
-					xlog(LOG_ERROR, "%s->proxy: bad HTTP version\n", PROGNAME);
-					if (cfg->verbose)
-							xlog(LOG_ERROR, "Received %s\n", connect_buf);
-
-					return -1;
-				}
-			}
-
-			/* 1. set up proxy->server ssl session */
-			if(proxenet_ssl_init_client_context(&(ssl_ctx->client)) < 0) {
-				return -1;
-			}
-
-			proxenet_ssl_wrap_socket(&(ssl_ctx->client.context), client_sock);
-			if (proxenet_ssl_handshake(&(ssl_ctx->client.context)) < 0) {
-				xlog(LOG_ERROR, "%s->server: handshake\n", PROGNAME);
-				return -1;
-			}
-
-#ifdef DEBUG
-			xlog(LOG_DEBUG, "%s %d %d\n", "SSL handshake with server done",
-			     *client_sock,
-			     *server_sock);
-#endif
-			if (proxenet_write(*server_sock,
-					   "HTTP/1.0 200 Connection established\r\n\r\n",
-					   39) < 0){
-				return -1;
-			}
-
-			/* 2. set up proxy->browser ssl session  */
-			if(proxenet_ssl_init_server_context(&(ssl_ctx->server)) < 0) {
-				return -1;
-			}
-
-			proxenet_ssl_wrap_socket(&(ssl_ctx->server.context), server_sock);
-			if (proxenet_ssl_handshake(&(ssl_ctx->server.context)) < 0) {
-				xlog(LOG_ERROR, "handshake %s->client '%s:%d' failed\n",
-				     PROGNAME, http_infos->hostname, http_infos->port);
-				return -1;
-			}
-
-#ifdef DEBUG
-			xlog(LOG_DEBUG, "%s\n", "SSL Handshake with client done");
-#endif
-		}
 	}
+
+#ifdef DEBUG
+        xlog(LOG_DEBUG, "Socket to %s '%s:%s' : %d\n",
+             use_proxy?"proxy":"server",
+             host, port,
+             retcode);
+#endif
+
+        *client_sock = retcode;
+
+        /* if ssl, set up ssl interception */
+        if (http_infos->is_ssl) {
+
+                if (use_proxy) {
+                        char *connect_buf = NULL;
+
+                        /* 0. set up proxy->proxy ssl session (i.e. forward CONNECT request) */
+                        retcode = proxenet_write(*client_sock, req->data, req->size);
+                        if (retcode < 0) {
+                                xlog(LOG_ERROR, "%s failed to CONNECT to proxy\n", PROGNAME);
+                                return -1;
+                        }
+
+                        /* read response */
+                        retcode = proxenet_read_all(*client_sock, &connect_buf, NULL);
+                        if (retcode < 0) {
+                                xlog(LOG_ERROR, "%s Failed to read from proxy\n", PROGNAME);
+                                return -1;
+                        }
+
+                        /* expect HTTP 200 */
+                        if (   (strncmp(connect_buf, "HTTP/1.0 200", 12) != 0)
+                               && (strncmp(connect_buf, "HTTP/1.1 200", 12) != 0)) {
+                                xlog(LOG_ERROR, "%s->proxy: bad HTTP version\n", PROGNAME);
+                                if (cfg->verbose)
+                                        xlog(LOG_ERROR, "Received %s\n", connect_buf);
+
+                                return -1;
+                        }
+                }
+
+                /* 1. set up proxy->server ssl session */
+                if(proxenet_ssl_init_client_context(&(ssl_ctx->client)) < 0) {
+                        return -1;
+                }
+
+                proxenet_ssl_wrap_socket(&(ssl_ctx->client.context), client_sock);
+                if (proxenet_ssl_handshake(&(ssl_ctx->client.context)) < 0) {
+                        xlog(LOG_ERROR, "%s->server: handshake\n", PROGNAME);
+                        return -1;
+                }
+
+#ifdef DEBUG
+                xlog(LOG_DEBUG, "SSL handshake with server done, cli_sock=%d\n", *client_sock);
+#endif
+
+                if (proxenet_write(*server_sock, "HTTP/1.0 200 Connection established\r\n\r\n", 39) < 0){
+                        return -1;
+                }
+
+                /* 2. set up proxy->browser ssl session  */
+                if(proxenet_ssl_init_server_context(&(ssl_ctx->server)) < 0) {
+                        return -1;
+                }
+
+                proxenet_ssl_wrap_socket(&(ssl_ctx->server.context), server_sock);
+                if (proxenet_ssl_handshake(&(ssl_ctx->server.context)) < 0) {
+                        xlog(LOG_ERROR, "handshake %s->client failed\n", PROGNAME);
+                        return -1;
+                }
+
+#ifdef DEBUG
+                xlog(LOG_DEBUG, "SSL handshake with client done, srv_sock=%d\n", *server_sock);
+#endif
+        }
 
 
 	return retcode;
