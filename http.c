@@ -183,9 +183,11 @@ bool is_valid_http_request(char** request, size_t* request_len)
 
 
 /**
+ * read first HTTP header from request and parse it to fill the request struct
  *
+ * @return 0 if successful, -1 if any error occurs
  */
-void set_https_infos(request_t *req) {
+int set_https_infos(request_t *req) {
 	char *ptr, *buf;
 	char c;
 
@@ -193,7 +195,9 @@ void set_https_infos(request_t *req) {
 
 	/* method  */
 	ptr = strchr(buf, ' ');
-	if (!ptr) return;
+	if (!ptr)
+                return -1;
+
 	c = *ptr;
 	*ptr = '\0';
 	proxenet_xfree(req->http_infos.method);
@@ -204,7 +208,8 @@ void set_https_infos(request_t *req) {
 
 	/* path */
 	ptr = strchr(buf, ' ');
-	if (!ptr) return;
+	if (!ptr)
+                return -1;
 	c = *ptr;
 	*ptr = '\0';
 	proxenet_xfree(req->http_infos.uri);
@@ -215,12 +220,20 @@ void set_https_infos(request_t *req) {
 
 	/* version */
 	ptr = strchr(req->data, '\r');
-	if (!ptr) return;
+	if (!ptr)
+                return -1;
+
 	c = *ptr;
 	*ptr = '\0';
 	req->http_infos.version = strdup(buf);
 	*ptr = c;
 
+#ifdef DEBUG
+        xlog(LOG_DEBUG, "request %d method='%s' path='%s' version='%s'\n",
+             req->http_infos.method, req->http_infos.uri, req->http_infos.version);
+#endif
+
+        return 0;
 }
 
 
@@ -228,6 +241,7 @@ void set_https_infos(request_t *req) {
  * Establish a connection from proxenet -> server. If proxy forwarding configured, then process
  * request to other proxy.
  *
+ * @return 0 if successful, -1 otherwise
  */
 int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock, ssl_context_t* ssl_ctx)
 {
@@ -320,9 +334,11 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
                                 return -1;
                         }
 #ifdef DEBUG
-                        xlog(LOG_DEBUG, "HTTP Connect OK with '%s:%s', cli_sock=%d\n", host, port, *client_sock);
+                        xlog(LOG_DEBUG, "HTTP Connect Ok with '%s:%s', cli_sock=%d\n", host, port, *client_sock);
 #endif
                 }
+
+
 
                 /* 1. set up proxy->server ssl session */
                 if(proxenet_ssl_init_client_context(&(ssl_ctx->client)) < 0) {

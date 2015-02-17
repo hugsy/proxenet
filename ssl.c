@@ -379,9 +379,8 @@ static ssize_t proxenet_ssl_ioctl(int (*func)(), void *buf, size_t count, proxen
 
                                 case 0:
                                 case POLARSSL_ERR_NET_CONN_RESET:
-                                        xlog(LOG_WARNING,"%s\n", "SSL connection reset by peer");
-                                        return 0;
-
+                                        xlog(LOG_ERROR, "%s\n", "SSL connection reset by peer");
+                                        return -1;
 
                                 default:
                                         error_strerror(retcode, ssl_strerror, 127);

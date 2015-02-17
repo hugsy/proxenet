@@ -541,13 +541,15 @@ void proxenet_process_http_request(sock_t server_socket)
                         } else {
                                 n = proxenet_read_all(server_socket, &req.data, NULL);
                         }
+
 #ifdef DEBUG
-                        xlog(LOG_DEBUG, "Got %dB from client (%s)\n", n, (is_ssl)?"SSL":"PLAIN");
+                        xlog(LOG_DEBUG, "Got %dB from client (%s srv_sock=#%d)\n",
+                             n, is_ssl?"SSL":"PLAIN", server_socket);
 #endif
 
                         if (n < 0) {
 #ifdef DEBUG
-                                xlog(LOG_CRITICAL, "[%d] Error during read, end thread\n", req.id);
+                                xlog(LOG_ERROR, "%s\n", "read() failed, end thread");
 #endif
                                 break;
                         }
@@ -564,7 +566,6 @@ void proxenet_process_http_request(sock_t server_socket)
 
                         /* is connection to server not established ? -> new request */
                         if (client_socket < 0) {
-
                                 retcode = create_http_socket(&req, &server_socket, &client_socket, &ssl_context);
                                 if (retcode < 0) {
                                         xlog(LOG_ERROR, "Failed to create %s->server socket\n", PROGNAME);
@@ -580,6 +581,14 @@ void proxenet_process_http_request(sock_t server_socket)
                                                 xlog(LOG_DEBUG, "SSL interception client <-> %s <-> server established\n", PROGNAME);
 #endif
                                                 proxenet_xfree(req.data);
+                                                is_new_http_connection = true;
+
+                                                char buf[1024]={0,};
+                                                n = proxenet_read_all(server_socket,
+                                                      buf,
+                                                      &(ssl_context.server.context));
+
+                                                printf("BUF[%d]=%s\n", n, buf);
                                                 continue;
 
                                         }
@@ -605,10 +614,17 @@ void proxenet_process_http_request(sock_t server_socket)
                                 if (is_new_http_connection) {
                                         /* check if request is valid  */
                                         if (is_ssl) {
-                                                set_https_infos(&req);
+                                                if (set_https_infos(&req) < 0) {
+                                                        xlog(LOG_ERROR, "Failed to parse CONNECT header of request %d\n", req.id);
+                                                        req.id = 0;
+                                                        proxenet_xfree(req.data);
+                                                        client_socket = -1;
+                                                        break;
+                                                }
                                         } else {
                                                 /* this is a new connection, validate the headers content */
                                                 if (!is_valid_http_request(&req.data, &req.size)) {
+                                                        req.id = 0;
                                                         proxenet_xfree(req.data);
                                                         client_socket = -1;
                                                         break;
@@ -693,14 +709,17 @@ void proxenet_process_http_request(sock_t server_socket)
 
                         if (n < 0){
 #ifdef DEBUG
-                                xlog(LOG_DEBUG, "Read failed: %d\n", n);
+                                xlog(LOG_DEBUG, "read() %s on cli_sock=#%d failed: %d\n",
+                                     is_ssl?"SSL":"PLAIN",
+                                     client_socket, n);
 #endif
                                 break;
                         }
 
                         if (n==0){
 #ifdef DEBUG
-                                xlog(LOG_DEBUG, "Socket EOF from server\n", n);
+                                xlog(LOG_DEBUG, "Socket EOF from server (cli_sock=#%d)\n",
+                                     client_socket);
 #endif
                                 break;
                         }
@@ -1006,7 +1025,7 @@ void xloop(sock_t sock, sock_t ctl_sock)
 
                 /* set asynchronous listener */
                 struct timespec timeout = {
-                        .tv_sec = 5,
+                        .tv_sec = HTTP_TIMEOUT_SOCK,
                         .tv_nsec = 0
                 };
 
@@ -1031,11 +1050,13 @@ void xloop(sock_t sock, sock_t ctl_sock)
                 /* event on the listening socket -> new request */
                 if( FD_ISSET(sock, &sock_set) && proxy_state != SLEEPING) {
 #ifdef DEBUG
-                        xlog(LOG_DEBUG, "%s\n", "Incoming listening event");
+                        xlog(LOG_DEBUG, "New event on proxy sock=#%d\n", sock);
 #endif
 
                         tid = get_new_thread_id();
                         if(tid < 0) {
+                                xlog(LOG_ERROR, "%s\n", "Failed to allocate a new thread id, delaying.");
+                                sleep(HTTP_TIMEOUT_SOCK);
                                 continue;
                         }
 
@@ -1063,7 +1084,7 @@ void xloop(sock_t sock, sock_t ctl_sock)
                 /* event on control listening socket */
                 if( FD_ISSET(ctl_sock, &sock_set) ) {
 #ifdef DEBUG
-                        xlog(LOG_DEBUG, "%s\n", "Incoming control event");
+                        xlog(LOG_DEBUG, "New event on control ctl_sock=#%d\n", ctl_sock);
 #endif
                         struct sockaddr_un sun_cli;
                         socklen_t sun_cli_len = 0;
