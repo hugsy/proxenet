@@ -96,9 +96,7 @@ int proxenet_java_initialize_vm(plugin_t* plugin)
 #if (_JAVA_MAJOR_ == 1)
 #if     (_JAVA_MINOR_ == 8)
         vm_args.version = JNI_VERSION_1_8;
-#elif   (_JAVA_MINOR_ == 7)
-        vm_args.version = JNI_VERSION_1_7;
-#elif   (_JAVA_MINOR_ == 6)
+#elif   (_JAVA_MINOR_ == 7) || (_JAVA_MINOR_ == 6)
         vm_args.version = JNI_VERSION_1_6;
 #else
         xlog(LOG_ERROR, "%s\n", "Unknown JVM minor version, abort!");
