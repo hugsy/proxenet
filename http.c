@@ -319,6 +319,9 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
 
                                 return -1;
                         }
+#ifdef DEBUG
+                        xlog(LOG_DEBUG, "HTTP Connect OK with '%s:%s', cli_sock=%d\n", host, port, *client_sock);
+#endif
                 }
 
                 /* 1. set up proxy->server ssl session */
@@ -333,7 +336,8 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
                 }
 
 #ifdef DEBUG
-                xlog(LOG_DEBUG, "SSL handshake with server done, cli_sock=%d\n", *client_sock);
+                xlog(LOG_DEBUG, "SSL handshake with %s done, cli_sock=%d\n",
+                     use_proxy?"proxy":"server", *client_sock);
 #endif
 
                 if (proxenet_write(*server_sock, "HTTP/1.0 200 Connection established\r\n\r\n", 39) < 0){

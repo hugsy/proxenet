@@ -266,7 +266,7 @@ int proxenet_read_all(sock_t sock, char** ptr, proxenet_ssl_context_t* ssl)
 		}
 		if (ret < 0) {
 			proxenet_xfree(data);
-                        xlog(LOG_ERROR, "Error when read():[%d] %s\n", ret, strerror(errno));
+                        xlog(LOG_ERROR, "read() on sock #%d failed [%d]\n", sock, ret);
 			return -1;
 		}
 

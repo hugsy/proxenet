@@ -155,18 +155,24 @@ static inline int _proxenet_ssl_init_context(ssl_atom_t* ssl_atom, int type)
 
         ssl_set_endpoint(context, type );
         ssl_set_rng(context, ctr_drbg_random, &(ssl_atom->ctr_drbg) );
-
         ssl_set_ca_chain(context, &(ssl_atom->cert), NULL, NULL);
-        if (type==SSL_IS_SERVER){
-                ssl_set_own_cert(context, &(ssl_atom->cert), &(ssl_atom->pkey));
-                ssl_set_authmode(context, SSL_VERIFY_NONE);
-        } else {
-                if(use_ssl_client_auth){
-                        ssl_set_hostname( context, domain );
-                        ssl_set_own_cert(context, &(ssl_atom->cert), &(ssl_atom->pkey));
-                }
 
-                ssl_set_authmode(context, SSL_VERIFY_OPTIONAL);
+        switch(type) {
+                case SSL_IS_SERVER:
+                        ssl_set_own_cert(context, &(ssl_atom->cert), &(ssl_atom->pkey));
+                        ssl_set_authmode(context, SSL_VERIFY_NONE);
+                        break;
+
+                case SSL_IS_CLIENT:
+                        if(use_ssl_client_auth){
+                                ssl_set_hostname( context, domain );
+                                ssl_set_own_cert(context, &(ssl_atom->cert), &(ssl_atom->pkey));
+                        }
+                        ssl_set_authmode(context, SSL_VERIFY_OPTIONAL);
+                        break;
+
+                default:
+                        return -1;
         }
 
 

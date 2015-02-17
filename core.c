@@ -502,7 +502,7 @@ void proxenet_process_http_request(sock_t server_socket)
         for(;;) {
 
                 if (server_socket < 0) {
-                        xlog(LOG_ERROR, "%s\n", "Sock browser->proxy died unexpectedly");
+                        xlog(LOG_ERROR, "sock browser->%s (#%d) died unexpectedly\n", PROGNAME, server_socket);
                         break;
                 }
 
@@ -526,7 +526,7 @@ void proxenet_process_http_request(sock_t server_socket)
                 }
 
                 if (retcode == 0) {
-                        break;
+                        continue;
                 }
 
                 is_ssl = ssl_context.use_ssl;
@@ -554,7 +554,7 @@ void proxenet_process_http_request(sock_t server_socket)
 
                         if (n == 0){
 #ifdef DEBUG
-                                xlog(LOG_DEBUG, "[%d] Socket EOF from client\n", req.id);
+                                xlog(LOG_DEBUG, "%s\n", "Socket EOF from client");
 #endif
                                 break;
                         }
