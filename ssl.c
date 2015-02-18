@@ -79,14 +79,17 @@ static inline int _proxenet_ssl_init_context(ssl_atom_t* ssl_atom, int type)
 
         /* We only define a certificate if we're a server, or the user requested SSL cert auth */
         if (type==SSL_IS_SERVER) {
-                if (proxenet_lookup_crt("google.com", &certfile) < 0){
+                if (proxenet_lookup_crt("google.com.au", &certfile) < 0){
                         certfile = cfg->certfile;
+                        keyfile = cfg->keyfile;
+                        keyfile_pwd = cfg->keyfile_pwd;
+                } else {
+                        keyfile = cfg->certskey;
+                        keyfile_pwd = cfg->certskey_pwd;
                 }
-
-                keyfile = cfg->keyfile;
-                keyfile_pwd = cfg->keyfile_pwd;
 #ifdef DEBUG
-                xlog(LOG_DEBUG, "Using Server CRT '%s'\n", certfile);
+                xlog(LOG_DEBUG, "Using Server CRT '%s' (key='%s', pwd='%s') \n",
+                     certfile, keyfile, keyfile_pwd);
 #endif
 
         }
@@ -145,7 +148,7 @@ static inline int _proxenet_ssl_init_context(ssl_atom_t* ssl_atom, int type)
                 if(retcode) {
                         error_strerror(retcode, ssl_error_buffer, 127);
                         rsa_free(&(ssl_atom->rsa));
-                        xlog(LOG_CRITICAL, "Failed to parse key: %s\n", ssl_error_buffer);
+                        xlog(LOG_ERROR, "Failed to parse key '%s' (pwd='%s'): %s\n", keyfile, keyfile_pwd, ssl_error_buffer);
                         return -1;
                 }
 #ifdef DEBUG

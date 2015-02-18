@@ -242,6 +242,10 @@ static int parse_options (int argc, char** argv)
 	keyfile			= CFG_DEFAULT_SSL_KEYFILE;
         keyfile_pwd		= CFG_DEFAULT_SSL_KEYFILE_PWD;
 
+        cfg->certsdir		= CFG_DEFAULT_SSL_CERTSDIR;
+        cfg->certskey		= CFG_DEFAULT_SSL_CERTSKEY;
+        cfg->certskey_pwd	= CFG_DEFAULT_SSL_CERTSPWD;
+
 	sslcli_certfile		= NULL;
         sslcli_domain		= CFG_DEFAULT_SSL_CLIENT_DOMAIN;
         sslcli_keyfile		= NULL;
@@ -458,8 +462,12 @@ int main (int argc, char **argv, char **envp)
 {
 	int retcode = -1;
         (void) *envp;
+
 	/* init semaphore for unified display */
 	sem_init(&tty_semaphore, 0, 1);
+
+        /* init semaphore for certificate generation */
+        sem_init(&crt_gen_semaphore, 0, 1);
 
 	/* get configuration */
 	retcode = proxenet_init_config(argc, argv);

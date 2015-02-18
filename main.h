@@ -23,12 +23,15 @@ typedef struct __proxenet_config {
                 char* autoload_path;
 
                 /* proxenet SSL certificate for SSL interception */
-		char* certfile;                      // realpath to proxenet certificate
+		char* certfile;                      // realpath to proxenet CA certificate
 		char* keyfile;                       // realpath to proxenet private key
                 char* keyfile_pwd;                   // password to unlock the private key
+                char* certsdir;                      // realpath to stored certificates
+                char* certskey;                      // realpath to stored certificates private key
+                char* certskey_pwd;                  // password to unlock the stored certificates private key
 
                 /* client-side SSL certificate */
-                char* sslcli_certfile;                // realpath to SSL client certificate
+                char* sslcli_certfile;               // realpath to SSL client certificate
 		char* sslcli_keyfile;                // realpath to SSL client private key
                 char* sslcli_keyfile_pwd;            // password to unlock the client private key
                 char* sslcli_domain;                 // domain to use the client the certificate
