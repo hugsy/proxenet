@@ -9,7 +9,6 @@
 #include <unistd.h>
 #include <netdb.h>
 #include <pthread.h>
-#include <semaphore.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <errno.h>
@@ -463,9 +462,6 @@ int main (int argc, char **argv, char **envp)
 {
 	int retcode = -1;
         (void) *envp;
-
-	/* init semaphore for unified display */
-	sem_init(&tty_semaphore, 0, 1);
 
 	/* get configuration */
 	retcode = proxenet_init_config(argc, argv);

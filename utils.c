@@ -9,12 +9,14 @@
 #include <errno.h>
 #include <string.h>
 #include <pthread.h>
-#include <semaphore.h>
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include "core.h"
 #include "utils.h"
+
+
+static pthread_mutex_t tty_mutex;
 
 
 /**
@@ -25,7 +27,7 @@ void _xlog(int type, const char* fmt, ...)
 	va_list ap;
 
 	/* lock tty before printing */
-	sem_wait(&tty_semaphore);
+        pthread_mutex_lock(&tty_mutex);
 
 	switch (type) {
 		case LOG_CRITICAL:
@@ -68,7 +70,7 @@ void _xlog(int type, const char* fmt, ...)
 	va_end(ap);
 
 	/* release lock */
-	sem_post(&tty_semaphore);
+        pthread_mutex_unlock(&tty_mutex);
 }
 
 

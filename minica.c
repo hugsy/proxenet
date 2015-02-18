@@ -6,9 +6,9 @@
 #include <errno.h>
 #include <unistd.h>
 #include <alloca.h>
-#include <semaphore.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <pthread.h>
 
 #include <polarssl/x509_crt.h>
 #include <polarssl/x509_csr.h>
@@ -301,7 +301,7 @@ exit:
 /**
  * Generate the CRT file for the hostname. Stores it in keys/certs.
  *
- * This whole function (and sub-functions) is semaphore-protected (thread-safe).
+ * This whole function (and sub-functions) is thread-safe (mutex).
  *
  * @return 0 if successful, -1 otherwise
  */
