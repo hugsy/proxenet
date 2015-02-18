@@ -20,6 +20,7 @@
 #include "utils.h"
 #include "main.h"
 #include "socket.h"
+#include "minica.h"
 
 
 /**
@@ -327,12 +328,12 @@ static int parse_options (int argc, char** argv)
 
         /* validate proxenet SSL configuration for interception */
 	/* check ssl certificate */
-	cfg->certfile = cfg_get_valid_file(certfile);
-	if (!cfg->certfile)
+	cfg->cafile = cfg_get_valid_file(certfile);
+	if (!cfg->cafile)
 		return -1;
 	/* check ssl key */
 	cfg->keyfile = cfg_get_valid_file(keyfile);
-	if (!cfg->certfile)
+	if (!cfg->cafile)
 		return -1;
         /* get the key passphrase */
         cfg->keyfile_pwd = proxenet_xstrdup2(keyfile_pwd);
@@ -435,8 +436,8 @@ void proxenet_free_config()
                 proxenet_xfree(cfg->autoload_path);
         }
 
-	if (cfg->certfile)
-		proxenet_xfree(cfg->certfile);
+	if (cfg->cafile)
+		proxenet_xfree(cfg->cafile);
 
 	if (cfg->keyfile){
 		proxenet_xfree(cfg->keyfile);
@@ -466,11 +467,8 @@ int main (int argc, char **argv, char **envp)
 	/* init semaphore for unified display */
 	sem_init(&tty_semaphore, 0, 1);
 
-        /* init semaphore for certificate generation */
-        sem_init(&crt_gen_semaphore, 0, 1);
-
-        /* init semaphore for certificate serial */
-        sem_init(&serial_semaphore, 0, 1);
+        /* init certificate serial */
+        seriali = rand();
 
 	/* get configuration */
 	retcode = proxenet_init_config(argc, argv);

@@ -74,7 +74,6 @@ static inline int _proxenet_ssl_init_context(ssl_atom_t* ssl_atom, int type, cha
         char *certfile, *keyfile, *keyfile_pwd, *domain;
         const char* type_str = (type==SSL_IS_CLIENT)?"CLIENT":"SERVER";
         bool use_ssl_client_auth = (type==SSL_IS_CLIENT && cfg->sslcli_certfile && cfg->sslcli_keyfile)?true:false;
-        bool use_crt = false;
 
         certfile = keyfile = keyfile_pwd = domain = NULL;
 
@@ -82,21 +81,18 @@ static inline int _proxenet_ssl_init_context(ssl_atom_t* ssl_atom, int type, cha
         /* We only define a certificate if we're a server, or the user requested SSL cert auth */
         if (type==SSL_IS_SERVER) {
                 if (proxenet_lookup_crt(hostname, &certfile) < 0){
-                        use_crt = false;
-                        certfile = cfg->certfile;
-                        keyfile = cfg->keyfile;
-                        keyfile_pwd = cfg->keyfile_pwd;
-                } else {
-                        use_crt = true;
-                        keyfile = cfg->certskey;
-                        keyfile_pwd = cfg->certskey_pwd;
+                        xlog(LOG_ERROR, "proxenet_lookup_crt() failed for '%s'\n", hostname);
+                        return -1;
                 }
-#ifdef DEBUG
-                xlog(LOG_DEBUG, "Using Server CRT '%s' (key='%s', pwd='%s') \n",
-                     certfile, keyfile, keyfile_pwd);
-#endif
 
+                keyfile = cfg->certskey;
+                keyfile_pwd = cfg->certskey_pwd;
+
+                if(cfg->verbose)
+                        xlog(LOG_INFO, "Using Server CRT '%s' (key='%s', pwd='%s') \n",
+                        certfile, keyfile, keyfile_pwd);
         }
+
         else if(use_ssl_client_auth){
                 certfile = cfg->sslcli_certfile;
                 keyfile = cfg->sslcli_keyfile;
@@ -118,7 +114,8 @@ static inline int _proxenet_ssl_init_context(ssl_atom_t* ssl_atom, int type, cha
         retcode = ctr_drbg_init( &(ssl_atom->ctr_drbg), entropy_func, &(ssl_atom->entropy), NULL, 0);
         if( retcode != 0 ) {
                 xlog(LOG_ERROR, "ctr_drbg_init returned %d\n", retcode);
-                return -1;
+                retcode = -1;
+                goto end_init;
         }
 
 
@@ -128,15 +125,19 @@ static inline int _proxenet_ssl_init_context(ssl_atom_t* ssl_atom, int type, cha
                 retcode = x509_crt_parse_file(&(ssl_atom->cert), certfile);
                 if(retcode) {
                         error_strerror(retcode, ssl_error_buffer, 127);
-                        xlog(LOG_CRITICAL, "Failed to parse %s certificate: %s\n", type_str, ssl_error_buffer);
-                        return -1;
+                        xlog(LOG_ERROR, "Failed to parse %s certificate '%s': %s\n",
+                             type_str, certfile, ssl_error_buffer);
+                        retcode = -1;
+                        goto end_init;
                 }
 
-                retcode = x509_crt_parse_file(&(ssl_atom->ca), cfg->certfile);
+                retcode = x509_crt_parse_file(&(ssl_atom->ca), cfg->cafile);
                 if(retcode) {
                         error_strerror(retcode, ssl_error_buffer, 127);
-                        xlog(LOG_CRITICAL, "Failed to parse %s CA certificate: %s\n", type_str, ssl_error_buffer);
-                        return -1;
+                        xlog(LOG_ERROR, "Failed to parse %s CA certificate '%s': %s\n",
+                             type_str, cfg->cafile, ssl_error_buffer);
+                        retcode = -1;
+                        goto end_init;
                 }
 
 #ifdef DEBUG
@@ -160,7 +161,8 @@ static inline int _proxenet_ssl_init_context(ssl_atom_t* ssl_atom, int type, cha
                         error_strerror(retcode, ssl_error_buffer, 127);
                         rsa_free(&(ssl_atom->rsa));
                         xlog(LOG_ERROR, "Failed to parse key '%s' (pwd='%s'): %s\n", keyfile, keyfile_pwd, ssl_error_buffer);
-                        return -1;
+                        retcode = -1;
+                        goto end_init;
                 }
 #ifdef DEBUG
                 xlog(LOG_DEBUG, "Loaded %s private key '%s'\n", type_str, keyfile);
@@ -168,8 +170,10 @@ static inline int _proxenet_ssl_init_context(ssl_atom_t* ssl_atom, int type, cha
         }
 
         /* init ssl context */
-        if (ssl_init(context) != 0)
-                return -1;
+        if (ssl_init(context) != 0) {
+                retcode = -1;
+                goto end_init;
+        }
 
         ssl_set_endpoint(context, type );
         ssl_set_rng(context, ctr_drbg_random, &(ssl_atom->ctr_drbg) );
@@ -192,7 +196,8 @@ static inline int _proxenet_ssl_init_context(ssl_atom_t* ssl_atom, int type, cha
                         break;
 
                 default:
-                        return -1;
+                        retcode = -1;
+                        goto end_init;
         }
 
 
@@ -201,11 +206,12 @@ static inline int _proxenet_ssl_init_context(ssl_atom_t* ssl_atom, int type, cha
 #endif
 
         ssl_atom->is_valid = true;
+        retcode = 0;
 
-        if (use_crt)
+end_init:
+        if (type==SSL_IS_SERVER)
                 proxenet_xfree(certfile);
-
-        return 0;
+        return retcode;
 }
 
 

@@ -965,7 +965,7 @@ int get_new_thread_id()
         int tnum;
 
         for(tnum=0; is_thread_active(tnum) && tnum<cfg->nb_threads; tnum++);
-        return (tnum >= cfg->nb_threads) ? -1 : tnum;
+        return (tnum > cfg->nb_threads) ? -1 : tnum;
 }
 
 
@@ -1048,6 +1048,9 @@ void xloop(sock_t sock, sock_t ctl_sock)
 
                         tid = get_new_thread_id();
                         if(tid < 0) {
+#ifdef DEBUG
+                                xlog(LOG_DEBUG, "Thread pool exhausted, cannot proceed with sock=#%d\n", sock);
+#endif
                                 continue;
                         }
 

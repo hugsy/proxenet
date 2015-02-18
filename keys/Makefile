@@ -26,5 +26,8 @@ keys:
 	@echo "[!] Finish the install by importing the certificate \"$(CA_KEY_PREFIX).crt\" in your web browser as \"Trusted Root Authorities\""
 
 clean:
-	@rm -fr $(CA_KEY_PREFIX).crt $(CA_KEY_PREFIX).key $(CERTS_DIR)/$(CA_GENERIC_KEY).key
+	@rm -f $(CA_KEY_PREFIX).key $(CERTS_DIR)/$(CA_GENERIC_KEY).key
 	@echo "[+] Removed keys"
+	@rm -f $(CA_KEY_PREFIX).crt $(CERTS_DIR)/*.crt
+	@echo "[+] Removed certificates"
+	@echo "[!] Remember to clean the certificates imported in your browser too!"

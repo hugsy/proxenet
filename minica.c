@@ -16,6 +16,7 @@
 #include <polarssl/ctr_drbg.h>
 #include <polarssl/error.h>
 
+#include "minica.h"
 #include "main.h"
 #include "core.h"
 #include "utils.h"
@@ -27,26 +28,25 @@
 #define PROXENET_CERT_SUBJECT          "CN=%s,OU=BlackHats,O=World Domination Corp.,C=US"
 
 
+static pthread_mutex_t	certificate_mutex;
+
+
 /*
  *
  * Internal CA for proxenet, to generate on-the-fly valid certificates
  *
  */
 
-unsigned long seriali = 0;
 
 /**
- * Generate a (hopefully) random serial
+ * Get the next serial
  *
  * @return serial
  */
 static int ca_get_serial(char** buf, int buflen)
 {
         unsigned long s;
-        sem_wait(&serial_semaphore);
         s = ++seriali;
-        sem_post(&serial_semaphore);
-
         return snprintf(*buf, buflen, "%lu", s);;
 }
 
@@ -184,7 +184,7 @@ int ca_generate_crt(ctr_drbg_context *ctr_drbg, unsigned char* csrbuf, size_t cs
 
 
         /* load proxenet CA certificate */
-        retcode = x509_crt_parse_file(&issuer_crt, cfg->certfile);
+        retcode = x509_crt_parse_file(&issuer_crt, cfg->cafile);
         if(retcode < 0) {
             polarssl_strerror(retcode, errbuf, sizeof(errbuf));
             xlog(LOG_ERROR, "x509_crt_parse_file() returned -0x%02x - %s\n", -retcode, errbuf);
@@ -310,7 +310,6 @@ static int create_crt(char* hostname, char* crtpath)
         int retcode, fd;
         unsigned char csrbuf[4096]={0, };
         unsigned char crtbuf[4096]={0, };
-        char buf[PATH_MAX] = {0,};
         ssize_t n;
 
         entropy_context entropy;
@@ -332,7 +331,7 @@ static int create_crt(char* hostname, char* crtpath)
 
         /* sign csr w/ proxenet root crt (in `keys/`) */
 #ifdef DEBUG_SSL
-        xlog(LOG_DEBUG, "Signing CSR for '%s' with '%s'(key='%s')\n", hostname, cfg->certfile, cfg->keyfile);
+        xlog(LOG_DEBUG, "Signing CSR for '%s' with '%s'(key='%s')\n", hostname, cfg->cafile, cfg->keyfile);
 #endif
         retcode = ca_generate_crt(&ctr_drbg, csrbuf, sizeof(csrbuf), crtbuf, sizeof(crtbuf));
         if(retcode<0)
@@ -342,8 +341,10 @@ static int create_crt(char* hostname, char* crtpath)
 #endif
 
         /* write CRT on FS */
-        snprintf(buf, PATH_MAX, "%s/%s.crt", cfg->certsdir, hostname);
-        fd = open(buf, O_WRONLY|O_CREAT|O_SYNC, S_IRUSR|S_IWUSR);
+#ifdef DEBUG
+        xlog(LOG_DEBUG, "Writing CRT signed in '%s'\n", crtpath);
+#endif
+        fd = open(crtpath, O_WRONLY|O_CREAT|O_SYNC, S_IRUSR|S_IWUSR);
         if(fd<0){
                 xlog(LOG_ERROR, "CRT open() failed: %s\n", strerror(errno));
                 retcode = -1;
@@ -363,6 +364,8 @@ static int create_crt(char* hostname, char* crtpath)
                 xlog(LOG_INFO, "New CRT '%s'\n", crtpath);
 
         /* supprime le csr & free les rsrc */
+        retcode = 0;
+
 exit:
         ca_release_prng(&entropy, &ctr_drbg);
         return retcode;
@@ -415,6 +418,7 @@ int proxenet_lookup_crt(char* hostname, char** crtpath)
                 case ENOENT:
                         if (cfg->verbose)
                                 xlog(LOG_INFO, "Could not find CRT for '%s'. Generating...\n", hostname);
+                        crt_realpath = proxenet_xstrdup2(buf);
                         break;
 
                 default:
@@ -425,10 +429,9 @@ int proxenet_lookup_crt(char* hostname, char** crtpath)
 
         /* critical section to avoid race conditions on crt creation */
 #ifdef DEBUG
-        xlog(LOG_DEBUG, "Getting crt create lock at %p\n", &crt_gen_semaphore);
+        xlog(LOG_DEBUG, "Getting crt create lock at %p\n", &certificate_mutex);
 #endif
-        sem_wait(&crt_gen_semaphore);
-
+        pthread_mutex_lock(&certificate_mutex);
 
         /**
          * To avoid TOC-TOU race, we check another time if CRT can be found
@@ -437,21 +440,23 @@ int proxenet_lookup_crt(char* hostname, char** crtpath)
 #ifdef DEBUG
                 xlog(LOG_DEBUG, "'%s' cache hit (second check)\n", crt_realpath);
 #endif
-                sem_post(&crt_gen_semaphore);
                 *crtpath = crt_realpath;
+                pthread_mutex_unlock(&certificate_mutex);
                 return 0;
         }
 
         /* if not, create && release lock && returns  */
         retcode = create_crt(hostname, crt_realpath);
         if (retcode < 0){
+                xlog(LOG_ERROR, "create_crt(hostname='%s', crt='%s') has failed\n",
+                     hostname, crt_realpath);
                 *crtpath = NULL;
-                sem_post(&crt_gen_semaphore);
+                pthread_mutex_unlock(&certificate_mutex);
                 return -1;
         }
 
-        *crtpath = crt_realpath ;
-        sem_post(&crt_gen_semaphore);
+        *crtpath = crt_realpath;
+        pthread_mutex_unlock(&certificate_mutex);
 
 #ifdef DEBUG
         xlog(LOG_DEBUG, "'%s' created\n", *crtpath);

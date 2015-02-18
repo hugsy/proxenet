@@ -154,7 +154,7 @@ void info_cmd(sock_t fd, char *options, unsigned int nb_options)
                      (cfg->ip_version==AF_INET)? "IPv4": (cfg->ip_version==AF_INET6)?"IPv6": "ANY",
                      (cfg->logfile)?cfg->logfile:"stdout",
                      cfg->keyfile,
-                     cfg->certfile,
+                     cfg->cafile,
                      cfg->proxy.host ? cfg->proxy.host : "None",
                      cfg->proxy.host ? cfg->proxy.port : "direct",
                      cfg->plugins_path,

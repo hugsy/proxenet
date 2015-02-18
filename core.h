@@ -40,8 +40,6 @@ unsigned long 	active_threads_bitmask;
 plugin_t 	*plugins_list;  /* points to first plugin */
 pthread_t  	threads[MAX_THREADS];
 sem_t 		tty_semaphore;
-sem_t		crt_gen_semaphore;
-sem_t		serial_semaphore;
 
 void		proxenet_delete_once_plugins();
 void		proxenet_init_once_plugins(int, char**, char**);
