@@ -230,7 +230,7 @@ int set_https_infos(request_t *req) {
 
 #ifdef DEBUG
         xlog(LOG_DEBUG, "request %d method='%s' path='%s' version='%s'\n",
-             req->http_infos.method, req->http_infos.uri, req->http_infos.version);
+             req->id, req->http_infos.method, req->http_infos.uri, req->http_infos.version);
 #endif
 
         return 0;
@@ -340,8 +340,8 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
 
 
 
-                /* 1. set up proxy->server ssl session */
-                if(proxenet_ssl_init_client_context(&(ssl_ctx->client)) < 0) {
+                /* 1. set up proxy->server ssl session with hostname */
+                if(proxenet_ssl_init_client_context(&(ssl_ctx->client), http_infos->hostname) < 0) {
                         return -1;
                 }
 
@@ -360,8 +360,8 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
                         return -1;
                 }
 
-                /* 2. set up proxy->browser ssl session  */
-                if(proxenet_ssl_init_server_context(&(ssl_ctx->server)) < 0) {
+                /* 2. set up proxy->browser ssl session with hostname */
+                if(proxenet_ssl_init_server_context(&(ssl_ctx->server), http_infos->hostname) < 0) {
                         return -1;
                 }
 

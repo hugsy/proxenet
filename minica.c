@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <unistd.h>
+#include <alloca.h>
 #include <semaphore.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -19,10 +20,11 @@
 #include "core.h"
 #include "utils.h"
 
-#define PROXENET_CERT_SERIAL           "1337"
+#define PROXENET_CERT_SERIAL_SIZE      32
 #define PROXENET_CERT_NOT_BEFORE       "20010101000000"
 #define PROXENET_CERT_NOT_AFTER        "20301231235959"
 #define PROXENET_CERT_MAX_PATHLEN      -1
+#define PROXENET_CERT_SUBJECT          "CN=%s,OU=BlackHats,O=World Domination Corp.,C=US"
 
 
 /*
@@ -31,6 +33,22 @@
  *
  */
 
+unsigned long seriali = 0;
+
+/**
+ * Generate a (hopefully) random serial
+ *
+ * @return serial
+ */
+static int ca_get_serial(char** buf, int buflen)
+{
+        unsigned long s;
+        sem_wait(&serial_semaphore);
+        s = ++seriali;
+        sem_post(&serial_semaphore);
+
+        return snprintf(*buf, buflen, "%lu", s);;
+}
 
 
 /**
@@ -73,21 +91,10 @@ static int ca_generate_csr(ctr_drbg_context *ctr_drbg, char* hostname, unsigned 
         char subj_name[256] = {0, };
         x509write_csr csr;
         pk_context key;
-        unsigned short usage, cert_type;
-
-        usage = KU_DIGITAL_SIGNATURE | KU_NON_REPUDIATION | KU_KEY_ENCIPHERMENT;
-        usage|= KU_DATA_ENCIPHERMENT | KU_KEY_AGREEMENT | KU_KEY_CERT_SIGN;
-        usage|= KU_CRL_SIGN;
-
-        cert_type = NS_CERT_TYPE_SSL_SERVER | NS_CERT_TYPE_OBJECT_SIGNING | NS_CERT_TYPE_SSL_CA;
 
         /* init structures */
         x509write_csr_init( &csr );
         x509write_csr_set_md_alg( &csr, POLARSSL_MD_SHA1 );
-
-        /* set usage */
-        x509write_csr_set_key_usage( &csr, usage );
-        x509write_csr_set_ns_cert_type( &csr, cert_type );
 
         /* set the key */
         pk_init( &key );
@@ -100,7 +107,7 @@ static int ca_generate_csr(ctr_drbg_context *ctr_drbg, char* hostname, unsigned 
         x509write_csr_set_key( &csr, &key );
 
         /* set the subject name */
-        snprintf(subj_name, sizeof(subj_name), "CN=%s,O=World Domination Corp.,C=US", hostname);
+        snprintf(subj_name, sizeof(subj_name), PROXENET_CERT_SUBJECT, hostname);
         retcode = x509write_csr_set_subject_name( &csr, subj_name);
         if( retcode < 0 ) {
                 xlog(LOG_ERROR, "x509write_csr_set_subject_name() returned %d\n", retcode);
@@ -134,27 +141,18 @@ free_all:
 int ca_generate_crt(ctr_drbg_context *ctr_drbg, unsigned char* csrbuf, size_t csrbuf_len, unsigned char* crtbuf, size_t crtbuf_len)
 {
         int retcode = -1;
-        char buf[128] = {0, };
+        char errbuf[128] = {0, };
         char subject_name[128] = {0, };
         char issuer_name[128] = {0, };
+        char *serial_str;
 
         x509_csr csr;
         x509_crt issuer_crt;
         pk_context issuer_key;
         x509write_cert crt;
         mpi serial;
-        unsigned short usage, cert_type;
 
-        usage = cert_type = 0;
-
-        usage = KU_DIGITAL_SIGNATURE | KU_NON_REPUDIATION | KU_KEY_ENCIPHERMENT;
-        usage|= KU_DATA_ENCIPHERMENT | KU_KEY_AGREEMENT | KU_KEY_CERT_SIGN;
-        usage|= KU_CRL_SIGN;
-
-        cert_type = NS_CERT_TYPE_SSL_SERVER | NS_CERT_TYPE_OBJECT_SIGNING | NS_CERT_TYPE_SSL_CA;
-
-
-#ifdef DEBUG
+#ifdef DEBUG_SSL
         xlog(LOG_DEBUG, "%s\n", "CRT init structs");
 #endif
 
@@ -166,61 +164,68 @@ int ca_generate_crt(ctr_drbg_context *ctr_drbg, unsigned char* csrbuf, size_t cs
         pk_init( &issuer_key );
         mpi_init( &serial );
 
-#ifdef DEBUG
+#ifdef DEBUG_SSL
         xlog(LOG_DEBUG, "%s\n", "CRT load cert & key");
 #endif
+
+        /* set serial */
+        serial_str = (char*)alloca(PROXENET_CERT_SERIAL_SIZE);
+        retcode = ca_get_serial(&serial_str, PROXENET_CERT_SERIAL_SIZE);
+        if(retcode < 0) {
+                goto exit;
+        }
+
+        retcode = mpi_read_string(&serial, 10, serial_str);
+        if(retcode < 0) {
+                polarssl_strerror(retcode, errbuf, sizeof(errbuf));
+                xlog(LOG_ERROR, "mpi_read_string() returned -0x%02x - %s\n", -retcode, errbuf);
+                goto exit;
+        }
+
 
         /* load proxenet CA certificate */
         retcode = x509_crt_parse_file(&issuer_crt, cfg->certfile);
         if(retcode < 0) {
-            polarssl_strerror(retcode, buf, sizeof(buf));
-            xlog(LOG_ERROR, "x509_crt_parse_file() returned -0x%02x - %s\n", -retcode, buf);
+            polarssl_strerror(retcode, errbuf, sizeof(errbuf));
+            xlog(LOG_ERROR, "x509_crt_parse_file() returned -0x%02x - %s\n", -retcode, errbuf);
             goto exit;
         }
 
        /* load proxenet CA key */
         retcode = pk_parse_keyfile(&issuer_key, cfg->keyfile, cfg->keyfile_pwd);
         if(retcode < 0){
-            polarssl_strerror(retcode, buf, sizeof(buf));
-            xlog(LOG_ERROR, "pk_parse_keyfile() returned -0x%02x - %s\n", -retcode, buf);
+            polarssl_strerror(retcode, errbuf, sizeof(errbuf));
+            xlog(LOG_ERROR, "pk_parse_keyfile() returned -0x%02x - %s\n", -retcode, errbuf);
             goto exit;
         }
 
         /* get proxenet CA CN field */
         retcode = x509_dn_gets(issuer_name, sizeof(issuer_name), &issuer_crt.subject);
         if(retcode < 0) {
-                polarssl_strerror(retcode, buf, sizeof(buf));
-                xlog(LOG_ERROR, "x509_dn_gets() returned -0x%02x - %s\n", -retcode, buf);
+                polarssl_strerror(retcode, errbuf, sizeof(errbuf));
+                xlog(LOG_ERROR, "x509_dn_gets() returned -0x%02x - %s\n", -retcode, errbuf);
                 goto exit;
         }
 
         /* parse CSR  */
         retcode = x509_csr_parse(&csr, csrbuf, csrbuf_len);
         if(retcode < 0) {
-                polarssl_strerror(retcode, buf, sizeof(buf));
-                xlog(LOG_ERROR, "x509_csr_parse() returned -0x%02x - %s\n", -retcode, buf );
+                polarssl_strerror(retcode, errbuf, sizeof(errbuf));
+                xlog(LOG_ERROR, "x509_csr_parse() returned -0x%02x - %s\n", -retcode, errbuf );
                 goto exit;
         }
 
         /* load CSR subject name */
         retcode = x509_dn_gets(subject_name, sizeof(subject_name), &csr.subject);
         if(retcode < 0) {
-                polarssl_strerror(retcode, buf, sizeof(buf));
-                xlog(LOG_ERROR, "x509_csr_parse() returned -0x%02x - %s\n", -retcode, buf );
+                polarssl_strerror(retcode, errbuf, sizeof(errbuf));
+                xlog(LOG_ERROR, "x509_csr_parse() returned -0x%02x - %s\n", -retcode, errbuf );
                 goto exit;
         }
 
-#ifdef DEBUG
+#ifdef DEBUG_SSL
         xlog(LOG_DEBUG, "%s\n", "CRT fill new crt fields");
 #endif
-
-        /* set serial */
-        retcode = mpi_read_string(&serial, 16, PROXENET_CERT_SERIAL);
-        if(retcode < 0) {
-                polarssl_strerror(retcode, buf, sizeof(buf));
-                xlog(LOG_ERROR, "mpi_read_string() returned -0x%02x - %s\n", -retcode, buf);
-                goto exit;
-        }
 
         /* apply settings */
         x509write_crt_set_subject_key(&crt, &csr.pk);
@@ -228,67 +233,52 @@ int ca_generate_crt(ctr_drbg_context *ctr_drbg, unsigned char* csrbuf, size_t cs
 
         retcode = x509write_crt_set_subject_name(&crt, subject_name);
         if(retcode < 0) {
-                polarssl_strerror(retcode, buf, sizeof(buf));
-                xlog(LOG_ERROR, "x509write_crt_set_subject_name() returned -0x%02x - %s\n", -retcode, buf );
+                polarssl_strerror(retcode, errbuf, sizeof(errbuf));
+                xlog(LOG_ERROR, "x509write_crt_set_subject_name() returned -0x%02x - %s\n", -retcode, errbuf );
                 goto exit;
         }
 
         retcode = x509write_crt_set_issuer_name(&crt, issuer_name);
         if(retcode < 0) {
-                polarssl_strerror(retcode, buf, sizeof(buf));
-                xlog(LOG_ERROR, "x509write_crt_set_issuer_name() returned -0x%02x - %s\n", -retcode, buf );
+                polarssl_strerror(retcode, errbuf, sizeof(errbuf));
+                xlog(LOG_ERROR, "x509write_crt_set_issuer_name() returned -0x%02x - %s\n", -retcode, errbuf );
                 goto exit;
         }
 
         retcode = x509write_crt_set_serial(&crt, &serial);
         if(retcode < 0) {
-                polarssl_strerror(retcode, buf, sizeof(buf));
-                xlog(LOG_ERROR, "x509write_crt_set_serial() returned -0x%02x - %s\n", -retcode, buf );
+                polarssl_strerror(retcode, errbuf, sizeof(errbuf));
+                xlog(LOG_ERROR, "x509write_crt_set_serial() returned -0x%02x - %s\n", -retcode, errbuf );
                 goto exit;
         }
 
         retcode = x509write_crt_set_validity(&crt, PROXENET_CERT_NOT_BEFORE, PROXENET_CERT_NOT_AFTER);
         if(retcode < 0) {
-                polarssl_strerror(retcode, buf, sizeof(buf));
-                xlog(LOG_ERROR, "x509write_crt_set_validity() returned -0x%02x - %s\n", -retcode, buf );
+                polarssl_strerror(retcode, errbuf, sizeof(errbuf));
+                xlog(LOG_ERROR, "x509write_crt_set_validity() returned -0x%02x - %s\n", -retcode, errbuf );
                 goto exit;
         }
 
-        retcode = x509write_crt_set_basic_constraints(&crt, false, PROXENET_CERT_MAX_PATHLEN);
+        retcode = x509write_crt_set_basic_constraints(&crt, false, 0);
         if(retcode < 0) {
-                polarssl_strerror(retcode, buf, sizeof(buf));
-                xlog(LOG_ERROR, "x509write_crt_set_basic_constraints() returned -0x%02x - %s\n", -retcode, buf );
+                polarssl_strerror(retcode, errbuf, sizeof(errbuf));
+                xlog(LOG_ERROR, "x509write_crt_set_basic_constraints() returned -0x%02x - %s\n", -retcode, errbuf );
                 goto exit;
         }
 
         retcode = x509write_crt_set_subject_key_identifier( &crt );
         if(retcode < 0) {
-                polarssl_strerror(retcode, buf, sizeof(buf));
-                xlog(LOG_ERROR, "x509write_crt_set_subject_key_identifier() returned -0x%02x - %s\n", -retcode, buf );
+                polarssl_strerror(retcode, errbuf, sizeof(errbuf));
+                xlog(LOG_ERROR, "x509write_crt_set_subject_key_identifier() returned -0x%02x - %s\n", -retcode, errbuf );
                 goto exit;
         }
 
         retcode = x509write_crt_set_authority_key_identifier( &crt );
         if(retcode < 0) {
-                polarssl_strerror(retcode, buf, sizeof(buf));
-                xlog(LOG_ERROR, "x509write_crt_set_authority_key_identifier() returned -0x%02x - %s\n", -retcode, buf );
+                polarssl_strerror(retcode, errbuf, sizeof(errbuf));
+                xlog(LOG_ERROR, "x509write_crt_set_authority_key_identifier() returned -0x%02x - %s\n", -retcode, errbuf );
                 goto exit;
         }
-
-        retcode = x509write_crt_set_key_usage( &crt, usage );
-        if(retcode < 0) {
-                polarssl_strerror(retcode, buf, sizeof(buf));
-                xlog(LOG_ERROR, "x509write_crt_set_key_usage() returned -0x%02x - %s\n", -retcode, buf );
-                goto exit;
-        }
-
-        retcode = x509write_crt_set_ns_cert_type( &crt, cert_type );
-        if(retcode < 0) {
-                polarssl_strerror(retcode, buf, sizeof(buf));
-                xlog(LOG_ERROR, "x509write_crt_set_ns_cert_type() returned -0x%02x - %s\n", -retcode, buf );
-                goto exit;
-        }
-
 
         /* write CRT in buffer */
         retcode = x509write_crt_pem(&crt, crtbuf, crtbuf_len, ctr_drbg_random, ctr_drbg);
@@ -336,18 +326,18 @@ static int create_crt(char* hostname, char* crtpath)
         retcode = ca_generate_csr(&ctr_drbg, hostname, csrbuf, sizeof(csrbuf));
         if(retcode<0)
                 goto exit;
-#ifdef DEBUG
+#ifdef DEBUG_SSL
         xlog(LOG_DEBUG, "CSR for '%s':\n%s\n", hostname, csrbuf);
 #endif
 
         /* sign csr w/ proxenet root crt (in `keys/`) */
-#ifdef DEBUG
+#ifdef DEBUG_SSL
         xlog(LOG_DEBUG, "Signing CSR for '%s' with '%s'(key='%s')\n", hostname, cfg->certfile, cfg->keyfile);
 #endif
         retcode = ca_generate_crt(&ctr_drbg, csrbuf, sizeof(csrbuf), crtbuf, sizeof(crtbuf));
         if(retcode<0)
                 goto exit;
-#ifdef DEBUG
+#ifdef DEBUG_SSL
         xlog(LOG_DEBUG, "CRT signed for '%s':\n%s\n", hostname, crtbuf);
 #endif
 
@@ -374,7 +364,7 @@ static int create_crt(char* hostname, char* crtpath)
 
         /* supprime le csr & free les rsrc */
 exit:
-        retcode = ca_release_prng(&entropy, &ctr_drbg);
+        ca_release_prng(&entropy, &ctr_drbg);
         return retcode;
 }
 
@@ -455,16 +445,16 @@ int proxenet_lookup_crt(char* hostname, char** crtpath)
         /* if not, create && release lock && returns  */
         retcode = create_crt(hostname, crt_realpath);
         if (retcode < 0){
-                sem_post(&crt_gen_semaphore);
                 *crtpath = NULL;
+                sem_post(&crt_gen_semaphore);
                 return -1;
         }
 
-        sem_post(&crt_gen_semaphore);
         *crtpath = crt_realpath ;
+        sem_post(&crt_gen_semaphore);
 
 #ifdef DEBUG
-        xlog(LOG_DEBUG, "'%s' created\n", crt_realpath);
+        xlog(LOG_DEBUG, "'%s' created\n", *crtpath);
 #endif
         /* end of critical section */
 

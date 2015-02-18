@@ -469,6 +469,9 @@ int main (int argc, char **argv, char **envp)
         /* init semaphore for certificate generation */
         sem_init(&crt_gen_semaphore, 0, 1);
 
+        /* init semaphore for certificate serial */
+        sem_init(&serial_semaphore, 0, 1);
+
 	/* get configuration */
 	retcode = proxenet_init_config(argc, argv);
 	if (retcode<0)

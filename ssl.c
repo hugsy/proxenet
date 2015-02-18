@@ -65,7 +65,7 @@ static void proxenet_ssl_debug(void *who, int level, const char *str )
 /**
  *
  */
-static inline int _proxenet_ssl_init_context(ssl_atom_t* ssl_atom, int type)
+static inline int _proxenet_ssl_init_context(ssl_atom_t* ssl_atom, int type, char* hostname)
 {
         int retcode = -1;
         char ssl_error_buffer[128] = {0, };
@@ -80,12 +80,13 @@ static inline int _proxenet_ssl_init_context(ssl_atom_t* ssl_atom, int type)
 
         /* We only define a certificate if we're a server, or the user requested SSL cert auth */
         if (type==SSL_IS_SERVER) {
-                if (proxenet_lookup_crt("google.com.au", &certfile) < 0){
-                        use_crt = 1;
+                if (proxenet_lookup_crt(hostname, &certfile) < 0){
+                        use_crt = false;
                         certfile = cfg->certfile;
                         keyfile = cfg->keyfile;
                         keyfile_pwd = cfg->keyfile_pwd;
                 } else {
+                        use_crt = true;
                         keyfile = cfg->certskey;
                         keyfile_pwd = cfg->certskey_pwd;
                 }
@@ -130,6 +131,13 @@ static inline int _proxenet_ssl_init_context(ssl_atom_t* ssl_atom, int type)
                         return -1;
                 }
 
+                retcode = x509_crt_parse_file(&(ssl_atom->ca), cfg->certfile);
+                if(retcode) {
+                        error_strerror(retcode, ssl_error_buffer, 127);
+                        xlog(LOG_CRITICAL, "Failed to parse %s CA certificate: %s\n", type_str, ssl_error_buffer);
+                        return -1;
+                }
+
 #ifdef DEBUG
                 xlog(LOG_DEBUG, "Parsed %s certificate '%s'\n", type_str, certfile);
 #endif
@@ -164,15 +172,17 @@ static inline int _proxenet_ssl_init_context(ssl_atom_t* ssl_atom, int type)
 
         ssl_set_endpoint(context, type );
         ssl_set_rng(context, ctr_drbg_random, &(ssl_atom->ctr_drbg) );
-        ssl_set_ca_chain(context, &(ssl_atom->cert), NULL, NULL);
 
         switch(type) {
                 case SSL_IS_SERVER:
+                        ssl_set_ca_chain(context, &(ssl_atom->ca), NULL, hostname);
                         ssl_set_own_cert(context, &(ssl_atom->cert), &(ssl_atom->pkey));
                         ssl_set_authmode(context, SSL_VERIFY_NONE);
+                        ssl_set_min_version(context, SSL_MAJOR_VERSION_3, SSL_MINOR_VERSION_1); // TLSv1.0+
                         break;
 
                 case SSL_IS_CLIENT:
+                        ssl_set_ca_chain(context, &(ssl_atom->cert), NULL, NULL);
                         if(use_ssl_client_auth){
                                 ssl_set_hostname( context, domain );
                                 ssl_set_own_cert(context, &(ssl_atom->cert), &(ssl_atom->pkey));
@@ -201,18 +211,18 @@ static inline int _proxenet_ssl_init_context(ssl_atom_t* ssl_atom, int type)
 /**
  *
  */
-int proxenet_ssl_init_server_context(ssl_atom_t *server)
+int proxenet_ssl_init_server_context(ssl_atom_t *server, char* hostname)
 {
-        return _proxenet_ssl_init_context(server, SSL_IS_SERVER);
+        return _proxenet_ssl_init_context(server, SSL_IS_SERVER, hostname);
 }
 
 
 /**
  *
  */
-int proxenet_ssl_init_client_context(ssl_atom_t* client)
+int proxenet_ssl_init_client_context(ssl_atom_t* client, char* hostname)
 {
-        return _proxenet_ssl_init_context(client, SSL_IS_CLIENT);
+        return _proxenet_ssl_init_context(client, SSL_IS_CLIENT, hostname);
 }
 
 
@@ -392,7 +402,7 @@ static ssize_t proxenet_ssl_ioctl(int (*func)(), void *buf, size_t count, proxen
                                 case 0:
                                 case POLARSSL_ERR_NET_CONN_RESET:
                                         xlog(LOG_ERROR, "%s\n", "SSL connection reset by peer");
-                                        return -1;
+                                        return 0;
 
                                 default:
                                         error_strerror(retcode, ssl_strerror, 127);

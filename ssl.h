@@ -13,6 +13,7 @@ typedef x509_crt proxenet_ssl_cert_t;
 typedef struct __ssl_atom_t {
 		ssl_context context;
 		x509_crt   cert;
+                x509_crt   ca;
 		ctr_drbg_context ctr_drbg;
 		entropy_context entropy;
 		rsa_context rsa;
@@ -29,8 +30,8 @@ typedef struct __ssl_context_t {
 #include "socket.h"
 #include "utils.h"
 
-int proxenet_ssl_init_server_context(ssl_atom_t* server);
-int proxenet_ssl_init_client_context(ssl_atom_t* client);
+int proxenet_ssl_init_server_context(ssl_atom_t* server, char* hostname);
+int proxenet_ssl_init_client_context(ssl_atom_t* client, char* hostname);
 
 void proxenet_ssl_wrap_socket(proxenet_ssl_context_t* s, sock_t* sock);
 int proxenet_ssl_handshake(proxenet_ssl_context_t* s);
