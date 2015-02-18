@@ -1,10 +1,8 @@
-This directory contains the keys for SSL interception in proxenet. You can add
-your own public/private keys by :
-- overwriting the ones in this directory
-- or specifying the keys on proxenet command line
+This directory contains the key and certificate for proxenet CA. proxenet
+handles its own on-the-fly SSL certificate generation using this CA root.
 
-You can generate new keys running the command `make` in this directory or 
-`make -C keys` in proxenet root directory.
+You can either generate a brand new tree(recommended) using the `make` command
+or use your own private key and certificate.
 
-NOTE : If you choose to use your own private key, make sure it is not be
-       protected by a passphrase.
+If your private key is password protected, remember to specify this password on
+the command when spawning `proxenet`.

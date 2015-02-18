@@ -467,13 +467,15 @@ int main (int argc, char **argv, char **envp)
 	/* init semaphore for unified display */
 	sem_init(&tty_semaphore, 0, 1);
 
-        /* init certificate serial */
-        seriali = rand();
-
 	/* get configuration */
 	retcode = proxenet_init_config(argc, argv);
 	if (retcode<0)
 		return EXIT_FAILURE;
+
+        /* init certificate serial */
+        seriali = rand();
+        if(cfg->verbose)
+                xlog(LOG_INFO, "Certificate Serial starting at %lu\n", seriali);
 
 #ifdef _PERL_PLUGIN
 	/* perform plugin pre-initialisation -- currently done only for Perl */
