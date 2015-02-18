@@ -36,10 +36,11 @@
  */
 
 
-static char errbuf[4096] = {0, };
 
 
 #ifdef DEBUG_SSL
+
+static char errbuf[4096] = {0, };
 
 #include <polarssl/debug.h>
 
@@ -261,7 +262,7 @@ int proxenet_ssl_handshake(proxenet_ssl_context_t* ctx)
         } while( retcode != 0 );
 
 
-#ifdef DEBUG
+#ifdef DEBUG_SSL
         proxenet_xzero(errbuf, sizeof(errbuf));
         strncat(errbuf, "SSL Handshake: ", sizeof(errbuf)-strlen(errbuf)-1);
         if (retcode) {
