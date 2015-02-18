@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <polarssl/error.h>
 
+#include "core.h"
 #include "socket.h"
 #include "utils.h"
 #include "string.h"
@@ -120,7 +121,6 @@ sock_t create_connect_socket(char *host, char* port)
 	sock_t sock;
 	struct addrinfo hostinfo, *res, *ll;
 	int retcode, keepalive_val;
-	char *err;
 
         sock = -1;
 	memset(&hostinfo, 0, sizeof(struct addrinfo));
@@ -129,13 +129,15 @@ sock_t create_connect_socket(char *host, char* port)
 	hostinfo.ai_flags = 0;
 	hostinfo.ai_protocol = IPPROTO_TCP;
 
+        struct timeval timeout = {
+                .tv_sec = HTTP_TIMEOUT_SOCK,
+                .tv_usec = 0
+        };
 
 	/* get host info */
 	retcode = getaddrinfo(host, port, &hostinfo, &res);
 	if ( retcode < 0 ) {
-		err = (char*)gai_strerror(retcode);
-		if (cfg->verbose)
-			xlog(LOG_ERROR, "getaddrinfo failed: %s\n", err);
+                xlog(LOG_ERROR, "getaddrinfo failed: %s\n", gai_strerror(retcode));
 		return -1;
 	}
 
@@ -144,23 +146,42 @@ sock_t create_connect_socket(char *host, char* port)
 		sock = socket(ll->ai_family, ll->ai_socktype, ll->ai_protocol);
 		if (sock == -1) continue;
 
+                /* setting socket as keep-alive */
 		keepalive_val = 1;
 		retcode = setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE,
 				     &keepalive_val, sizeof(keepalive_val));
-
                 if (retcode < 0){
-                        if (cfg->verbose)
-                                xlog(LOG_ERROR, "setsockopt failed: %s\n", strerror(retcode));
+                        xlog(LOG_ERROR, "setsockopt(SO_KEEPALIVE) failed: %s\n",
+                             strerror(retcode));
                         return -1;
                 }
 
-		if (connect(sock, ll->ai_addr, ll->ai_addrlen) == 0)
+                /* setting receive timeout */
+		retcode = setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO,
+				     &timeout, sizeof(timeout));
+                if (retcode < 0){
+                        xlog(LOG_ERROR, "setsockopt(SO_RCVTIMEO) failed: %s\n",
+                             strerror(retcode));
+                        return -1;
+                }
+
+                /* setting sending timeout */
+		retcode = setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO,
+				     &timeout, sizeof(timeout));
+                if (retcode < 0){
+                        xlog(LOG_ERROR, "setsockopt(SO_SNDTIMEO) failed: %s\n",
+                             strerror(retcode));
+                        return -1;
+                }
+
+                /* connect time */
+		if (connect(sock, ll->ai_addr, ll->ai_addrlen) == 0) {
+                        if (cfg->verbose > 1)
+                                xlog(LOG_ERROR, "connect() succeeded: %d\n", sock);
 			break;
-		else {
-			err = (char*)strerror(errno);
-			if (cfg->verbose)
-				xlog(LOG_ERROR, "connect failed: %s\n", err);
-		}
+		} else {
+                        xlog(LOG_ERROR, "connect failed: %s\n", strerror(errno));
+                }
 
 		close(sock);
 		sock = -1;
@@ -172,11 +193,9 @@ sock_t create_connect_socket(char *host, char* port)
 		else
 			xlog(LOG_ERROR, "%s\n", "Unknown socket error");
 	}
-#ifdef DEBUG
-	else {
-		xlog(LOG_DEBUG, "Connected to %s (%s)\n", host, port);
-	}
-#endif
+
+        if (cfg->verbose)
+		xlog(LOG_INFO, "Established socket to '%s:%s': #%d\n", host, port, sock);
 
 	freeaddrinfo(res);
 
