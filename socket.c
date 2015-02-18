@@ -177,7 +177,7 @@ sock_t create_connect_socket(char *host, char* port)
                 /* connect time */
 		if (connect(sock, ll->ai_addr, ll->ai_addrlen) == 0) {
                         if (cfg->verbose > 1)
-                                xlog(LOG_ERROR, "connect() succeeded: %d\n", sock);
+                                xlog(LOG_INFO, "connect() succeeded: %d\n", sock);
 			break;
 		} else {
                         xlog(LOG_ERROR, "connect failed: %s\n", strerror(errno));
