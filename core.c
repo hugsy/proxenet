@@ -1048,8 +1048,6 @@ void xloop(sock_t sock, sock_t ctl_sock)
 
                         tid = get_new_thread_id();
                         if(tid < 0) {
-                                xlog(LOG_ERROR, "%s\n", "Failed to allocate a new thread id, delaying.");
-                                sleep(HTTP_TIMEOUT_SOCK);
                                 continue;
                         }
 
