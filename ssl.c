@@ -73,6 +73,7 @@ static inline int _proxenet_ssl_init_context(ssl_atom_t* ssl_atom, int type)
         char *certfile, *keyfile, *keyfile_pwd, *domain;
         const char* type_str = (type==SSL_IS_CLIENT)?"CLIENT":"SERVER";
         bool use_ssl_client_auth = (type==SSL_IS_CLIENT && cfg->sslcli_certfile && cfg->sslcli_keyfile)?true:false;
+        bool use_crt = false;
 
         certfile = keyfile = keyfile_pwd = domain = NULL;
 
@@ -80,6 +81,7 @@ static inline int _proxenet_ssl_init_context(ssl_atom_t* ssl_atom, int type)
         /* We only define a certificate if we're a server, or the user requested SSL cert auth */
         if (type==SSL_IS_SERVER) {
                 if (proxenet_lookup_crt("google.com.au", &certfile) < 0){
+                        use_crt = 1;
                         certfile = cfg->certfile;
                         keyfile = cfg->keyfile;
                         keyfile_pwd = cfg->keyfile_pwd;
@@ -188,6 +190,9 @@ static inline int _proxenet_ssl_init_context(ssl_atom_t* ssl_atom, int type)
 #endif
 
         ssl_atom->is_valid = true;
+
+        if (use_crt)
+                proxenet_xfree(certfile);
 
         return 0;
 }

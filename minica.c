@@ -215,7 +215,7 @@ int ca_generate_crt(ctr_drbg_context *ctr_drbg, unsigned char* csrbuf, size_t cs
 #endif
 
         /* set serial */
-        retcode = mpi_read_string(&serial, 10, PROXENET_CERT_SERIAL);
+        retcode = mpi_read_string(&serial, 16, PROXENET_CERT_SERIAL);
         if(retcode < 0) {
                 polarssl_strerror(retcode, buf, sizeof(buf));
                 xlog(LOG_ERROR, "mpi_read_string() returned -0x%02x - %s\n", -retcode, buf);

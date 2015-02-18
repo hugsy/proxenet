@@ -12,10 +12,10 @@ default_ca				= CA_proxenet
 [ CA_proxenet ]
 serial					= $dir/serial
 database				= $dir/certindex.txt
-new_certs_dir			= $dir/certs
+new_certs_dir                           = $dir/certs
 certificate				= $dir/cacert.pem
 private_key				= $dir/private/cakey.pem
-default_days			= 365
+default_days			        = 3650
 default_md				= md5
 preserve				= no
 email_in_dn				= no
@@ -54,11 +54,11 @@ commonName_max				= 64
 
 0.organizationName_default      = World Domination Corp.
 organizationalUnitName_default  = BlackHats
-localityName_default	        = *
-stateOrProvinceName_default     = *
-countryName_default             = US
+localityName_default	        = bleh
+stateOrProvinceName_default     = blah
+countryName_default             = FR
 emailAddress_default            = proxenet@worldomination.corp
-commonName_default              = *
+commonName_default              = proxenet
 issuerAltName_default           = Magic Cat
 subjectAltName_default          = Magic Cat
 

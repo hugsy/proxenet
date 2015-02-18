@@ -27,7 +27,7 @@
 #define CFG_DEFAULT_SSL_KEYFILE               "./keys/proxenet.key"     // default path of SSL private key
 #define CFG_DEFAULT_SSL_KEYFILE_PWD           ""                        // default password for the SSL private key
 #define CFG_DEFAULT_SSL_CERTSDIR              "./keys/certs"            // default path of stored certificates
-#define CFG_DEFAULT_SSL_CERTSKEY              "./keys/generic.key"      // default path of stored certificates private key
+#define CFG_DEFAULT_SSL_CERTSKEY              "./keys/certs/generic.key"      // default path of stored certificates private key
 #define CFG_DEFAULT_SSL_CERTSPWD              ""                        // default password for stored certificates private key
 #define CFG_DEFAULT_IP_VERSION                AF_INET                   // IP version (AF_INET for IPv6 or AF_INET6 for IPv6)
 #define CFG_REQUEST_PLUGIN_FUNCTION          "proxenet_request_hook"    // default name for hooking request function
