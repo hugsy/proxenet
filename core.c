@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <fnmatch.h>
 
 #include "core.h"
 #include "main.h"
@@ -533,8 +534,9 @@ void proxenet_process_http_request(sock_t server_socket)
 
                 /* is there data from web browser to proxy ? */
                 if( FD_ISSET(server_socket, &rfds ) ) {
+                        bool do_intercept = req.http_infos.do_intercept;
 
-                        if(is_ssl) {
+                        if(is_ssl && do_intercept) {
                                 n = proxenet_read_all(server_socket,
                                                       &req.data,
                                                       &(ssl_context.server.context));
@@ -561,8 +563,16 @@ void proxenet_process_http_request(sock_t server_socket)
                                 break;
                         }
 
+
                         /* from here, n can only be positive */
                         req.size = (size_t) n;
+
+                        if (req.id > 0 && do_intercept == false){
+#ifdef DEBUG
+                                xlog(LOG_DEBUG, "Intercept disabled for browser->'%s'\n", req.http_infos.hostname);
+#endif
+                                goto send_to_server;
+                        }
 
                         /* is connection to server not established ? -> new request */
                         if (client_socket < 0) {
@@ -576,14 +586,22 @@ void proxenet_process_http_request(sock_t server_socket)
 
 
                                 if (ssl_context.use_ssl) {
-                                        if (ssl_context.server.is_valid && ssl_context.client.is_valid) {
+                                        if (req.http_infos.do_intercept == false) {
+#ifdef DEBUG
+                                                xlog(LOG_DEBUG, "SSL interception client <-> %s <-> server disabled\n", PROGNAME);
+#endif
+                                                proxenet_xfree(req.data);
+                                                req.type = REQUEST;
+                                                req.id = get_new_request_id();
+                                                continue;
+
+                                        } else if (ssl_context.server.is_valid && ssl_context.client.is_valid) {
 #ifdef DEBUG
                                                 xlog(LOG_DEBUG, "SSL interception client <-> %s <-> server established\n", PROGNAME);
 #endif
                                                 proxenet_xfree(req.data);
                                                 is_new_http_connection = true;
                                                 continue;
-
                                         }
 
                                         xlog(LOG_ERROR, "%s\n", "Failed to establish interception");
@@ -599,6 +617,9 @@ void proxenet_process_http_request(sock_t server_socket)
                         req.type = REQUEST;
                         if (is_new_http_connection)
                                 req.id = get_new_request_id();
+
+                        if (req.http_infos.do_intercept)
+                                goto send_to_server;
 
 
                         /* if proxenet does not relay to another proxy */
@@ -667,8 +688,10 @@ void proxenet_process_http_request(sock_t server_socket)
                         xlog(LOG_DEBUG, "Sending buffer %d bytes (%s) - post-plugins\n",
                              req.size, (req.http_infos.is_ssl)?"SSL":"PLAIN");
 #endif
+
+                send_to_server:
                         /* send modified data */
-                        if (is_ssl) {
+                        if (is_ssl && do_intercept) {
                                 retcode = proxenet_ssl_write(&(ssl_context.client.context), req.data, req.size);
                         } else {
                                 retcode = proxenet_write(client_socket, req.data, req.size);
@@ -693,12 +716,13 @@ void proxenet_process_http_request(sock_t server_socket)
 
                 /* is there data from remote server to proxy ? */
                 if( client_socket > 0 && FD_ISSET(client_socket, &rfds ) ) {
+                        bool do_intercept = req.http_infos.do_intercept;
 
-                        if (is_ssl)
+                        if(is_ssl && do_intercept) {
                                 n = proxenet_read_all(client_socket, &req.data, &ssl_context.client.context);
-                        else
+                        } else {
                                 n = proxenet_read_all(client_socket, &req.data, NULL);
-
+                        }
 
                         if (n < 0){
 #ifdef DEBUG
@@ -717,12 +741,19 @@ void proxenet_process_http_request(sock_t server_socket)
                                 break;
                         }
 
-
                         /* update request data structure */
                         req.type   = RESPONSE;
 
                         /* from here, n can only be positive */
                         req.size   = (size_t) n;
+
+
+                        if (req.id > 0 && do_intercept==false){
+#ifdef DEBUG
+                                xlog(LOG_DEBUG, "Intercept disabled for '%s'->browser\n", req.http_infos.hostname);
+#endif
+                                goto send_to_client;
+                        }
 
                         /* execute response hooks */
                         if ( proxenet_apply_plugins(&req) < 0) {
@@ -732,8 +763,9 @@ void proxenet_process_http_request(sock_t server_socket)
                                 break;
                         }
 
+                send_to_client:
                         /* send modified data to client */
-                        if (is_ssl)
+                        if (is_ssl && do_intercept)
                                 retcode = proxenet_ssl_write(&(ssl_context.server.context), req.data, req.size);
                         else
                                 retcode = proxenet_write(server_socket, req.data, req.size);

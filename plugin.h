@@ -109,13 +109,14 @@ static const UNUSED char* plugins_extensions_str[] = {
 
 typedef struct _http_request_fields
 {
-	  char* method;
-	  char* proto;
-	  bool is_ssl;
-	  char* hostname;
-	  unsigned short port;
-	  char* uri;
-	  char* version;
+                char* method;
+                char* proto;
+                bool is_ssl;
+                bool do_intercept;
+                char* hostname;
+                unsigned short port;
+                char* uri;
+                char* version;
 } http_request_t ;
 
 typedef enum {

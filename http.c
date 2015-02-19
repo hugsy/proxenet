@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <stdio.h>
+#include <fnmatch.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 
@@ -251,6 +252,7 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
 	http_request_t* http_infos = &req->http_infos;
 	bool use_proxy = (cfg->proxy.host != NULL) ;
 
+
 	/* get target from string and establish client socket to dest */
 	if (get_url_information(req->data, http_infos) == false) {
 		xlog(LOG_ERROR, "%s\n", "Failed to extract valid parameters from URL.");
@@ -304,7 +306,18 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
 
         *client_sock = retcode;
 
-        /* if ssl, set up ssl interception */
+        http_infos->do_intercept = ( (cfg->intercept_mode==INTERCEPT_ONLY && fnmatch(cfg->intercept_pattern, http_infos->hostname, 0)==0) || \
+                                     (cfg->intercept_mode==INTERCEPT_EXCEPT && fnmatch(cfg->intercept_pattern, http_infos->hostname, 0)==FNM_NOMATCH) );
+
+#ifdef DEBUG
+        xlog(LOG_DEBUG, "Server '%s' %s match interception '%s' with pattern '%s'\n",
+             http_infos->hostname,
+             http_infos->do_intercept?"do":"do not",
+             cfg->intercept_mode==INTERCEPT_ONLY?"INTERCEPT_ONLY":"INTERCEPT_EXCEPT",
+             cfg->intercept_pattern);
+#endif
+
+        /* set up ssl layer */
         if (http_infos->is_ssl) {
 
                 if (use_proxy) {
@@ -338,42 +351,46 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
 #endif
                 }
 
+                if (http_infos->do_intercept){
 
+                        /* 1. set up proxy->server ssl session with hostname */
+                        if(proxenet_ssl_init_client_context(&(ssl_ctx->client), http_infos->hostname) < 0) {
+                                return -1;
+                        }
 
-                /* 1. set up proxy->server ssl session with hostname */
-                if(proxenet_ssl_init_client_context(&(ssl_ctx->client), http_infos->hostname) < 0) {
-                        return -1;
-                }
-
-                proxenet_ssl_wrap_socket(&(ssl_ctx->client.context), client_sock);
-                if (proxenet_ssl_handshake(&(ssl_ctx->client.context)) < 0) {
-                        xlog(LOG_ERROR, "%s->server: handshake\n", PROGNAME);
-                        return -1;
-                }
+                        proxenet_ssl_wrap_socket(&(ssl_ctx->client.context), client_sock);
+                        if (proxenet_ssl_handshake(&(ssl_ctx->client.context)) < 0) {
+                                xlog(LOG_ERROR, "%s->server: handshake\n", PROGNAME);
+                                return -1;
+                        }
 
 #ifdef DEBUG
-                xlog(LOG_DEBUG, "SSL handshake with %s done, cli_sock=%d\n",
-                     use_proxy?"proxy":"server", *client_sock);
+                        xlog(LOG_DEBUG, "SSL handshake with %s done, cli_sock=%d\n",
+                             use_proxy?"proxy":"server", *client_sock);
 #endif
+                }
 
                 if (proxenet_write(*server_sock, "HTTP/1.0 200 Connection established\r\n\r\n", 39) < 0){
                         return -1;
                 }
 
-                /* 2. set up proxy->browser ssl session with hostname */
-                if(proxenet_ssl_init_server_context(&(ssl_ctx->server), http_infos->hostname) < 0) {
-                        return -1;
-                }
+                if (http_infos->do_intercept) {
 
-                proxenet_ssl_wrap_socket(&(ssl_ctx->server.context), server_sock);
-                if (proxenet_ssl_handshake(&(ssl_ctx->server.context)) < 0) {
-                        xlog(LOG_ERROR, "handshake %s->client failed\n", PROGNAME);
-                        return -1;
-                }
+                        /* 2. set up proxy->browser ssl session with hostname */
+                        if(proxenet_ssl_init_server_context(&(ssl_ctx->server), http_infos->hostname) < 0) {
+                                return -1;
+                        }
+
+                        proxenet_ssl_wrap_socket(&(ssl_ctx->server.context), server_sock);
+                        if (proxenet_ssl_handshake(&(ssl_ctx->server.context)) < 0) {
+                                xlog(LOG_ERROR, "handshake %s->client failed\n", PROGNAME);
+                                return -1;
+                        }
 
 #ifdef DEBUG
-                xlog(LOG_DEBUG, "SSL handshake with client done, srv_sock=%d\n", *server_sock);
+                        xlog(LOG_DEBUG, "SSL handshake with client done, srv_sock=%d\n", *server_sock);
 #endif
+                }
         }
 
 

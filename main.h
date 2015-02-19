@@ -8,6 +8,11 @@
 #include <stdio.h>
 #include "utils.h"
 
+typedef enum {
+        INTERCEPT_ONLY,
+        INTERCEPT_EXCEPT
+} intercept_t;
+
 typedef struct __proxenet_config {
 		unsigned char verbose;
 		bool use_color;
@@ -17,6 +22,10 @@ typedef struct __proxenet_config {
 		FILE* logfile_fd;
 		char* port;
 		char* iface;
+
+                /* interception parameters */
+                intercept_t intercept_mode;
+                char* intercept_pattern;
 
                 /* plugin paths */
 		char* plugins_path;

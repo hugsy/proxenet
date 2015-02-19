@@ -66,6 +66,17 @@ static void usage(int retcode)
                 CFG_DEFAULT_PLUGINS_PATH
                );
 
+        /* intercept options */
+         fprintf(fd,
+                BLUE"Intercept mode:"NOCOLOR"\n"
+                 "\t-I, --intercept-only\t\t\tIntercept only hostnames matching pattern (default mode)\n"
+                 "\t-E, --intercept-except\t\t\tIntercept everything except hostnames matching pattern\n"
+                 "\t-m, --pattern=PATTERN\t\t\tSpecify a hostname matching pattern (default: '%s')\n"
+                 ,
+
+                 CFG_DEFAULT_INTERCEPT_PATTERN
+                );
+
         /* network options */
         fprintf(fd,
                 BLUE"Network:"NOCOLOR"\n"
@@ -195,6 +206,7 @@ static int parse_options (int argc, char** argv)
         char *keyfile, *keyfile_pwd, *certfile;
         char *sslcli_keyfile, *sslcli_keyfile_pwd, *sslcli_certfile, *sslcli_domain;
 	char *proxy_host, *proxy_port;
+        char *intercept_pattern;
 
 	proxy_host = proxy_port = NULL;
 
@@ -206,6 +218,10 @@ static int parse_options (int argc, char** argv)
                 { "no-color",                          0, 0, 'n' },
                 { "plugins",                           1, 0, 'x' },
                 { "logfile",                           1, 0, 'l' },
+
+                { "intercept-only",                    0, 0, 'E' },
+                { "intercept-except",                  0, 0, 'I' },
+                { "match",                             1, 0, 'm' },
 
 		{ "nb-threads",                        1, 0, 't' },
 		{ "bind",                              1, 0, 'b' },
@@ -235,6 +251,9 @@ static int parse_options (int argc, char** argv)
 	cfg->try_exit_max	= CFG_DEFAULT_TRY_EXIT_MAX;
         cfg->daemon		= false;
 
+        cfg->intercept_mode	= INTERCEPT_ONLY;
+        intercept_pattern	= CFG_DEFAULT_INTERCEPT_PATTERN;
+
 	plugin_path		= CFG_DEFAULT_PLUGINS_PATH;
         logfile			= NULL;
 
@@ -255,7 +274,9 @@ static int parse_options (int argc, char** argv)
 	/* parse command line arguments */
 	while (1) {
 		curopt_idx = 0;
-		curopt = getopt_long (argc,argv,"dn46Vhvb:p:l:t:c:k:K:x:X:P:z:y:Y:",long_opts, &curopt_idx);
+		curopt = getopt_long (argc,argv,
+                                      "dn46Vhvb:p:l:t:c:k:K:x:X:P:z:y:Y:IEm:",
+                                      long_opts, &curopt_idx);
 		if (curopt == -1) break;
 
 		switch (curopt) {
@@ -279,7 +300,9 @@ static int parse_options (int argc, char** argv)
 			case '6': cfg->ip_version = AF_INET6; break;
 			case 'x': plugin_path = optarg; break;
                         case 'd': cfg->daemon = true; break;
-
+                        case 'I': cfg->intercept_mode = INTERCEPT_ONLY; break;
+                        case 'E': cfg->intercept_mode = INTERCEPT_EXCEPT; break;
+                        case 'm': intercept_pattern = optarg; break;
                         case 'z': sslcli_certfile = optarg; break;
                         case 'Z': sslcli_domain = optarg; break;
                         case 'y': sslcli_keyfile = optarg; break;
@@ -316,6 +339,17 @@ static int parse_options (int argc, char** argv)
 		fprintf(stderr, "Thread number invalid. Setting to default.\n");
 		cfg->nb_threads = CFG_DEFAULT_NB_THREAD;
 	}
+
+        /* setting the interception mode */
+        cfg->intercept_pattern = proxenet_xstrdup2(intercept_pattern);
+        if(!cfg->intercept_pattern)
+                return -1;
+
+#ifdef DEBUG
+        xlog(LOG_DEBUG, "Interception configured as '%s' for pattern '%s'\n",
+                cfg->intercept_mode==INTERCEPT_ONLY?"INTERCEPT_ONLY":"INTERCEPT_EXCEPT",
+                cfg->intercept_pattern);
+#endif
 
 	/* check plugins path */
 	if (!is_valid_plugin_path(plugin_path, &cfg->plugins_path, &cfg->autoload_path))
@@ -429,6 +463,8 @@ void proxenet_free_config()
 	/* those calls should be safe */
 	if (cfg->logfile)
 		proxenet_xfree(cfg->logfile);
+
+        proxenet_xfree(cfg->intercept_pattern);
 
 	if (cfg->plugins_path) {
 		proxenet_xfree(cfg->plugins_path);
