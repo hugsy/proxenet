@@ -155,16 +155,7 @@ int proxenet_python_initialize_function(plugin_t* plugin, req_t type)
 
 	function_name = is_request ? CFG_REQUEST_PLUGIN_FUNCTION : CFG_RESPONSE_PLUGIN_FUNCTION;
 
-	/* import module */
-	module_name_len = strlen(plugin->name) + 2;
-	module_name = alloca(module_name_len);
-	proxenet_xzero(module_name, module_name_len);
-
-	if (snprintf(module_name, module_name_len, "%d%s", plugin->priority, plugin->name) < 0){
-		xlog(LOG_ERROR, "snprintf failed : %s\n", strerror(errno));
-		return -1;
-	}
-
+        module_name = plugin->name;
 	pModStr = PYTHON_FROMSTRING(module_name);
 	if (!pModStr) {
 		PyErr_Print();

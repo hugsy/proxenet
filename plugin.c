@@ -24,13 +24,12 @@
  */
 char* get_plugin_basename(char* filename, supported_plugins_t type){
 	char* name;
-	size_t len = -1;
+	size_t len;
 
-	len = strlen(filename) - 1 - strlen(plugins_extensions_str[type]);
+	len = strlen(filename) - strlen(plugins_extensions_str[type]);
 	name = (char*)proxenet_xmalloc(len + 1);
 
-	memcpy(name, filename+1, len);
-	return name;
+        return memcpy(name, filename, len);
 }
 
 

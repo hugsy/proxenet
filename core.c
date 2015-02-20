@@ -618,7 +618,7 @@ void proxenet_process_http_request(sock_t server_socket)
                         if (is_new_http_connection)
                                 req.id = get_new_request_id();
 
-                        if (req.http_infos.do_intercept)
+                        if (req.http_infos.do_intercept == false)
                                 goto send_to_server;
 
 
