@@ -39,6 +39,7 @@ VALUE proxenet_ruby_require_cb(VALUE arg)
 	return rb_require((char *)arg);
 }
 
+
 /**
  *
  */
@@ -52,12 +53,7 @@ int proxenet_ruby_load_file(plugin_t* plugin)
 
         PROXENET_ABSOLUTE_PLUGIN_PATH(filename, pathname);
 
-#if (_RUBY_MAJOR_ == 2 || (_RUBY_MAJOR_ == 1 && (_RUBY_MINOR_==9 || _RUBY_MINOR_==8)))
-	/* rb_protect(proxenet_ruby_require_cb, (VALUE) pathname, &res); */
-	rb_load_protect( rb_str_new_cstr(pathname), 0, &res );
-#else
-	abort();
-#endif
+	rb_load_protect(rb_str_new_cstr(pathname), 0, &res);
 	if (res != 0) {
 		xlog(LOG_ERROR, "[Ruby] Error %d when load file '%s'\n", res, pathname);
 		return -1;
@@ -84,28 +80,13 @@ int proxenet_ruby_initialize_vm(plugin_t* plugin)
 		return 0;
 
 #ifdef DEBUG
-	xlog(LOG_DEBUG, "%s\n", "Initializing Ruby VM");
+	xlog(LOG_DEBUG, "Initializing Ruby VM version %s\n", _RUBY_VERSION_);
 #endif
 
 	/* init vm */
 	ruby_init();
 
-#if (_RUBY_MAJOR_ == 2 || (_RUBY_MAJOR_ == 1 && _RUBY_MINOR_ == 9))
-#ifdef DEBUG
-	xlog(LOG_DEBUG, "%s\n", "Using Ruby 1.9 C API");
-#endif
 	interpreter->vm = (void*) rb_mKernel;
-
-#elif (_RUBY_MAJOR_ == 1 && _RUBY_MINOR_ == 8)
-#ifdef DEBUG
-	xlog(LOG_DEBUG, "%s\n", "Using Ruby 1.8 C API");
-#endif
-	interpreter->vm = (void*) ruby_top_self;
-
-#else
-        xlog(LOG_CRITICAL, "%s\n", "Unsupported Ruby version");
-	abort();
-#endif
 
         ruby_script(PROGNAME);
 
@@ -238,7 +219,7 @@ static char* proxenet_ruby_execute_function(interpreter_t* interpreter, ID rFunc
 	}
 
 	/* safe function call */
-        rRet = (VALUE)rb_thread_call_with_gvl( _safe_call_func, (void*) &args);
+        rRet = (VALUE)rb_thread_call_without_gvl( _safe_call_func, (void*) &args, NULL, NULL);
 	if (!rRet) {
 		xlog(LOG_ERROR, "%s\n", "[ruby] funcall2() failed");
 		data = NULL;

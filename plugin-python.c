@@ -82,7 +82,7 @@ int proxenet_python_initialize_vm(plugin_t* plugin)
 		return 0;
 
 #ifdef DEBUG
-	xlog(LOG_DEBUG, "%s\n", "Initializing Python VM");
+	xlog(LOG_DEBUG, "Initializing Python VM version %s\n", _PYTHON_VERSION_);
 #endif
 
 	Py_Initialize();
@@ -132,7 +132,6 @@ int proxenet_python_destroy_vm(plugin_t* plugin)
 int proxenet_python_initialize_function(plugin_t* plugin, req_t type)
 {
 	char*	module_name;
-	size_t 	module_name_len;
 	PyObject *pModStr, *pMod, *pFunc;
 	const char* function_name;
 	bool is_request = (type==REQUEST) ? true : false;
