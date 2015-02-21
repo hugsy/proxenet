@@ -89,7 +89,7 @@ int proxenet_java_initialize_vm(plugin_t* plugin)
 {
         int ret;
         JavaVMInitArgs vm_args;
-        JavaVMOption options[2]={0,};
+        JavaVMOption options;
         proxenet_jvm_t *pxnt_jvm;
 
         pxnt_jvm = proxenet_xmalloc(sizeof(proxenet_jvm_t));
@@ -97,11 +97,7 @@ int proxenet_java_initialize_vm(plugin_t* plugin)
 	if (plugin->interpreter->ready)
 		return 0;
 
-        options[0].optionString = "-Djava.class.path="JAVA_CLASSPATH;
-#ifdef DEBUG_JAVA
-        /* display all JNI info (can be very verbose) */
-        options[1].optionString = "-verbose:jni";
-#endif
+        options.optionString = "-Djava.class.path="JAVA_CLASSPATH;
 
 #if     (_JAVA_MINOR_ == 8)
         vm_args.version = JNI_VERSION_1_8;
@@ -109,8 +105,8 @@ int proxenet_java_initialize_vm(plugin_t* plugin)
         vm_args.version = JNI_VERSION_1_6;
 #endif
 
-        vm_args.nOptions = 2;
-        vm_args.options = options;
+        vm_args.nOptions = 1;
+        vm_args.options = &options;
         vm_args.ignoreUnrecognized = JNI_TRUE;
 
         ret = JNI_CreateJavaVM(&pxnt_jvm->jvm, (void**)&pxnt_jvm->env, &vm_args);
@@ -191,7 +187,7 @@ static char* proxenet_java_execute_function(plugin_t* plugin, request_t *request
         /* get method id inside the JVM */
         pxnt_jvm = (proxenet_jvm_t*)plugin->interpreter->vm;
 	jvm = pxnt_jvm->jvm;
-        (*jvm)->AttachCurrentThread(jvm, &env, NULL);
+        (*jvm)->AttachCurrentThread(jvm, (void**)&env, NULL);
 
         if (request->type==REQUEST){
                 meth = CFG_REQUEST_PLUGIN_FUNCTION;

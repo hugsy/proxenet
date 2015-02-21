@@ -234,6 +234,7 @@ void proxenet_print_plugins_list(int fd)
 		proxenet_write(fd, "\n", 1);
 	}
 
+        return;
 }
 
 
@@ -258,6 +259,59 @@ int proxenet_get_plugin_type(char* filename)
 	}
 
 	return -1;
+}
+
+
+/**
+ *
+ */
+void proxenet_print_all_plugins(int fd)
+{
+        struct dirent *dir_ptr=NULL;
+	DIR *dir = NULL;
+	char* name = NULL;
+        char msg[2048] = {0, };
+        int n, type;
+
+        dir = opendir(cfg->plugins_path);
+	if (dir == NULL) {
+		xlog(LOG_ERROR, "Failed to open '%s': %s\n", cfg->plugins_path, strerror(errno));
+                n = snprintf(msg, sizeof(msg), "Error while opening dir '%s': %s\n", cfg->plugins_path, strerror(errno));
+                proxenet_write(fd, msg, n);
+		return;
+	}
+
+        n = snprintf(msg, sizeof(msg),
+                     "Enumerating all plugins in "BLUE"%s"NOCOLOR"\n",
+                     cfg->plugins_path);
+        proxenet_write(fd, msg, n);
+
+	while ((dir_ptr=readdir(dir))) {
+                type = -1;
+                name = dir_ptr->d_name;
+		if (!strcmp(name,".") || !strcmp(name,".."))
+                        continue;
+
+                type = proxenet_get_plugin_type(name);
+		if (type < 0)
+                        continue;
+
+                n = snprintf(msg, sizeof(msg),
+                             "[*] "GREEN"%s"NOCOLOR" ("RED"%s"NOCOLOR")\n",
+                             name, plugins_extensions_str[type]);
+
+                proxenet_write(fd, msg, n);
+                proxenet_xzero(msg, sizeof(msg));
+        }
+
+        if (closedir(dir) < 0){
+		xlog(LOG_ERROR, "Failed to close '%s': %s\n", cfg->plugins_path, strerror(errno));
+                n = snprintf(msg, sizeof(msg), "Error while closing dir '%s': %s\n", cfg->plugins_path, strerror(errno));
+                proxenet_write(fd, msg, n);
+		return;
+        }
+
+        return;
 }
 
 
@@ -302,6 +356,9 @@ int proxenet_add_new_plugins(char* plugin_path, char* plugin_name)
 
 		if (strcmp(dir_ptr->d_name,"..")==0)
                         continue;
+#ifdef DEBUG
+                xlog(LOG_DEBUG, "File '%s/%s'\n", plugin_path, dir_ptr->d_name);
+#endif
 
                 /* if add one plugin, loop until the right name */
                 if (!add_all && strcmp(dir_ptr->d_name, plugin_name)!=0)
@@ -355,7 +412,7 @@ int proxenet_add_new_plugins(char* plugin_path, char* plugin_name)
 		/* plugin type */
 		type = proxenet_get_plugin_type(name);
 		if (type < 0)
-                continue;
+                        continue;
 
 		/* add plugin in correct place (1: high priority, 9: low priority) */
 		proxenet_add_plugin(name, type, priority);

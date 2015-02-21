@@ -177,6 +177,7 @@ int			proxenet_add_new_plugins(char*, char*);
 void			proxenet_remove_plugin(plugin_t*);
 void 			proxenet_remove_all_plugins();
 void 			proxenet_print_plugins_list();
+void 			proxenet_print_all_plugins();
 char*			get_plugin_path(char*);
 
 #endif /* _PLUGINS_H */

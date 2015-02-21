@@ -300,11 +300,16 @@ void plugin_cmd(sock_t fd, char *options, unsigned int nb_options)
                 goto invalid_plugin_action;
 
 
-        /* list */
+        /* list loaded */
         if (strcmp(ptr, "list") == 0) {
                 proxenet_print_plugins_list(fd);
                 return;
+        }
 
+        /* list all plugins in plugin directory */
+        if (strcmp(ptr, "list-all") == 0) {
+                proxenet_print_all_plugins(fd);
+                return;
         }
 
         /* (de-)activate a plugin based on its id */
@@ -365,8 +370,10 @@ void plugin_cmd(sock_t fd, char *options, unsigned int nb_options)
                 return;
         }
 
+
+
 invalid_plugin_action:
-        n = snprintf(msg, BUFSIZE, "Invalid action\nSyntax\n plugin [list]|[toggle <num>][load <0PluginName.ext>]\n");
+        n = snprintf(msg, BUFSIZE, "Invalid action\nSyntax\n plugin [list][list-all]|[toggle <num>][load <0PluginName.ext>]\n");
         proxenet_write(fd, (void*)msg, n);
         return;
 }
