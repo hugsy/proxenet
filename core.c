@@ -253,7 +253,7 @@ void proxenet_initialize_plugins()
                 }
 
                 if (cfg->verbose > 1)
-                        xlog(LOG_INFO, "Successfully initialiazed '%s'\n", plugin->filename);
+                        xlog(LOG_INFO, "Successfully initialized '%s'\n", plugin->filename);
 
                 prec_plugin = plugin;
                 plugin = plugin->next;
@@ -444,11 +444,12 @@ static int proxenet_apply_plugins(request_t *request)
 
 #ifdef DEBUG
                 xlog(LOG_DEBUG,
-                     "Calling %s plugin id %d: %s:%s\n",
-                     supported_plugins_str[p->type],
-                     p->id,
+                     "Calling '%s:%s' with rid=%d (%s)\n",
                      p->name,
-                     request->type==REQUEST?CFG_REQUEST_PLUGIN_FUNCTION:CFG_RESPONSE_PLUGIN_FUNCTION);
+                     request->type==REQUEST?CFG_REQUEST_PLUGIN_FUNCTION:CFG_RESPONSE_PLUGIN_FUNCTION,
+                     p->id,
+                     supported_plugins_str[p->type]
+                     );
 #endif
 
                 old_data = request->data;
@@ -461,15 +462,38 @@ static int proxenet_apply_plugins(request_t *request)
                          */
                         proxenet_xfree(old_data);
 
+#ifdef DEBUG
+                        xlog(LOG_DEBUG,
+                             "New data from '%s:%s' on rid=%d\n",
+                             request->type==REQUEST?CFG_REQUEST_PLUGIN_FUNCTION:CFG_RESPONSE_PLUGIN_FUNCTION,
+                             p->name,
+                             p->id);
+#endif
+
                 } else {
                         /* Otherwise (data different or error), use the original data */
                         request->data = old_data;
+
+#ifdef DEBUG
+                        xlog(LOG_DEBUG,
+                             "No new data from '%s:%s' on rid=%d\n",
+                             request->type==REQUEST?CFG_REQUEST_PLUGIN_FUNCTION:CFG_RESPONSE_PLUGIN_FUNCTION,
+                             p->name,
+                             p->id);
+#endif
                 }
 
                 /* Additionnal check for dummy plugin coder */
-                if (!request->data || request->size == 0) {
-                        xlog(LOG_CRITICAL, "Plugin '%s' is invalid", p->name);
+                if (!request->data || !request->size) {
+                        xlog(LOG_CRITICAL, "Plugin '%s' is invalid, disabling\n", p->name);
                         p->state = INACTIVE;
+
+                        if (cfg->verbose){
+                                if(!request->data)
+                                        xlog(LOG_CRITICAL, "Plugin '%s' returned a NULL value\n", p->name);
+                                else
+                                        xlog(LOG_CRITICAL, "Plugin '%s' returned a NULL size\n", p->name);
+                        }
 
                         return -1;
                 }
@@ -545,8 +569,9 @@ void proxenet_process_http_request(sock_t server_socket)
                         }
 
 #ifdef DEBUG
-                        xlog(LOG_DEBUG, "Got %dB from client (%s srv_sock=#%d)\n",
-                             n, is_ssl?"SSL":"PLAIN", server_socket);
+                        xlog(LOG_DEBUG, "Got %dB from client (%s srv_sock=#%d intercept_flag=%s)\n",
+                             n, is_ssl?"SSL":"PLAIN", server_socket,
+                             do_intercept?"true":"false");
 #endif
 
                         if (n < 0) {
@@ -933,25 +958,30 @@ static void kill_zombies()
                 if (!is_thread_active(i))
                         continue;
 
+#ifdef DEBUG
+                xlog(LOG_DEBUG, "Trying to join thread tid=%d\n", i);
+#endif
+
                 retcode = pthread_join(threads[i], NULL);
                 if (retcode) {
                         xlog(LOG_ERROR, "xloop: failed to join Thread-%d: %s\n", i, strerror(retcode));
-#ifdef DEBUG
-                        switch(retcode) {
-                                case EDEADLK:
-                                        xlog(LOG_ERROR, "%s\n", "Deadlock detected");
-                                        break;
-                                case EINVAL:
-                                        xlog(LOG_ERROR, "%s\n", "Thread not joinable");
-                                        break;
-                                case ESRCH:
-                                        xlog(LOG_ERROR, "%s\n", "No thread matches this Id");
-                                        break;
-                                default :
-                                        xlog(LOG_ERROR, "Unknown errcode %d\n", retcode);
-                                        break;
-                        }
-#endif
+
+                        if (cfg->verbose)
+                                switch(retcode) {
+                                        case EDEADLK:
+                                                xlog(LOG_ERROR, "%s\n", "Deadlock detected");
+                                                break;
+                                        case EINVAL:
+                                                xlog(LOG_ERROR, "%s\n", "Thread not joinable");
+                                                break;
+                                        case ESRCH:
+                                                xlog(LOG_ERROR, "%s\n", "No thread matches this Id");
+                                                break;
+                                        default :
+                                                xlog(LOG_ERROR, "Unknown errcode %d\n", retcode);
+                                                break;
+                                }
+
                 }
 #ifdef DEBUG
                 else {

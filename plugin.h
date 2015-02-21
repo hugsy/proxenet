@@ -155,6 +155,7 @@ typedef struct _plugin_type {
 		interpreter_t *interpreter;
 		void *pre_function;
 		void *post_function;
+                void *class;
 
 } plugin_t;
 

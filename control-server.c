@@ -436,9 +436,8 @@ int proxenet_handle_control_event(sock_t* sock) {
                 goto cmd_end;
         }
 
-#ifdef DEBUG
-        xlog(LOG_DEBUG, "Receiving control command: \"%s\" \n", cmd->name);
-#endif
+        if(cfg->verbose)
+                xlog(LOG_INFO, "Receiving control command: \"%s\" \n", cmd->name);
 
         ptr = &read_buf[strlen(cmd->name)];
         cmd->func(*sock, ptr, cmd->nb_opt_max);

@@ -219,7 +219,7 @@ static char* proxenet_ruby_execute_function(interpreter_t* interpreter, ID rFunc
 	}
 
 	/* safe function call */
-        rRet = (VALUE)rb_thread_call_without_gvl( _safe_call_func, (void*) &args, NULL, NULL);
+        rRet = (VALUE)_safe_call_func(&args);
 	if (!rRet) {
 		xlog(LOG_ERROR, "%s\n", "[ruby] funcall2() failed");
 		data = NULL;
@@ -231,6 +231,7 @@ static char* proxenet_ruby_execute_function(interpreter_t* interpreter, ID rFunc
         for(i=0; i<3; i++) {
                 rb_gc_unregister_address(&args.rArgs[i]);
 	}
+
 
 	/* copy result to exploitable buffer */
 	buf = RSTRING_PTR(rRet);
@@ -283,7 +284,6 @@ char* proxenet_ruby_plugin(plugin_t* plugin, request_t* request)
         proxenet_ruby_lock_vm(interpreter);
 	buf = proxenet_ruby_execute_function(interpreter, rFunc, request);
 	proxenet_ruby_unlock_vm(interpreter);
-
 	return buf;
 }
 
