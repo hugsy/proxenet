@@ -32,10 +32,18 @@ int proxenet_lua_load_file(plugin_t* plugin)
 	char* pathname;
 	lua_State* lua_interpreter;
 
-	filename = plugin->filename;
-	lua_interpreter = (lua_State*) plugin->interpreter->vm;
+        if(plugin->state != INACTIVE){
+#ifdef DEBUG
+                if(cfg->verbose > 2)
+                        xlog(LOG_DEBUG, "Plugin '%s' is already loaded. Skipping...\n", plugin->name);
+#endif
+                return 0;
+        }
 
-        PROXENET_ABSOLUTE_PLUGIN_PATH(filename, pathname);
+	filename = plugin->filename;
+        pathname = plugin->fullpath;
+
+	lua_interpreter = (lua_State*) plugin->interpreter->vm;
 
 	if (luaL_dofile(lua_interpreter, pathname)) {
 		xlog(LOG_ERROR, "Failed to load '%s'\n", pathname);

@@ -56,20 +56,27 @@ option(USE_JAVA_PLUGIN        "Add Java script support"                ON)
 
 option(DEBUG                  "Enable Debug"                           OFF)
 option(DEBUG_SSL              "Enable SSL debug"                       OFF)
+option(DEBUG_LEAK             "Enable memleak checks"                  OFF)
 
 if (DEBUG)
   set(CMAKE_BUILD_TYPE Debug)
   set(CMAKE_C_FLAGS_DEBUG "-ggdb -DDEBUG -O0")
   set(CMAKE_VERBOSE_MAKEFILE ON)
+
+  if(DEBUG_LEAK)
+    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -fsanitize=address")
+  endif(DEBUG_LEAK)
+
+  if (DEBUG_SSL)
+    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -DDEBUG_SSL")
+  endif(DEBUG_SSL)
+
 else()
   set(CMAKE_BUILD_TYPE None)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3")
   set(CMAKE_VERBOSE_MAKEFILE OFF)
 endif(DEBUG)
 
-if (DEBUG_SSL)
-  set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -DDEBUG_SSL")
-endif(DEBUG_SSL)
 
 # main files to compile
 set(CORE_FILES

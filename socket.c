@@ -177,10 +177,12 @@ sock_t create_connect_socket(char *host, char* port)
                 /* connect time */
 		if (connect(sock, ll->ai_addr, ll->ai_addrlen) == 0) {
                         if (cfg->verbose > 1)
-                                xlog(LOG_INFO, "connect() succeeded: %d\n", sock);
+                                xlog(LOG_INFO, "connect() to '%s:%s' succeeded: sock=#%d\n",
+                                     host, port, sock);
 			break;
 		} else {
-                        xlog(LOG_ERROR, "connect failed: %s\n", strerror(errno));
+                        xlog(LOG_ERROR, "connect to '%s:%s' failed: %s\n",
+                             host, port, strerror(errno));
                 }
 
 		close(sock);
@@ -192,10 +194,10 @@ sock_t create_connect_socket(char *host, char* port)
 			xlog(LOG_ERROR, "%s (%d)\n", strerror(errno), errno);
 		else
 			xlog(LOG_ERROR, "%s\n", "Unknown socket error");
-	}
-
-        if (cfg->verbose)
-		xlog(LOG_INFO, "Established socket to '%s:%s': #%d\n", host, port, sock);
+	} else {
+                if (cfg->verbose)
+                        xlog(LOG_INFO, "Established socket to '%s:%s': #%d\n", host, port, sock);
+        }
 
 	freeaddrinfo(res);
 

@@ -31,7 +31,7 @@
 #define PYTHON_FROMSTRING PyUnicode_FromString
 #define PYTHON_VALUE_FORMAT "iy#y"
 
-# else /* if defined _PYTHON2_ */
+# else /*  _PYTHON2_ */
 #define PYTHON_FROMSTRING  PyString_FromString
 #define PYTHON_VALUE_FORMAT "is#s"
 
@@ -136,6 +136,7 @@ int proxenet_python_initialize_function(plugin_t* plugin, req_t type)
 	const char* function_name;
 	bool is_request = (type==REQUEST) ? true : false;
 
+
 	/* checks */
 	if (!plugin->name) {
 		xlog(LOG_ERROR, "%s\n", "null plugin name");
@@ -143,12 +144,14 @@ int proxenet_python_initialize_function(plugin_t* plugin, req_t type)
 	}
 
 	if (plugin->pre_function && type == REQUEST) {
-		xlog(LOG_WARNING, "Pre-hook function already defined for '%s'\n", plugin->name);
+                if(cfg->verbose)
+                        xlog(LOG_WARNING, "Pre-hook function already defined for '%s'\n", plugin->name);
 		return 0;
 	}
 
 	if (plugin->post_function && type == RESPONSE) {
-		xlog(LOG_WARNING, "Post-hook function already defined for '%s'\n", plugin->name);
+                if(cfg->verbose)
+                        xlog(LOG_WARNING, "Post-hook function already defined for '%s'\n", plugin->name);
 		return 0;
 	}
 

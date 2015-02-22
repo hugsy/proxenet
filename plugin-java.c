@@ -32,6 +32,14 @@ int proxenet_java_load_file(plugin_t* plugin)
         jclass jcls;
         jmethodID jmid;
 
+        if(plugin->state != INACTIVE){
+#ifdef DEBUG
+                if(cfg->verbose > 2)
+                        xlog(LOG_DEBUG, "Plugin '%s' is already loaded. Skipping...\n", plugin->name);
+#endif
+                return 0;
+        }
+
         pxnt_jvm = (proxenet_jvm_t*) plugin->interpreter->vm;
 	jvm = (JavaVM*) pxnt_jvm->jvm;
         env = (JNIEnv*) pxnt_jvm->env;
@@ -92,10 +100,10 @@ int proxenet_java_initialize_vm(plugin_t* plugin)
         JavaVMOption options;
         proxenet_jvm_t *pxnt_jvm;
 
-        pxnt_jvm = proxenet_xmalloc(sizeof(proxenet_jvm_t));
-
 	if (plugin->interpreter->ready)
 		return 0;
+
+        pxnt_jvm = proxenet_xmalloc(sizeof(proxenet_jvm_t));
 
         options.optionString = "-Djava.class.path="JAVA_CLASSPATH;
 

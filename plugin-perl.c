@@ -40,7 +40,15 @@ static int proxenet_perl_load_file(plugin_t* plugin)
 	size_t package_len, len = 0;
 	int ret = -1;
 
-	PROXENET_ABSOLUTE_PLUGIN_PATH(plugin->filename, pathname);
+        if(plugin->state != INACTIVE){
+#ifdef DEBUG
+                if(cfg->verbose > 2)
+                        xlog(LOG_DEBUG, "Plugin '%s' is already loaded. Skipping...\n", plugin->name);
+#endif
+                return 0;
+        }
+
+        pathname = plugin->fullpath;
 
 #ifdef DEBUG
 	xlog(LOG_DEBUG, "[Perl] Loading '%s'\n", pathname);

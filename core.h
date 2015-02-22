@@ -17,7 +17,7 @@
 
 typedef enum proxenet_states {
 	INACTIVE, 	/* initial state */
-	SLEEPING,	/* <-- means not to treat new request */
+	SLEEPING,	/* =  means not to treat new request */
 	ACTIVE,		/* rock'n roll */
 } proxenet_state;
 

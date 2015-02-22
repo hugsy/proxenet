@@ -29,13 +29,19 @@ int proxenet_tcl_load_file(plugin_t* plugin)
 {
 	char* filename;
 	char* pathname;
-
 	Tcl_Interp* tcl_interpreter;
 
-	filename = plugin->filename;
-	tcl_interpreter = (Tcl_Interp*) plugin->interpreter->vm;
+        if(plugin->state != INACTIVE){
+#ifdef DEBUG
+                if(cfg->verbose > 2)
+                        xlog(LOG_DEBUG, "Plugin '%s' is already loaded. Skipping...\n", plugin->name);
+#endif
+                return 0;
+        }
 
-	PROXENET_ABSOLUTE_PLUGIN_PATH(filename, pathname);
+	filename = plugin->filename;
+        pathname = plugin->fullpath;
+	tcl_interpreter = (Tcl_Interp*) plugin->interpreter->vm;
 
         if (Tcl_EvalFile (tcl_interpreter, pathname) != TCL_OK){
 		xlog(LOG_ERROR, "Failed to load '%s'\n", pathname);

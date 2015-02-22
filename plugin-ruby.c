@@ -49,9 +49,16 @@ int proxenet_ruby_load_file(plugin_t* plugin)
 	char* pathname;
 	int res = 0;
 
-	filename = plugin->filename;
+        if(plugin->state != INACTIVE){
+#ifdef DEBUG
+                if(cfg->verbose > 2)
+                        xlog(LOG_DEBUG, "Plugin '%s' is already loaded. Skipping...\n", plugin->name);
+#endif
+                return 0;
+        }
 
-        PROXENET_ABSOLUTE_PLUGIN_PATH(filename, pathname);
+	filename = plugin->filename;
+        pathname = plugin->fullpath;
 
 	rb_load_protect(rb_str_new_cstr(pathname), 0, &res);
 	if (res != 0) {

@@ -158,19 +158,9 @@ typedef struct _plugin_type {
 		void *pre_function;
 		void *post_function;
                 void *class;
-
 } plugin_t;
 
 #include "http.h"
-
-#define PROXENET_ABSOLUTE_PLUGIN_PATH(f, p)                             \
-        {                                                               \
-                size_t len;                                             \
-                len = strlen(cfg->plugins_path) + 1 + strlen(f) + 1;    \
-                p = alloca(len + 1);                                    \
-                proxenet_xzero(p, len + 1);                             \
-                snprintf(p, len, "%s/%s", cfg->plugins_path, f);        \
-        }
 
 unsigned int 		proxenet_plugin_list_size();
 unsigned int		count_plugins_by_type(supported_plugins_t);

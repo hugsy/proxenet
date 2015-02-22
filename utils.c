@@ -37,7 +37,7 @@ void _xlog(int type, const char* fmt, ...)
 
 		case LOG_ERROR:
 			if (cfg->use_color) fprintf(cfg->logfile_fd, MAGENTA);
-			fprintf(cfg->logfile_fd, "ERROR ");
+			fprintf(cfg->logfile_fd, "ERROR: ");
 			break;
 
 		case LOG_WARNING:
