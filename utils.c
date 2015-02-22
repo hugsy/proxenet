@@ -230,7 +230,10 @@ bool is_valid_plugin_path(char* plugin_path, char** plugins_path_ptr, char** aut
 
 
 /**
+ * Check if the argument provided is a regular file
  *
+ * @param path to the file to check
+ * @return true is it's a regular, false otherwise
  */
 bool is_file(char* path)
 {
@@ -240,9 +243,65 @@ bool is_file(char* path)
 
 
 /**
+ * Check if the argument provided is a (regular) file and is readable by user calling
  *
+ * @param path to the file to check
+ * @return true is it's a regular and is readable, false otherwise
  */
 bool is_readable_file(char* path)
 {
 	return is_file(path) && access(path, R_OK)==0;
+}
+
+
+/**
+ * Prints a hexdump like version the buffer pointed by argument
+ *
+ * @param buf is a pointer to dump memory from
+ * @param buflen is the number of bytes to dump
+ */
+void proxenet_hexdump(char *data, int size)
+{
+        int i;
+        int j;
+        char temp[8];
+        char buffer[128];
+        char *ascii;
+
+        pthread_mutex_lock(&tty_mutex);
+
+        printf("        +0          +4          +8          +c            0   4   8   c   \n");
+        memset(buffer, 0, 128);
+        ascii = buffer + 58;
+        memset(buffer, ' ', 58 + 16);
+        buffer[58 + 16] = '\n';
+        buffer[58 + 17] = '\0';
+        buffer[0] = '+';
+        buffer[1] = '0';
+        buffer[2] = '0';
+        buffer[3] = '0';
+        buffer[4] = '0';
+        for (i = 0, j = 0; i < size; i++, j++) {
+                if (j == 16) {
+                        printf("%s", buffer);
+                        memset(buffer, ' ', 58 + 16);
+                        sprintf(temp, "+%04x", i);
+                        memcpy(buffer, temp, 5);
+                        j = 0;
+                }
+
+                sprintf(temp, "%02x", 0xff & data[i]);
+                memcpy(buffer + 8 + (j * 3), temp, 2);
+                if ((data[i] > 31) && (data[i] < 127))
+                        ascii[j] = data[i];
+                else
+                        ascii[j] = '.';
+        }
+
+        if (j != 0)
+                printf("%s", buffer);
+
+        pthread_mutex_unlock(&tty_mutex);
+
+        return;
 }

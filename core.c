@@ -447,7 +447,7 @@ static int proxenet_apply_plugins(request_t *request)
                      "Calling '%s:%s' with rid=%d (%s)\n",
                      p->name,
                      request->type==REQUEST?CFG_REQUEST_PLUGIN_FUNCTION:CFG_RESPONSE_PLUGIN_FUNCTION,
-                     p->id,
+                     request->id,
                      supported_plugins_str[p->type]
                      );
 #endif
@@ -712,6 +712,9 @@ void proxenet_process_http_request(sock_t server_socket)
 #ifdef DEBUG
                         xlog(LOG_DEBUG, "Sending buffer %d bytes (%s) - post-plugins\n",
                              req.size, (req.http_infos.is_ssl)?"SSL":"PLAIN");
+
+                        if(cfg->verbose > 2)
+                                proxenet_hexdump(req.data, req.size);
 #endif
 
                 send_to_server:
@@ -734,6 +737,9 @@ void proxenet_process_http_request(sock_t server_socket)
 #ifdef DEBUG
                         xlog(LOG_DEBUG, "Written %d bytes on %s socket #%d\n",
                              retcode, (req.http_infos.is_ssl)?"SSL":"PLAIN", client_socket);
+
+                        if(cfg->verbose > 2)
+                                proxenet_hexdump(req.data, req.size);
 #endif
 
                 } /* end FD_ISSET(data_from_browser) */
@@ -1200,7 +1206,7 @@ void xloop(sock_t sock, sock_t ctl_sock)
 void sighandler(int signum)
 {
 #ifdef DEBUG
-        xlog(LOG_DEBUG, "Received signal %s [%d]\n", strsignal(signum), signum);
+        xlog(LOG_DEBUG, "Received signal %s\n", strsignal(signum));
 #endif
 
         switch(signum) {
@@ -1232,7 +1238,7 @@ void sighandler(int signum)
  */
 void initialize_sigmask(struct sigaction *saction)
 {
-        memset(saction, 0, sizeof(struct sigaction));
+        proxenet_xzero(saction, sizeof(struct sigaction));
 
         saction->sa_handler = sighandler;
         saction->sa_flags = SA_RESTART|SA_NOCLDSTOP;

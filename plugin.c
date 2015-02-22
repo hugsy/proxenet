@@ -22,14 +22,10 @@
 /**
  *
  */
-char* get_plugin_basename(char* filename, supported_plugins_t type){
-	char* name;
+static char* plugin_basename(char* dst, char* src, supported_plugins_t type){
 	size_t len;
-
-	len = strlen(filename) - strlen(plugins_extensions_str[type]);
-	name = (char*)proxenet_xmalloc(len + 1);
-
-        return memcpy(name, filename, len);
+	len = strlen(src) - strlen(plugins_extensions_str[type]);
+        return memcpy(dst, src, len);
 }
 
 
@@ -42,9 +38,8 @@ void proxenet_add_plugin(char* name, supported_plugins_t type, short priority)
 	plugin_t *plugin;
 
 	plugin 			= (plugin_t*)proxenet_xmalloc(sizeof(plugin_t));
+
 	plugin->id 		= proxenet_plugin_list_size() + 1;
-	plugin->filename 	= strdup(name);
-	plugin->name		= get_plugin_basename(name, type);
 	plugin->type		= type;
 	plugin->priority	= priority;
 	plugin->next 		= NULL;
@@ -54,6 +49,21 @@ void proxenet_add_plugin(char* name, supported_plugins_t type, short priority)
 	plugin->pre_function	= NULL;
 	plugin->post_function	= NULL;
 
+
+        if (!strcpy(plugin->filename, name)){
+                xlog(LOG_CRITICAL, "strcpy() failed for '%s': %s", name, strerror(errno));
+                abort();
+        }
+
+        if (snprintf(plugin->fullpath, sizeof(plugin->fullpath), "%s/%s", cfg->plugins_path, name) < 0){
+                xlog(LOG_CRITICAL, "snprintf() failed for '%s/%s': %s", cfg->plugins_path, name, strerror(errno));
+                abort();
+        }
+
+        if (!plugin_basename(plugin->name, name, type)){
+                xlog(LOG_CRITICAL, "plugin_basename() failed for '%s': %s", name, strerror(errno));
+                abort();
+        }
 
 	/* if first plugin */
 	if (!plugins_list) {
@@ -116,7 +126,7 @@ unsigned int proxenet_plugin_list_size()
  */
 void proxenet_remove_plugin(plugin_t* plugin)
 {
-	char* name;
+	char name[PATH_MAX] = {0, };
 	int len;
 
 #ifdef _PERL_PLUGIN
@@ -126,17 +136,19 @@ void proxenet_remove_plugin(plugin_t* plugin)
 	}
 #endif
 
-	len = strlen(plugin->name);
-	name = alloca(len+1);
-	proxenet_xzero(name, len+1);
-	strncpy(name, plugin->name, len);
+	len = strlen(plugin->filename);
+	strncpy(name, plugin->filename, len);
 
-	proxenet_xfree(plugin->name);
-	proxenet_xfree(plugin->filename);
+#ifdef DEBUG
+        xlog(LOG_INFO, "Freeing plugin %d '%s'\n", plugin->id, plugin->filename);
+#endif
+
 	proxenet_xfree(plugin);
 
 	if (cfg->verbose)
 		xlog(LOG_INFO, "Plugin '%s' free-ed\n", name);
+
+        return;
 }
 
 
@@ -263,7 +275,28 @@ int proxenet_get_plugin_type(char* filename)
 
 
 /**
+ * Search if a loaded plugin has a name matching the argument
  *
+ * @param name : plugin name to look up
+ * @return true if a match is found, false in any other case
+ */
+static bool is_plugin_loaded(char* name)
+{
+	plugin_t* p;
+	for(p=plugins_list; p!=NULL; p=p->next){
+                if(!strcmp(p->filename, name)){
+                        return true;
+                }
+        }
+
+        return false;
+}
+
+
+/**
+ * Print all plugins available in the plugin directory
+ *
+ * @param fd file descriptor to write output on
  */
 void proxenet_print_all_plugins(int fd)
 {
@@ -296,9 +329,15 @@ void proxenet_print_all_plugins(int fd)
 		if (type < 0)
                         continue;
 
-                n = snprintf(msg, sizeof(msg),
-                             "[*] "GREEN"%s"NOCOLOR" ("RED"%s"NOCOLOR")\n",
-                             name, plugins_extensions_str[type]);
+                if (is_plugin_loaded(name)) {
+                        n = snprintf(msg, sizeof(msg),
+                                     "[*] "GREEN"%s"NOCOLOR" ("RED"%s"NOCOLOR") - already loaded\n",
+                                     name, supported_plugins_str[type]);
+                } else {
+                        n = snprintf(msg, sizeof(msg),
+                                     "[*] "CYAN"%s"NOCOLOR" ("RED"%s"NOCOLOR")\n",
+                                     name, supported_plugins_str[type]);
+                }
 
                 proxenet_write(fd, msg, n);
                 proxenet_xzero(msg, sizeof(msg));

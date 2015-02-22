@@ -44,15 +44,16 @@ typedef enum {
 #define xlog(t, ...) _xlog(t, __VA_ARGS__)
 #endif
 
-void	_xlog(int type, const char* fmt, ...);
-void* 	proxenet_xmalloc(size_t size);
-void 	proxenet_xfree(void* ptr);
-void 	proxenet_xzero(void* buf, size_t buflen);
-void* 	proxenet_xrealloc(void* oldptr, size_t new_size);
-char*	proxenet_xstrdup(const char *data, size_t len);
-char*	proxenet_xstrdup2(const char *data);
-bool	is_valid_plugin_path(char*, char**, char**);
-bool	is_file(char*);
-bool	is_readable_file(char*);
+void      _xlog(int type, const char* fmt, ...);
+void*     proxenet_xmalloc(size_t size);
+void      proxenet_xfree(void* ptr);
+void      proxenet_xzero(void* buf, size_t buflen);
+void*     proxenet_xrealloc(void* oldptr, size_t new_size);
+char*     proxenet_xstrdup(const char *data, size_t len);
+char*     proxenet_xstrdup2(const char *data);
+bool      is_valid_plugin_path(char*, char**, char**);
+bool      is_file(char*);
+bool      is_readable_file(char*);
+void      proxenet_hexdump(char*, int);
 
 #endif /* _UTILS_H */

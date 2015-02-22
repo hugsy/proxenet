@@ -145,8 +145,10 @@ interpreter_t vms[MAX_VMS];
 
 typedef struct _plugin_type {
 		unsigned short id;
-		char* filename;
-		char* name;
+                char fullpath[PATH_MAX];                  // full absolute path (ex. /path/to/MyPlugin.py)
+		char filename[PATH_MAX];                  // full file name (ex. MyPlugin.py)
+		char name[PATH_MAX];                      // name as seen by VM (ex. MyPlugin)
+
 		supported_plugins_t type;
 		unsigned short priority;
 		struct _plugin_type* next;

@@ -225,6 +225,7 @@ static char* proxenet_java_execute_function(plugin_t* plugin, request_t *request
         jretlen = (*env)->GetArrayLength(env, jret);
         jret2 = (*env)->GetByteArrayElements(env, jret, &is_copy);
 
+
         /* treat the result */
 	buf = proxenet_xstrdup((char*)jret2, jretlen);
 	if (!buf)
