@@ -1,22 +1,68 @@
 # proxenet
 
+![proxenet](img/proxenet.png)
+
+
+## What is proxenet ?
+`proxenet` is a multi-threaded proxy which allows you manipulate your HTTP
+requests and responses using your favorite scripting language. No need to learn
+Java (like for [Burp](http://portswigger.net/burp/extender/)) or Python (like
+for
+[mitmproxy](http://mitmproxy.org/doc/scripting/inlinescripts.html)). `proxenet`
+supports heaps of languages (see the section "Language Versions") and more can
+be easily added.
+
+`proxenet` is **not** script kiddie friendly, neither GUI friendly. If this is
+what you are looking for, here are a few links for you
+
+- [ZAP](http://owasp.org/index.php/OWASP_Zed_Attack_Proxy_Project)
+- [Burp](http://portswigger.net/burp)
+- [ProxyStrike](http://www.edge-security.com/proxystrike.php)
+
+Or the best way, write your own GUI as a `proxenet` plugin !
+
+
 ## Why ?
-The idea behind `proxenet` is to have a fully
-[DIY](https://en.wikipedia.org/wiki/Do_it_yourself) web proxy for pentest. It is
-a C-based proxy that allows you to interact with higher level languages for
-modifying on-the-fly requests/responses sent by your Web browser.
+The idea behind `proxenet` came after a lot of frustration from attempting to write
+extensions for Burp. Moreover, only a few proxies already existing supports the
+possibility to add new extensions. And when they do, they are (one) language
+specific - despite Burp persistent attempts to make unnatural bindings (Python
+over Java or worse Ruby over Java.
 
-Still under development, it offers the possibility to interact with the
-following languages:
+Being written in pure C, it is **fast**, **efficient** and easily
+pluggable to anything else. It is the utimate real
+[DIY](https://en.wikipedia.org/wiki/Do_it_yourself) web proxy for
+pentest(ers).
 
-- C
-- Python
-- Lua
-- Ruby
-- Perl
--Tcl
 
-And more to come
+## Features
+
+Here are a sample of features already supported by `proxenet`:
+
+- Written in C
+    - Fast (heavy thread use)
+    - Efficient (POSIX compatible)
+    - Low memory footprint
+- Can interact with any language
+- Supports already plugins in :
+    - C
+    - Python
+    - Lua
+    - Ruby
+    - Perl
+    - Tcl
+    - Java
+- SSL
+    - Full SSL interception (internal CA)
+    - SSL client certificate authentication
+- IPv4/IPv6
+- HTTP Proxy forwarding
+- Hosts white/black filtering
+- Command interface out-of-band
+- Nice TTY colors :D
+- 100% Open-Source
+
+... and more !
 
 
 ## The best of both world ?
@@ -37,14 +83,27 @@ So the simple but powerful idea behind `proxenet` is to allow pentesters to
 high-level language.
 
 
-## Languages Versions
+## Language Versions
 
 The current version of `proxenet` has been tested with:
 
-- Python 2.7/3.3
-- Ruby 1.8/1.9
-- Perl 5.14
-- Lua 5.2
+- Python 2.6+/3.x+
+- Ruby 2.x
+- Perl 5.1+
+- Lua 5.2+
+- Tcl 8.5+
+- Java 1.6+
+
+
+## Still not convinced ?
+
+Just to keep the troll alive, have a quick look at the comparison how to create
+a very simple plugin using `Burp` API and the very same plugin using `proxenet`,
+both written in Java.
+
+[burp-proxenet](img/fun.png)
+
+*Note*: this troll is naturally totally unbiaised of course.
 
 
 ## Want to help
