@@ -698,8 +698,8 @@ void proxenet_process_http_request(sock_t server_socket)
                         }
 
 #ifdef DEBUG
-                        xlog(LOG_DEBUG, "Sending buffer %d bytes (%s) - pre-plugins\n",
-                             req.size, (req.http_infos.is_ssl)?"SSL":"PLAIN");
+                        xlog(LOG_DEBUG, "Request %d pre-plugins:  buflen:%lu - \n",
+                             req.id, req.size);
 #endif
                         /* hook request with all plugins in plugins_list  */
                         if ( proxenet_apply_plugins(&req) < 0) {
@@ -708,10 +708,9 @@ void proxenet_process_http_request(sock_t server_socket)
                                 proxenet_xfree( req.data );
                                 break;
                         }
-
 #ifdef DEBUG
-                        xlog(LOG_DEBUG, "Sending buffer %d bytes (%s) - post-plugins\n",
-                             req.size, (req.http_infos.is_ssl)?"SSL":"PLAIN");
+                        xlog(LOG_DEBUG, "Request %d post-plugins:  buflen:%lu - \n",
+                             req.id, req.size);
 
                         if(cfg->verbose > 2)
                                 proxenet_hexdump(req.data, req.size);
@@ -735,11 +734,8 @@ void proxenet_process_http_request(sock_t server_socket)
                         }
 
 #ifdef DEBUG
-                        xlog(LOG_DEBUG, "Written %d bytes on %s socket #%d\n",
+                        xlog(LOG_DEBUG, "Written %d bytes to server (socket=%s socket #%d)\n",
                              retcode, (req.http_infos.is_ssl)?"SSL":"PLAIN", client_socket);
-
-                        if(cfg->verbose > 2)
-                                proxenet_hexdump(req.data, req.size);
 #endif
 
                 } /* end FD_ISSET(data_from_browser) */
@@ -786,6 +782,10 @@ void proxenet_process_http_request(sock_t server_socket)
                                 goto send_to_client;
                         }
 
+#ifdef DEBUG
+                        xlog(LOG_DEBUG, "Reponse %d pre-plugins:  buflen:%lu - \n",
+                             req.id, req.size);
+#endif
                         /* execute response hooks */
                         if ( proxenet_apply_plugins(&req) < 0) {
                                 /* extremist action: any error on any plugin discard the whole request */
@@ -793,6 +793,13 @@ void proxenet_process_http_request(sock_t server_socket)
                                 proxenet_xfree(req.data);
                                 break;
                         }
+#ifdef DEBUG
+                        xlog(LOG_DEBUG, "Response %d post-plugins:  buflen:%lu - \n",
+                             req.id, req.size);
+
+                        if(cfg->verbose > 2)
+                                proxenet_hexdump(req.data, req.size);
+#endif
 
                 send_to_client:
                         /* send modified data to client */
@@ -805,6 +812,10 @@ void proxenet_process_http_request(sock_t server_socket)
                                 xlog(LOG_ERROR, "[%d] %s\n", req.id, "proxy->client: write failed");
                         }
 
+#ifdef DEBUG
+                        xlog(LOG_DEBUG, "Written %d bytes to browser (socket=%s socket #%d)\n",
+                             retcode, (req.http_infos.is_ssl)?"SSL":"PLAIN", client_socket);
+#endif
                         proxenet_xfree(req.data);
 
                 }  /* end FD_ISSET(data_from_server) */
