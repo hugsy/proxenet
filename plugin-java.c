@@ -142,13 +142,10 @@ int proxenet_java_destroy_vm(plugin_t* plugin)
 {
 	interpreter_t* interpreter;
         proxenet_jvm_t *pxnt_jvm;
-
         JavaVM *jvm;
-        JNIEnv *env;
 
         pxnt_jvm = (proxenet_jvm_t*) plugin->interpreter->vm;
 	jvm = (JavaVM*) pxnt_jvm->jvm;
-        env = (JNIEnv*) pxnt_jvm->env;
 
 	if(count_plugins_by_type(_JAVA_))
 		return -1;

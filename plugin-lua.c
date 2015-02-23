@@ -28,7 +28,6 @@
  */
 int proxenet_lua_load_file(plugin_t* plugin)
 {
-	char* filename;
 	char* pathname;
 	lua_State* lua_interpreter;
 
@@ -40,7 +39,7 @@ int proxenet_lua_load_file(plugin_t* plugin)
                 return 0;
         }
 
-	filename = plugin->filename;
+
         pathname = plugin->fullpath;
 
 	lua_interpreter = (lua_State*) plugin->interpreter->vm;
