@@ -110,16 +110,26 @@ int proxenet_c_initialize_function(plugin_t* plugin, req_t type)
 
 
 /**
+ * Execute a proxenet plugin written in C.
  *
+ * @note Because there is no other consistent way in C of keeping track of the
+ * right size of the request (strlen() will break at the first NULL byte), the
+ * signature of functions in a C plugin must include a pointer to the size which
+ * **must** be changed by the called plugin.
+ * Therefore the definition is
+ * char* proxenet_request_hook(unsigned int rid, char* buf, char* uri, size_t* buflen);
+ *
+ * See examples/ for examples.
  */
 char* proxenet_c_plugin(plugin_t *plugin, request_t *request)
 {
-	char* (*plugin_function)(unsigned long, char*, char*);
+	char* (*plugin_function)(unsigned long, char*, char*, size_t*);
 	char *bufres, *uri;
+        size_t buflen;
 
 	bufres = uri = NULL;
 
-        uri = get_request_full_uri(request);
+        uri = request->uri;
 	if (!uri)
 		return NULL;
 
@@ -128,16 +138,17 @@ char* proxenet_c_plugin(plugin_t *plugin, request_t *request)
 	else
 		plugin_function = plugin->post_function;
 
-	bufres = (*plugin_function)(request->id, request->data, uri);
+        buflen = request->size;
+	bufres = (*plugin_function)(request->id, request->data, uri, &buflen);
 	if(!bufres){
                 request->size = -1;
                 goto end_exec_c_plugin;
         }
 
-	request->size = strlen(bufres);
+        request->data = proxenet_xstrdup(request->data, buflen);
+        request->size = buflen;
 
 end_exec_c_plugin:
-        proxenet_xfree(uri);
 	return bufres;
 }
 

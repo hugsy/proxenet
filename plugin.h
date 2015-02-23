@@ -129,6 +129,7 @@ typedef struct _request_type {
 		req_t type;
 		char* data;
 		size_t size;
+                char* uri;
 		http_request_t http_infos;
 } request_t;
 

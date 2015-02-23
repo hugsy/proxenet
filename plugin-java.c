@@ -184,7 +184,7 @@ static char* proxenet_java_execute_function(plugin_t* plugin, request_t *request
 
         buf = NULL;
 
-	uri = get_request_full_uri(request);
+	uri = request->uri;
 	if (!uri)
 		return NULL;
 
@@ -240,7 +240,7 @@ static char* proxenet_java_execute_function(plugin_t* plugin, request_t *request
 
 end:
         (*jvm)->DetachCurrentThread(jvm);
-        proxenet_xfree(uri);
+        
 	return buf;
 }
 

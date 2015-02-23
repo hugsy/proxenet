@@ -831,6 +831,7 @@ void proxenet_process_http_request(sock_t server_socket)
                 proxenet_xfree(req.http_infos.hostname);
                 proxenet_xfree(req.http_infos.uri);
                 proxenet_xfree(req.http_infos.version);
+                proxenet_xfree(req.uri);
         }
 
         /* close client socket */

@@ -115,7 +115,7 @@ static char* proxenet_tcl_execute_function(interpreter_t* interpreter, request_t
 	size_t len;
         int i;
 
-	uri = get_request_full_uri(request);
+	uri = request->uri;
 	if (!uri)
 		return NULL;
 
@@ -134,7 +134,7 @@ static char* proxenet_tcl_execute_function(interpreter_t* interpreter, request_t
         Tcl_ListObjAppendElement(tcl_interpreter, tcl_cmds_ptr, Tcl_NewStringObj(request->data, request->size));
         Tcl_ListObjAppendElement(tcl_interpreter, tcl_cmds_ptr, Tcl_NewStringObj(uri, -1));
 
-	proxenet_xfree(uri);
+	
 
         /* execute the commands */
 	if (Tcl_EvalObjEx(tcl_interpreter, tcl_cmds_ptr, TCL_EVAL_DIRECT) != TCL_OK) {

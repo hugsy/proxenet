@@ -239,6 +239,33 @@ int set_https_infos(request_t *req) {
 
 
 /**
+ *
+ */
+static char* get_request_full_uri(request_t* req)
+{
+	char* uri;
+	http_request_t* http_infos = &req->http_infos;
+	size_t len;
+
+	if (!req || !http_infos)
+			return NULL;
+
+	http_infos = &req->http_infos;
+	len = strlen("https://") + strlen(http_infos->hostname) + strlen(":") + strlen("65535");
+	len+= strlen(http_infos->uri);
+	uri = (char*)proxenet_xmalloc(len+1);
+
+	snprintf(uri, len, "%s://%s:%d%s",
+		 http_infos->is_ssl?"https":"http",
+		 http_infos->hostname,
+		 http_infos->port,
+		 http_infos->uri);
+
+	return uri;
+}
+
+
+/**
  * Establish a connection from proxenet -> server. If proxy forwarding configured, then process
  * request to other proxy.
  *
@@ -259,11 +286,10 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
 		return -1;
 	}
 
+        req->uri = get_request_full_uri(req);
 
 #ifdef DEBUG
-	char* full_uri = get_request_full_uri(req);
-	xlog(LOG_DEBUG, "URL: %s\n", full_uri);
-	proxenet_xfree(full_uri);
+	xlog(LOG_DEBUG, "URL: %s\n", req->uri);
 #endif
 
 	ssl_ctx->use_ssl = http_infos->is_ssl;
@@ -395,31 +421,4 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
 
 
 	return retcode;
-}
-
-
-/**
- *
- */
-char* get_request_full_uri(request_t* req)
-{
-	char* uri;
-	http_request_t* http_infos = &req->http_infos;
-	size_t len;
-
-	if (!req || !http_infos)
-			return NULL;
-
-	http_infos = &req->http_infos;
-	len = strlen("https://") + strlen(http_infos->hostname) + strlen(":") + strlen("65535");
-	len+= strlen(http_infos->uri);
-	uri = (char*)proxenet_xmalloc(len+1);
-
-	snprintf(uri, len, "%s://%s:%d%s",
-		 http_infos->is_ssl?"https":"http",
-		 http_infos->hostname,
-		 http_infos->port,
-		 http_infos->uri);
-
-	return uri;
 }

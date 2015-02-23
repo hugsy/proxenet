@@ -107,7 +107,7 @@ static char* proxenet_lua_execute_function(interpreter_t* interpreter, request_t
 	size_t len;
 	char *uri;
 
-	uri = get_request_full_uri(request);
+	uri = request->uri;
 	if (!uri)
 		return NULL;
 
@@ -122,7 +122,7 @@ static char* proxenet_lua_execute_function(interpreter_t* interpreter, request_t
 	lua_pushlstring(lua_interpreter, request->data, request->size);
 	lua_pushlstring(lua_interpreter, uri, strlen(uri));
 
-	proxenet_xfree(uri);
+	
 
 	lua_call(lua_interpreter, 3, 1);
 	lRet = lua_tolstring(lua_interpreter, -1, &len);

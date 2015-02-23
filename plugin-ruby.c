@@ -208,7 +208,7 @@ static char* proxenet_ruby_execute_function(interpreter_t* interpreter, ID rFunc
 
         struct proxenet_ruby_args args;
 
-	uri = get_request_full_uri(request);
+	uri = request->uri;
 	if (!uri)
 		return NULL;
 
@@ -251,7 +251,7 @@ static char* proxenet_ruby_execute_function(interpreter_t* interpreter, ID rFunc
 	request->size = buflen;
 
 call_end:
-	proxenet_xfree(uri);
+	
 	return data;
 }
 

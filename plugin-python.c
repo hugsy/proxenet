@@ -208,14 +208,14 @@ static char* proxenet_python_execute_function(PyObject* pFuncRef, request_t *req
 	char *buffer, *result;
 	int ret;
 	Py_ssize_t len;
-	char *uri = get_request_full_uri(request);
+	char *uri = request->uri;
 
 	result = buffer = NULL;
 	len = -1;
 
 	pArgs = Py_BuildValue(PYTHON_VALUE_FORMAT, request->id, request->data, request->size, uri);
 
-	proxenet_xfree(uri);
+	
 
 	if (!pArgs) {
 		xlog(LOG_ERROR, "%s\n", "Failed to build args");
