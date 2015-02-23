@@ -25,26 +25,16 @@
  */
 int proxenet_c_initialize_vm(plugin_t* plugin)
 {
-	size_t pathlen;
-	char *pathname;
 	void *interpreter;
 
-	pathlen = strlen(cfg->plugins_path) + 1 + strlen(plugin->filename) + 1;
-	pathname = alloca(pathlen + 1);
-	proxenet_xzero(pathname, pathlen+1);
-
-	if (snprintf(pathname, pathlen, "%s/%s", cfg->plugins_path, plugin->filename) < 0) {
-		xlog(LOG_CRITICAL,"%s\n", "Failed to get path");
-		return -1;
-	}
-
-	interpreter = dlopen(pathname, RTLD_NOW);
+	interpreter = dlopen(plugin->fullpath, RTLD_NOW);
 	if (!interpreter) {
-		xlog(LOG_CRITICAL,"[C] %s\n", dlerror());
+		xlog(LOG_ERROR, "Failed to dlopen('%s'): %s\n", plugin->fullpath, dlerror());
 		return -1;
 	}
 
 	plugin->interpreter = interpreter;
+        plugin->interpreter->ready = true;
 
 	return 0;
 }
@@ -56,24 +46,25 @@ int proxenet_c_initialize_vm(plugin_t* plugin)
 int proxenet_c_destroy_vm(plugin_t* plugin)
 {
 	void *interpreter;
+
+        if (!plugin->interpreter->ready){
+                xlog(LOG_ERROR, "%s\n", "Cannot destroy un-init dl link");
+                return -1;
+        }
+
 	interpreter = (void *) plugin->interpreter;
 
-	if (interpreter) {
-		plugin->pre_function  = NULL;
-		plugin->post_function = NULL;
+        plugin->pre_function  = NULL;
+        plugin->post_function = NULL;
 
-		if (dlclose(interpreter) < 0) {
-			xlog(LOG_ERROR, "[C] Failed to close interpreter for %s\n", plugin->name);
-			return -1;
-		}
+        if (dlclose(interpreter) < 0) {
+                xlog(LOG_ERROR, "Failed to dlclose() for '%s': %s\n", plugin->name, dlerror());
+                return -1;
+        }
 
-		interpreter = NULL;
-		return 0;
-
-	} else {
-		xlog(LOG_ERROR, "%s\n", "[C] Cannot destroy uninitialized interpreter");
-		return -1;
-	}
+        plugin->interpreter->ready = false;
+        plugin->interpreter = NULL;
+        return 0;
 }
 
 
@@ -124,21 +115,29 @@ int proxenet_c_initialize_function(plugin_t* plugin, req_t type)
 char* proxenet_c_plugin(plugin_t *plugin, request_t *request)
 {
 	char* (*plugin_function)(unsigned long, char*, char*);
-	char *bufres;
+	char *bufres, *uri;
 
-	bufres = NULL;
+	bufres = uri = NULL;
+
+        uri = get_request_full_uri(request);
+	if (!uri)
+		return NULL;
 
 	if (request->type == REQUEST)
 		plugin_function = plugin->pre_function;
 	else
 		plugin_function = plugin->post_function;
 
-	bufres = (*plugin_function)(request->id, request->data, request->http_infos.uri);
-	if(!bufres)
-		return NULL;
+	bufres = (*plugin_function)(request->id, request->data, uri);
+	if(!bufres){
+                request->size = -1;
+                goto end_exec_c_plugin;
+        }
 
 	request->size = strlen(bufres);
 
+end_exec_c_plugin:
+        proxenet_xfree(uri);
 	return bufres;
 }
 
