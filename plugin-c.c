@@ -45,22 +45,23 @@ int proxenet_c_initialize_vm(plugin_t* plugin)
  */
 int proxenet_c_destroy_vm(plugin_t* plugin)
 {
-	void *interpreter;
+        if(count_plugins_by_type(_C_) > 0) {
+                xlog(LOG_ERROR, "%s\n", "Some C plugins are still running");
+                return -1;
+        }
 
         if (!plugin->interpreter->ready){
                 xlog(LOG_ERROR, "%s\n", "Cannot destroy un-init dl link");
                 return -1;
         }
 
-	interpreter = (void *) plugin->interpreter;
-
-        plugin->pre_function  = NULL;
-        plugin->post_function = NULL;
-
-        if (dlclose(interpreter) < 0) {
+        if (dlclose((void*)plugin->interpreter) < 0) {
                 xlog(LOG_ERROR, "Failed to dlclose() for '%s': %s\n", plugin->name, dlerror());
                 return -1;
         }
+
+        plugin->pre_function  = NULL;
+        plugin->post_function = NULL;
 
         plugin->interpreter->ready = false;
         plugin->interpreter = NULL;
@@ -88,7 +89,9 @@ int proxenet_c_initialize_function(plugin_t* plugin, req_t type)
 		plugin->pre_function = dlsym(interpreter, CFG_REQUEST_PLUGIN_FUNCTION);
 		if (plugin->pre_function) {
 #ifdef DEBUG
-			xlog(LOG_DEBUG, "[C] Pre func is at %p\n", plugin->pre_function);
+			xlog(LOG_DEBUG, "[C] '%s' request_hook function is at %p\n",
+                             plugin->name,
+                             plugin->pre_function);
 #endif
 			return 0;
 		}
@@ -97,14 +100,20 @@ int proxenet_c_initialize_function(plugin_t* plugin, req_t type)
 		plugin->post_function = dlsym(interpreter, CFG_RESPONSE_PLUGIN_FUNCTION);
 		if (plugin->post_function) {
 #ifdef DEBUG
-			xlog(LOG_DEBUG, "[C] Post func is at %p\n", plugin->post_function);
+			xlog(LOG_DEBUG, "[C] '%s' response_hook function is at %p\n",
+                             plugin->name,
+                             plugin->post_function);
 #endif
 			return 0;
 		}
 
 	}
 
-	xlog(LOG_ERROR, "[C] dlsym failed: %s\n", dlerror());
+        xlog(LOG_ERROR, "[C] dlsym(%s) failed for '%s': %s\n",
+             (type==REQUEST)?"REQUEST":"RESPONSE",
+             plugin->name,
+             dlerror());
+
 	return -1;
 }
 
