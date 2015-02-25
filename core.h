@@ -33,7 +33,7 @@ typedef struct thread_info {
 		plugin_t** plugin_list;
 } tinfo_t;
 
-unsigned int	request_id;
+unsigned long	request_id;
 proxenet_state 	proxy_state;
 unsigned long 	active_threads_bitmask;
 plugin_t 	*plugins_list;  /* points to first plugin */

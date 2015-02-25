@@ -148,7 +148,7 @@ void info_cmd(sock_t fd, char *options, unsigned int nb_options)
                      "- Proxy: %s [%s]\n"
                      "- Plugins directory: %s\n"
                      "- Autoloading plugins directory: %s\n"
-                     "- Number of requests treated: %u\n"
+                     "- Number of requests treated: %lu\n"
                      ,
                      cfg->iface, cfg->port,
                      (cfg->ip_version==AF_INET)? "IPv4": (cfg->ip_version==AF_INET6)?"IPv6": "ANY",

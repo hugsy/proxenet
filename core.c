@@ -68,9 +68,9 @@ static pthread_mutex_t request_id_mutex;
  *
  * @return the new request id
  */
-static unsigned int get_new_request_id()
+static unsigned long get_new_request_id()
 {
-        unsigned int rid;
+        unsigned long rid;
 
         pthread_mutex_lock(&request_id_mutex);
         rid = request_id;
