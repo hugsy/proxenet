@@ -115,7 +115,7 @@ typedef struct _http_request_fields
                 bool do_intercept;
                 char* hostname;
                 unsigned short port;
-                char* uri;
+                char* path;
                 char* version;
 } http_request_t ;
 

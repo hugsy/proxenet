@@ -506,6 +506,9 @@ static int proxenet_apply_plugins(request_t *request)
 /**
  * This function is called by all threads to treat to process the request and response.
  * It will also apply the plugins.
+ *
+ * @param server_socket is the socket received by the main thread from the web browser (acting like server
+ * to web browser)
  */
 void proxenet_process_http_request(sock_t server_socket)
 {
@@ -655,7 +658,6 @@ void proxenet_process_http_request(sock_t server_socket)
                                         if (is_ssl) {
                                                 if (set_https_infos(&req) < 0) {
                                                         xlog(LOG_ERROR, "Failed to parse CONNECT header of request %d\n", req.id);
-                                                        req.id = 0;
                                                         proxenet_xfree(req.data);
                                                         client_socket = -1;
                                                         break;
@@ -663,7 +665,6 @@ void proxenet_process_http_request(sock_t server_socket)
                                         } else {
                                                 /* this is a new connection, validate the headers content */
                                                 if (!is_valid_http_request(&req.data, &req.size)) {
-                                                        req.id = 0;
                                                         proxenet_xfree(req.data);
                                                         client_socket = -1;
                                                         break;
@@ -682,7 +683,8 @@ void proxenet_process_http_request(sock_t server_socket)
 
 
                         if (cfg->verbose) {
-                                xlog(LOG_INFO, "New request to '%s:%d'\n",
+                                xlog(LOG_INFO, "New %s request to '%s:%d'\n",
+                                     is_ssl?"SSL":"plain",
                                      req.http_infos.hostname,
                                      req.http_infos.port);
 
@@ -692,7 +694,7 @@ void proxenet_process_http_request(sock_t server_socket)
                                              req.http_infos.proto,
                                              req.http_infos.hostname,
                                              req.http_infos.port,
-                                             req.http_infos.uri,
+                                             req.http_infos.path,
                                              req.http_infos.version);
 
                         }
@@ -704,7 +706,6 @@ void proxenet_process_http_request(sock_t server_socket)
                         /* hook request with all plugins in plugins_list  */
                         if ( proxenet_apply_plugins(&req) < 0) {
                                 /* extremist action: any error on any plugin discard the whole request */
-                                req.id = 0;
                                 proxenet_xfree( req.data );
                                 break;
                         }
@@ -725,11 +726,10 @@ void proxenet_process_http_request(sock_t server_socket)
                         }
 
                         proxenet_xfree(req.data);
+                        req.size = 0;
 
                         if (retcode < 0) {
                                 xlog(LOG_ERROR, "[%d] %s\n", req.id, "Failed to write to server");
-                                if (req.id)
-                                        req.id = 0;
                                 break;
                         }
 
@@ -789,7 +789,6 @@ void proxenet_process_http_request(sock_t server_socket)
                         /* execute response hooks */
                         if ( proxenet_apply_plugins(&req) < 0) {
                                 /* extremist action: any error on any plugin discard the whole request */
-                                req.id = 0;
                                 proxenet_xfree(req.data);
                                 break;
                         }
@@ -829,7 +828,7 @@ void proxenet_process_http_request(sock_t server_socket)
 #endif
                 proxenet_xfree(req.http_infos.method);
                 proxenet_xfree(req.http_infos.hostname);
-                proxenet_xfree(req.http_infos.uri);
+                proxenet_xfree(req.http_infos.path);
                 proxenet_xfree(req.http_infos.version);
                 proxenet_xfree(req.uri);
         }
@@ -837,12 +836,12 @@ void proxenet_process_http_request(sock_t server_socket)
         /* close client socket */
         if (client_socket > 0) {
 #ifdef DEBUG
-                xlog(LOG_DEBUG, "Closing proxy->server socket #%d\n", client_socket);
+                xlog(LOG_DEBUG, "Closing %s->server socket #%d\n", PROGNAME, client_socket);
 #endif
+
                 if (ssl_context.client.is_valid) {
                         proxenet_ssl_finish(&(ssl_context.client), false);
                         close_socket_ssl(client_socket, &ssl_context.client.context);
-
                 } else {
                         close_socket(client_socket);
                 }
@@ -852,12 +851,11 @@ void proxenet_process_http_request(sock_t server_socket)
         /* close local socket */
         if (server_socket > 0) {
 #ifdef DEBUG
-                xlog(LOG_DEBUG, "Closing browser->proxy socket #%d\n", server_socket);
+                xlog(LOG_DEBUG, "Closing browser->%s socket #%d\n", PROGNAME, server_socket);
 #endif
                 if (ssl_context.server.is_valid) {
                         proxenet_ssl_finish(&(ssl_context.server), true);
                         close_socket_ssl(server_socket, &ssl_context.server.context);
-
                 } else {
                         close_socket(server_socket);
                 }
@@ -895,7 +893,10 @@ static void* process_thread_job(void* arg)
 
 
 /**
+ * Checks active threads bitmask to determine if a thread is alive.
  *
+ * @param idx is the index of the thread to look up for
+ * @return true if this thread still alive
  */
 bool is_thread_active(int idx)
 {
@@ -904,7 +905,7 @@ bool is_thread_active(int idx)
 
 
 /**
- *
+ * Returns the number of threads alive.
  */
 unsigned int get_active_threads_size()
 {
@@ -1020,8 +1021,9 @@ static void kill_zombies()
  */
 int proxenet_initialize_plugins_list()
 {
+        /* NULL as 2nd arg means to try to add all valid plugins from the path */
         if(proxenet_add_new_plugins(cfg->autoload_path, NULL) < 0) {
-                xlog(LOG_ERROR, "%s\n", "Failed to build plugins list, leaving");
+                xlog(LOG_CRITICAL, "%s\n", "Failed to build plugins list, leaving");
                 return -1;
         }
 
@@ -1038,7 +1040,9 @@ int proxenet_initialize_plugins_list()
 
 
 /**
+ * Returns the next valid index for a new thread
  *
+ * @return the index of the available thread in the bitmask, -1 if no available
  */
 int get_new_thread_id()
 {
@@ -1050,7 +1054,14 @@ int get_new_thread_id()
 
 
 /**
- *
+ * This function is the main loop for the main thread. It does the following:
+ * - prepares the structures, setup the signal handlers and changes the state
+ *   of proxenet to active
+ * - starts the big loop
+ *   - listen and accept new connection
+ *   - allocate a new thread id if possible
+ *   - and starts the new thread with the new fd
+ * - listens for incoming events on the control socket
  */
 void xloop(sock_t sock, sock_t ctl_sock)
 {
@@ -1266,7 +1277,16 @@ void initialize_sigmask(struct sigaction *saction)
 
 
 /**
+ * This function is called right after the configuration was parsed.
+ * It simply:
+ * - creates the main listening sockets (control and proxy)
+ * - initialize the signal mask
+ * - initialize all the VMs
+ * - fill the plugin list with the valid plugins located in the autoload path
+ * - then call the main thread loop
+ * - once finished, it also cleans the structures
  *
+ * @return 0 if everything went well, -1 otherwise with an error message
  */
 int proxenet_start()
 {
@@ -1306,10 +1326,14 @@ int proxenet_start()
         if( proxenet_initialize_plugins_list() < 0 )
                 return -1;
 
-        proxenet_initialize_plugins(); // call *MUST* succeed or abort()
+        /* this call *MUST* succeed or die */
+        proxenet_initialize_plugins();
 
         /* setting request counter  */
         request_id = 0;
+
+        /* we "artificially" allocate an ID 0 so that all new requests will be > 0 */
+        /* for the child threads, a request id of 0 means not allocated */
         get_new_request_id();
 
         /* prepare threads and start looping */

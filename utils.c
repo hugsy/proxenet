@@ -211,7 +211,7 @@ bool is_valid_plugin_path(char* plugin_path, char** plugins_path_ptr, char** aut
         /* check the plugins path */
         *plugins_path_ptr = realpath(plugin_path, NULL);
 	if (*plugins_path_ptr == NULL){
-		xlog(LOG_CRITICAL, "realpath('%s') failed: %s\n", plugins_path, strerror(errno));
+		xlog(LOG_CRITICAL, "realpath('%s') failed: %s\n", plugin_path, strerror(errno));
 		return false;
 	}
 

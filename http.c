@@ -39,11 +39,15 @@ static void generic_http_error_page(sock_t sock, char* msg)
 
 
 /**
+ * This function extracts all the HTTP request elements from the 1st line of the request
  *
- * request MUST be like
+ * Request format MUST adhere to RFC2616 and be like
  * METHOD proto://hostname[:port][/location][?param=value....] HTTP/X.Y\r\n
- * cf. RFC2616
  *
+ * This function handles all allocations (and frees in case of failures) of the
+ * proxenet HTTP structures.
+ *
+ * @return true if no error was encountered, -1 otherwise.
  */
 static bool get_url_information(char* request, http_request_t* http)
 {
@@ -124,13 +128,13 @@ static bool get_url_information(char* request, http_request_t* http)
 	/* get path (no need to parse) */
 	str_len = end_pos - cur_pos;
 	if (str_len > 0)
-		http->uri = (char*)proxenet_xstrdup(cur_pos, str_len);
+		http->path = (char*)proxenet_xstrdup(cur_pos, str_len);
 	else
-		http->uri = (char*)proxenet_xstrdup2("/");
+		http->path = (char*)proxenet_xstrdup2("/");
 
-        if (!http->uri) {
+        if (!http->path) {
                 xlog(LOG_ERROR, "%s\n", "Failed to get path");
-                goto failed_uri;
+                goto failed_path;
         }
 
 
@@ -151,9 +155,9 @@ static bool get_url_information(char* request, http_request_t* http)
 	return true;
 
 failed_version:
-        proxenet_xfree(http->uri);
+        proxenet_xfree(http->path);
 
-failed_uri:
+failed_path:
         proxenet_xfree(http->hostname);
 
 failed_hostname:
@@ -242,8 +246,8 @@ int set_https_infos(request_t *req) {
                 return -1;
 	c = *ptr;
 	*ptr = '\0';
-	proxenet_xfree(req->http_infos.uri);
-	req->http_infos.uri = strdup(buf);
+	proxenet_xfree(req->http_infos.path);
+	req->http_infos.path = strdup(buf);
 	*ptr = c;
 
 	buf = ptr+1;
@@ -257,11 +261,6 @@ int set_https_infos(request_t *req) {
 	*ptr = '\0';
 	req->http_infos.version = strdup(buf);
 	*ptr = c;
-
-#ifdef DEBUG
-        xlog(LOG_DEBUG, "request %d method='%s' path='%s' version='%s'\n",
-             req->id, req->http_infos.method, req->http_infos.uri, req->http_infos.version);
-#endif
 
         return 0;
 }
@@ -277,18 +276,18 @@ static char* get_request_full_uri(request_t* req)
 	size_t len;
 
 	if (!req || !http_infos)
-			return NULL;
+                return NULL;
 
 	http_infos = &req->http_infos;
-	len = strlen("https://") + strlen(http_infos->hostname) + strlen(":") + strlen("65535");
-	len+= strlen(http_infos->uri);
+	len = sizeof("https://") + strlen(http_infos->hostname) + sizeof(":") + sizeof("65535");
+	len+= strlen(http_infos->path);
 	uri = (char*)proxenet_xmalloc(len+1);
 
 	snprintf(uri, len, "%s://%s:%d%s",
 		 http_infos->is_ssl?"https":"http",
 		 http_infos->hostname,
 		 http_infos->port,
-		 http_infos->uri);
+		 http_infos->path);
 
 	return uri;
 }
