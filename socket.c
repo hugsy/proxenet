@@ -303,9 +303,7 @@ int proxenet_read_all(sock_t sock, char** ptr, proxenet_ssl_context_t* ssl)
 			continue;
 		}
 
-		if (ret > 0) {
-			data[total_bytes_read] = '\0';
-		}
+                data[total_bytes_read] = '\0';
 
 		break;
 	}
@@ -315,10 +313,7 @@ int proxenet_read_all(sock_t sock, char** ptr, proxenet_ssl_context_t* ssl)
 		return 0;
 	}
 
-	*ptr = (char*)proxenet_xrealloc(data, total_bytes_read);
-#ifdef DEBUG
-	xlog(LOG_DEBUG, "Adjusting read buffer to %d -> %d bytes\n", malloced_size, total_bytes_read);
-#endif
+	*ptr = data;
 
 	return total_bytes_read;
 }

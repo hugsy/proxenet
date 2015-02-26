@@ -43,94 +43,123 @@ static void generic_http_error_page(sock_t sock, char* msg)
  * request MUST be like
  * METHOD proto://hostname[:port][/location][?param=value....] HTTP/X.Y\r\n
  * cf. RFC2616
+ *
  */
 static bool get_url_information(char* request, http_request_t* http)
 {
 	char *start_pos, *cur_pos, *end_pos;
 	unsigned int str_len;
+        unsigned short port;
 
 	cur_pos = NULL;
 
 
-	/* find method */
-	start_pos = strchr(request, ' ');
+        /* find method */
+        start_pos = strchr(request, ' ');
 	if (start_pos == NULL) {
 		xlog(LOG_ERROR, "%s\n", "Malformed HTTP Header");
 		return false;
 	}
 
 	end_pos = strchr(start_pos+1, ' ');
-	if (end_pos==NULL) {
+	if (end_pos == NULL) {
 		xlog(LOG_ERROR, "%s\n", "Malformed HTTP Header");
 		return false;
 	}
 
-
 	str_len = start_pos - request ;
-	http->method = (char*)proxenet_xmalloc(str_len +1);
-	memcpy(http->method, request, str_len);
+        http->method = (char*)proxenet_xstrdup(request, str_len);
+        if(!http->method)
+                return false;
 
 	++start_pos;
 
-	/* get proto */
+	/* get protocol */
 	if (!strncmp(start_pos,"http://", 7)) {
 		http->proto = "http";
-		http->port = 80;
+		http->port = HTTP_DEFAULT_PORT;
 		start_pos += 7;
 
 	} else if (!strncmp(start_pos,"https://", 8)) {
 		http->proto = "https";
-		http->port = 443;
+		http->port = HTTPS_DEFAULT_PORT;
 		http->is_ssl = true;
 		start_pos += 8;
 
 	} else if (!strcmp(http->method, "CONNECT")) {
 		http->proto = "https";
-		http->port = 443;
+		http->port = HTTPS_DEFAULT_PORT;
 		http->is_ssl = true;
 
 	} else {
-		xlog(LOG_ERROR, "%s\n", "Malformed HTTP/HTTPS URL, unknown proto");
-		xlog(LOG_DEBUG, "%s\n", request);
-		proxenet_xfree(http->method);
-		return false;
+		xlog(LOG_ERROR, "%s\n", "Malformed HTTP/HTTPS URL, unknown protocol");
+#ifdef DEBUG
+                if (cfg->verbose > 2)
+                        xlog(LOG_DEBUG, "%s\n", request);
+#endif
+		goto failed_hostname;
 	}
 
 	cur_pos = start_pos;
 
+
 	/* get hostname */
 	for(; *cur_pos && *cur_pos!=':' && *cur_pos!='/' && cur_pos<end_pos; cur_pos++);
 	str_len = cur_pos - start_pos;
-	http->hostname = (char*)proxenet_xmalloc(str_len+1);
-	memcpy(http->hostname, start_pos, str_len);
+	http->hostname = (char*)proxenet_xstrdup(start_pos, str_len);
+        if (!http->hostname){
+                xlog(LOG_ERROR, "%s\n", "Failed to get hostname");
+                goto failed_hostname;
+        }
 
 	/* get port if set explicitly (i.e ':<port_num>'), otherwise default */
 	if(*cur_pos == ':') {
 		cur_pos++;
-		http->port = (unsigned short)atoi(cur_pos);
+		port = (unsigned short)atoi(cur_pos);
+                if(port)
+                        http->port = port;
 		for(;*cur_pos!='/' && cur_pos<end_pos;cur_pos++);
 	}
 
-	/* get uri (no need to parse) */
+	/* get path (no need to parse) */
 	str_len = end_pos - cur_pos;
-	if (str_len > 0) {
-		http->uri = (char*) proxenet_xmalloc(str_len+1);
-		memcpy(http->uri, cur_pos, str_len);
-	} else {
-		http->uri = (char*) proxenet_xmalloc(2);
-		*(http->uri) = '/';
-	}
+	if (str_len > 0)
+		http->uri = (char*)proxenet_xstrdup(cur_pos, str_len);
+	else
+		http->uri = (char*)proxenet_xstrdup2("/");
+
+        if (!http->uri) {
+                xlog(LOG_ERROR, "%s\n", "Failed to get path");
+                goto failed_uri;
+        }
+
 
 	/* get version */
 	cur_pos+= str_len + 1;
 	end_pos = strchr(cur_pos, '\r');
-	if (!end_pos)
-		return false;
+	if (!end_pos){
+		goto failed_version;
+        }
 	str_len = end_pos - cur_pos;
-	http->version = (char*) proxenet_xmalloc(str_len+1);
-	memcpy(http->version, cur_pos, str_len);
+
+        http->version = (char*) proxenet_xstrdup(cur_pos, str_len);
+        if (!http->version){
+                xlog(LOG_ERROR, "%s\n", "Failed to get HTTP version");
+                goto failed_version;
+        }
 
 	return true;
+
+failed_version:
+        proxenet_xfree(http->uri);
+
+failed_uri:
+        proxenet_xfree(http->hostname);
+
+failed_hostname:
+        proxenet_xfree(http->method);
+
+        return false;
 }
 
 

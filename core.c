@@ -698,7 +698,7 @@ void proxenet_process_http_request(sock_t server_socket)
                         }
 
 #ifdef DEBUG
-                        xlog(LOG_DEBUG, "Request %d pre-plugins:  buflen:%lu - \n",
+                        xlog(LOG_DEBUG, "Request %d pre-plugins: buflen:%lu\n",
                              req.id, req.size);
 #endif
                         /* hook request with all plugins in plugins_list  */
@@ -709,7 +709,7 @@ void proxenet_process_http_request(sock_t server_socket)
                                 break;
                         }
 #ifdef DEBUG
-                        xlog(LOG_DEBUG, "Request %d post-plugins:  buflen:%lu - \n",
+                        xlog(LOG_DEBUG, "Request %d post-plugins: buflen:%lu\n",
                              req.id, req.size);
 
                         if(cfg->verbose > 2)
@@ -783,7 +783,7 @@ void proxenet_process_http_request(sock_t server_socket)
                         }
 
 #ifdef DEBUG
-                        xlog(LOG_DEBUG, "Reponse %d pre-plugins:  buflen:%lu - \n",
+                        xlog(LOG_DEBUG, "Response %d pre-plugins: buflen:%lu\n",
                              req.id, req.size);
 #endif
                         /* execute response hooks */
@@ -794,7 +794,7 @@ void proxenet_process_http_request(sock_t server_socket)
                                 break;
                         }
 #ifdef DEBUG
-                        xlog(LOG_DEBUG, "Response %d post-plugins:  buflen:%lu - \n",
+                        xlog(LOG_DEBUG, "Response %d post-plugins: buflen:%lu\n",
                              req.id, req.size);
 
                         if(cfg->verbose > 2)

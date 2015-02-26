@@ -9,6 +9,8 @@
 #define MAX_HEADER_SIZE 128
 #define HTTP_REQUEST_INIT_SIZE 1024
 #define HTTP_RESPONSE_INIT_SIZE 1024
+#define HTTP_DEFAULT_PORT 80
+#define HTTPS_DEFAULT_PORT 443
 
 
 int      create_http_socket(request_t*, sock_t*, sock_t*, ssl_context_t*);

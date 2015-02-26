@@ -78,6 +78,8 @@ void _xlog(int type, const char* fmt, ...)
 /**
  * malloc(3) wrapper. Checks size and zero-fill buffer.
  *
+ * Note: (re-)allocation is a "success-or-die" process in proxenet.
+ *
  * @param size: buffer size to allocate on heap
  * @return ptr: allocated zero-filled buffer pointer
  */
@@ -102,14 +104,14 @@ void* proxenet_xmalloc(size_t size)
 
 
 /**
- * Free allocated blocks
+ * Free allocated blocks.
  *
  * @param ptr: pointer to zone to free
  */
 void proxenet_xfree(void* ptr)
 {
 	if(ptr == NULL) {
-		xlog(LOG_CRITICAL, "%s\n", "Trying to free null pointer");
+		xlog(LOG_CRITICAL, "Trying to free NULL pointer at %p\n", ptr);
 		abort();
 	}
 
@@ -152,8 +154,8 @@ void* proxenet_xrealloc(void* oldptr, size_t new_size)
  */
 void proxenet_xzero(void* buf, size_t buflen)
 {
-	if (!buflen) {
-		xlog(LOG_CRITICAL, "%s\n", "trying to zero-ify NULL pointer");
+	if (!buf) {
+		xlog(LOG_CRITICAL, "Trying to zero-ify NULL pointer %p\n", buf);
 		abort();
 	}
 
@@ -173,7 +175,7 @@ char* proxenet_xstrdup(const char *data, size_t len)
 
 	s = proxenet_xmalloc(len+1);
 	if (!memcpy(s, data, len)) {
-		xlog(LOG_ERROR, "Failed to strdup(): %s\n", strerror(errno));
+		xlog(LOG_CRITICAL, "proxenet_xstrdup() failed in memcpy: %s\n", strerror(errno));
 		proxenet_xfree(s);
 		return NULL;
 	}
@@ -209,7 +211,7 @@ bool is_valid_plugin_path(char* plugin_path, char** plugins_path_ptr, char** aut
         /* check the plugins path */
         *plugins_path_ptr = realpath(plugin_path, NULL);
 	if (*plugins_path_ptr == NULL){
-		xlog(LOG_CRITICAL, "realpath(plugins_path) failed: %s\n", strerror(errno));
+		xlog(LOG_CRITICAL, "realpath('%s') failed: %s\n", plugins_path, strerror(errno));
 		return false;
 	}
 
@@ -219,7 +221,7 @@ bool is_valid_plugin_path(char* plugin_path, char** plugins_path_ptr, char** aut
 
         *autoload_path_ptr = realpath(autoload_path, NULL);
 	if (*autoload_path_ptr == NULL){
-		xlog(LOG_CRITICAL, "realpath(autoload_path) failed: %s\n", strerror(errno));
+		xlog(LOG_CRITICAL, "realpath('%s') failed: %s\n", autoload_path, strerror(errno));
                 proxenet_xfree(*plugins_path_ptr);
                 *plugins_path_ptr = NULL;
 		return false;
