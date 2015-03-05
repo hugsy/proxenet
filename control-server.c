@@ -339,13 +339,12 @@ void plugin_cmd(sock_t fd, char *options, unsigned int nb_options)
         if (strcmp(ptr, "load") == 0) {
                 ptr = strtok(NULL, " \n");
                 if (!ptr){
-                        n = sprintf(msg, "Missing plugin name\n");
-                        proxenet_write(fd, (void*)msg, n);
+                        proxenet_write(fd, (void*)"Missing plugin name\n", 20);
                         return;
                 }
 
-                if ( (plugin_name=strdup(ptr)) == NULL ){
-                        n = sprintf(msg, "strdup failed: %s\n", strerror(errno));
+                if ( (plugin_name=proxenet_xstrdup2(ptr)) == NULL ){
+                        n = sprintf(msg, "proxenet_xstrdup2() failed: %s\n", strerror(errno));
                         proxenet_write(fd, (void*)msg, n);
                         return;
                 }

@@ -14,7 +14,7 @@
 
 
 int      create_http_socket(request_t*, sock_t*, sock_t*, ssl_context_t*);
-bool     is_valid_http_request(char**, size_t*);
-int      set_https_infos(request_t*);
+int      update_http_request(char**, size_t*);
+int      update_https_infos(request_t*);
 
 #endif /* _HTTP_H */

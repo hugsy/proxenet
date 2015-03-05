@@ -31,17 +31,17 @@ void _xlog(int type, const char* fmt, ...)
 
 	switch (type) {
 		case LOG_CRITICAL:
-			if (cfg->use_color) fprintf(cfg->logfile_fd, RED);
+			if (cfg->use_color) fprintf(cfg->logfile_fd, DARK);
 			fprintf(cfg->logfile_fd, "CRITICAL: ");
 			break;
 
 		case LOG_ERROR:
-			if (cfg->use_color) fprintf(cfg->logfile_fd, MAGENTA);
+			if (cfg->use_color) fprintf(cfg->logfile_fd, RED);
 			fprintf(cfg->logfile_fd, "ERROR: ");
 			break;
 
 		case LOG_WARNING:
-			if (cfg->use_color) fprintf(cfg->logfile_fd, CYAN);
+			if (cfg->use_color) fprintf(cfg->logfile_fd, YELLOW);
 			fprintf(cfg->logfile_fd, "WARNING: ");
 			break;
 

@@ -39,6 +39,33 @@ static void generic_http_error_page(sock_t sock, char* msg)
 
 
 /**
+ *
+ */
+static char* get_request_full_uri(request_t* req)
+{
+	char* uri;
+	http_request_t* http_infos = &req->http_infos;
+	size_t len;
+
+	if (!req || !http_infos)
+                return NULL;
+
+	http_infos = &req->http_infos;
+	len = sizeof("https://") + strlen(http_infos->hostname) + sizeof(":") + sizeof("65535");
+	len+= strlen(http_infos->path);
+	uri = (char*)proxenet_xmalloc(len+1);
+
+	snprintf(uri, len, "%s://%s:%d%s",
+		 http_infos->is_ssl?"https":"http",
+		 http_infos->hostname,
+		 http_infos->port,
+		 http_infos->path);
+
+	return uri;
+}
+
+
+/**
  * This function extracts all the HTTP request elements from the 1st line of the request
  *
  * Request format MUST adhere to RFC2616 and be like
@@ -47,7 +74,7 @@ static void generic_http_error_page(sock_t sock, char* msg)
  * This function handles all allocations (and frees in case of failures) of the
  * proxenet HTTP structures.
  *
- * @return true if no error was encountered, -1 otherwise.
+ * @return true if no error was encountered, false otherwise.
  */
 static bool get_url_information(char* request, http_request_t* http)
 {
@@ -61,13 +88,13 @@ static bool get_url_information(char* request, http_request_t* http)
         /* find method */
         start_pos = strchr(request, ' ');
 	if (start_pos == NULL) {
-		xlog(LOG_ERROR, "%s\n", "Malformed HTTP Header");
+		xlog(LOG_ERROR, "strchr(1): %s\n", "Malformed HTTP Header");
 		return false;
 	}
 
 	end_pos = strchr(start_pos+1, ' ');
 	if (end_pos == NULL) {
-		xlog(LOG_ERROR, "%s\n", "Malformed HTTP Header");
+		xlog(LOG_ERROR, "strchr(2): %s\n", "Malformed HTTP Header");
 		return false;
 	}
 
@@ -168,9 +195,11 @@ failed_hostname:
 
 
 /**
+ * Modifies the HTTP request to strip out the protocol and hostname
  *
+ * @return 0 if no error was encountered, -1 otherwise.
  */
-bool is_valid_http_request(char** request, size_t* request_len)
+int update_http_request(char** request, size_t* request_len)
 {
 	size_t new_request_len = -1;
 	char *old_ptr, *new_ptr;
@@ -190,13 +219,13 @@ bool is_valid_http_request(char** request, size_t* request_len)
 
 	if (offlen < 0) {
 		xlog(LOG_ERROR, "Cannot find protocol (http|https) in request:\n%s\n", *request);
-		return false;
+		return -1;
 	}
 
 	new_ptr = strchr(old_ptr + offlen, '/');
 	if (!new_ptr) {
 		xlog(LOG_ERROR, "%s\n", "Cannot find path (must not be implicit)");
-		return false;
+		return -1;
 	}
 
 	new_request_len = *request_len - (new_ptr-old_ptr);
@@ -212,42 +241,49 @@ bool is_valid_http_request(char** request, size_t* request_len)
 	*request = proxenet_xrealloc(*request, new_request_len);
 	*request_len = new_request_len;
 
-	return true;
+	return 0;
 }
 
 
 /**
- * read first HTTP header from request and parse it to fill the request struct
+ * This function is called when a first HTTP request is made *AFTER* SSL interception has
+ * been established. It updates all the fields of the current request_t with the new values
+ * from the request.
  *
- * @return 0 if successful, -1 if any error occurs
+ * @return 0 if successful, -1 if any error occurs.
  */
-int set_https_infos(request_t *req) {
-	char *ptr, *buf;
-	char c;
+int update_https_infos(request_t *req)
+{
+	char *ptr, *buf, c;
 
 	buf = req->data;
 
 	/* method  */
 	ptr = strchr(buf, ' ');
-	if (!ptr)
+	if (!ptr){
+                xlog(LOG_ERROR, "Cannot find HTTPs method in request %d\n", req->id);
                 return -1;
+        }
 
 	c = *ptr;
 	*ptr = '\0';
 	proxenet_xfree(req->http_infos.method);
-	req->http_infos.method = strdup(buf);
+	req->http_infos.method = proxenet_xstrdup2(buf);
 	*ptr = c;
 
 	buf = ptr+1;
 
 	/* path */
 	ptr = strchr(buf, ' ');
-	if (!ptr)
+	if (!ptr){
+                xlog(LOG_ERROR, "Cannot find HTTPs method in request %d\n", req->id);
                 return -1;
+        }
+
 	c = *ptr;
 	*ptr = '\0';
 	proxenet_xfree(req->http_infos.path);
-	req->http_infos.path = strdup(buf);
+	req->http_infos.path = proxenet_xstrdup2(buf);
 	*ptr = c;
 
 	buf = ptr+1;
@@ -259,37 +295,15 @@ int set_https_infos(request_t *req) {
 
 	c = *ptr;
 	*ptr = '\0';
-	req->http_infos.version = strdup(buf);
+	req->http_infos.version = proxenet_xstrdup2(buf);
 	*ptr = c;
 
+
+        /* refresh uri */
+        proxenet_xfree(req->uri);
+        req->uri = get_request_full_uri(req);
+
         return 0;
-}
-
-
-/**
- *
- */
-static char* get_request_full_uri(request_t* req)
-{
-	char* uri;
-	http_request_t* http_infos = &req->http_infos;
-	size_t len;
-
-	if (!req || !http_infos)
-                return NULL;
-
-	http_infos = &req->http_infos;
-	len = sizeof("https://") + strlen(http_infos->hostname) + sizeof(":") + sizeof("65535");
-	len+= strlen(http_infos->path);
-	uri = (char*)proxenet_xmalloc(len+1);
-
-	snprintf(uri, len, "%s://%s:%d%s",
-		 http_infos->is_ssl?"https":"http",
-		 http_infos->hostname,
-		 http_infos->port,
-		 http_infos->path);
-
-	return uri;
 }
 
 

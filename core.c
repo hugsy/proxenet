@@ -654,21 +654,19 @@ void proxenet_process_http_request(sock_t server_socket)
                         if (!cfg->proxy.host) {
 
                                 if (is_new_http_connection) {
-                                        /* check if request is valid  */
+                                        /* check if http/https request is valid  */
                                         if (is_ssl) {
-                                                if (set_https_infos(&req) < 0) {
-                                                        xlog(LOG_ERROR, "Failed to parse CONNECT header of request %d\n", req.id);
-                                                        proxenet_xfree(req.data);
-                                                        client_socket = -1;
-                                                        break;
-                                                }
+                                                retcode = update_https_infos(&req);
                                         } else {
-                                                /* this is a new connection, validate the headers content */
-                                                if (!is_valid_http_request(&req.data, &req.size)) {
-                                                        proxenet_xfree(req.data);
-                                                        client_socket = -1;
-                                                        break;
-                                                }
+                                                retcode = update_http_request(&req.data, &req.size);
+                                        }
+
+                                        if (retcode<0){
+                                                xlog(LOG_ERROR, "Failed to update %s information in request %d\n",
+                                                     is_ssl?"HTTPS":"HTTP", req.id);
+                                                proxenet_xfree(req.data);
+                                                client_socket = -1;
+                                                break;
                                         }
                                 }
 #ifdef DEBUG
@@ -888,7 +886,7 @@ static void* process_thread_job(void* arg)
                 xlog(LOG_ERROR, "Sending SIGCHLD failed: %s\n", strerror(errno));
         }
 
-        pthread_exit(NULL);
+        pthread_exit(0);
 }
 
 
@@ -938,28 +936,38 @@ static int proxenet_start_new_thread(sock_t conn, int tnum, pthread_t* thread, p
 
 
 /**
- *
+ * This function is a simple heartbeat for proxenet threads (childs only). It is
+ * based on pthread_kill(), probing for ESRCH return value to check if a thread has
+ * ended and clean the bitmask accordingly.
  */
 static void purge_zombies()
 {
-        /* simple threads heartbeat based on pthread_kill response */
+        /* */
         int i, retcode;
+        void* retval;
 
         for (i=0; i < cfg->nb_threads; i++) {
                 if (!is_thread_active(i)) continue;
 
                 retcode = pthread_kill(threads[i], 0);
                 if (retcode == ESRCH) {
-                        retcode = pthread_join(threads[i], NULL);
-                        if (retcode) {
-                                xlog(LOG_ERROR, "xloop: failed to join Thread-%d: %s\n",
-                                     i, strerror(errno));
-                        } else {
+                        retcode = pthread_join(threads[i], &retval);
+                        switch(retcode){
+                                case EDEADLK:
+                                case EINVAL:
+                                        xlog(LOG_ERROR, "purge_zombies() joining thread-%d produced error %d\n", i, retcode);
+                                        break;
+
+                                case ESRCH:
+                                        xlog(LOG_WARNING, "purge_zombies() could not find thread-%d\n", i);
+
+                                default:
 #ifdef DEBUG
-                                xlog(LOG_DEBUG, "Thread-%d finished\n", i);
+                                        xlog(LOG_DEBUG, "Thread-%d has finished\n", i);
 #endif
-                                /* mark thread as inactive */
-                                active_threads_bitmask &= (unsigned long long)~(1<<i);
+                                        active_threads_bitmask &= (unsigned long long)~(1<<i);
+
+
                         }
                 }
         }
