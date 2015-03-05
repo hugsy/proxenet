@@ -276,7 +276,7 @@ int update_https_infos(request_t *req)
 	/* path */
 	ptr = strchr(buf, ' ');
 	if (!ptr){
-                xlog(LOG_ERROR, "Cannot find HTTPs method in request %d\n", req->id);
+                xlog(LOG_ERROR, "Cannot find HTTPs path in request %d\n", req->id);
                 return -1;
         }
 
@@ -290,11 +290,14 @@ int update_https_infos(request_t *req)
 
 	/* version */
 	ptr = strchr(req->data, '\r');
-	if (!ptr)
+	if (!ptr){
+                xlog(LOG_ERROR, "Cannot find HTTPs version in request %d\n", req->id);
                 return -1;
+        }
 
 	c = *ptr;
 	*ptr = '\0';
+        proxenet_xfree(req->http_infos.version);
 	req->http_infos.version = proxenet_xstrdup2(buf);
 	*ptr = c;
 
