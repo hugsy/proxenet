@@ -687,13 +687,10 @@ void proxenet_process_http_request(sock_t server_socket)
                                      req.http_infos.port);
 
                                 if (cfg->verbose > 1)
-                                        xlog(LOG_INFO, "%s %s://%s:%d%s %s\n",
-                                             req.http_infos.method,
-                                             req.http_infos.proto,
-                                             req.http_infos.hostname,
-                                             req.http_infos.port,
-                                             req.http_infos.path,
-                                             req.http_infos.version);
+                                        xlog(LOG_INFO, "%s %s %s\n",
+					     req.http_infos.method,
+					     req.uri,
+					     req.http_infos.version);
 
                         }
 
@@ -979,43 +976,15 @@ static void purge_zombies()
  */
 static void kill_zombies()
 {
-        int i, retcode;
+        int i;
 
         for (i=0; i<cfg->nb_threads; i++) {
                 if (!is_thread_active(i))
                         continue;
 
-#ifdef DEBUG
-                xlog(LOG_DEBUG, "Trying to join thread tid=%d\n", i);
-#endif
-
-                retcode = pthread_join(threads[i], NULL);
-                if (retcode) {
-                        xlog(LOG_ERROR, "xloop: failed to join Thread-%d: %s\n", i, strerror(retcode));
-
-                        if (cfg->verbose)
-                                switch(retcode) {
-                                        case EDEADLK:
-                                                xlog(LOG_ERROR, "%s\n", "Deadlock detected");
-                                                break;
-                                        case EINVAL:
-                                                xlog(LOG_ERROR, "%s\n", "Thread not joinable");
-                                                break;
-                                        case ESRCH:
-                                                xlog(LOG_ERROR, "%s\n", "No thread matches this Id");
-                                                break;
-                                        default :
-                                                xlog(LOG_ERROR, "Unknown errcode %d\n", retcode);
-                                                break;
-                                }
-
-                }
-#ifdef DEBUG
-                else {
-                        xlog(LOG_DEBUG, "Thread-%d finished\n", i);
-                }
-#endif
-        }
+		/* if we have at least one zombie, try to kill them all */
+		purge_zombies();
+	}
 }
 
 
@@ -1244,8 +1213,7 @@ void sighandler(int signum)
 
                 case SIGTERM:
                 case SIGINT:
-                        if (proxy_state != INACTIVE)
-                                proxy_state = INACTIVE;
+			proxy_state = INACTIVE;
 
                         cfg->try_exit++;
                         xlog(LOG_INFO, "%s, %d/%d\n", "Trying to leave", cfg->try_exit, cfg->try_exit_max);
@@ -1254,8 +1222,6 @@ void sighandler(int signum)
                                 xlog(LOG_CRITICAL, "%s\n", "Failed to exit properly");
                                 abort();
                         }
-
-                        break;
 
                 case SIGCHLD:
                         purge_zombies();

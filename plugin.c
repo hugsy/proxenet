@@ -456,11 +456,11 @@ int proxenet_add_new_plugins(char* plugin_path, char* plugin_name)
 		/* add plugin in correct place (1: high priority, 9: low priority) */
 		proxenet_add_plugin(name, type, priority);
 
-        nb_plugin_added++;
+		nb_plugin_added++;
 
-        /* if add one plugin only, there is no need to keep looping */
-        if (!add_all)
-                break;
+		/* if add one plugin only, there is no need to keep looping */
+		if (!add_all)
+			break;
 	}
 
 	if (closedir(dir) < 0){
