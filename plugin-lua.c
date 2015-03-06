@@ -75,19 +75,31 @@ int proxenet_lua_initialize_vm(plugin_t* plugin)
 	return 0;
 }
 
+
 /**
  *
  */
-int proxenet_lua_destroy_vm(plugin_t* plugin)
+int proxenet_lua_destroy_plugin(plugin_t* plugin)
 {
-	interpreter_t* interpreter;
-	lua_State* lua_interpreter;
+        plugin->state = INACTIVE;
+        plugin->pre_function = NULL;
+        plugin->post_function = NULL;
 
-	interpreter = plugin->interpreter;
+        return 0;
+}
+
+
+/**
+ *
+ */
+int proxenet_lua_destroy_vm(interpreter_t* interpreter)
+{
+	lua_State* lua_interpreter;
 	lua_interpreter = (lua_State*)interpreter->vm;
 
 	lua_close(lua_interpreter);
 	interpreter->ready = false;
+        interpreter->vm = NULL;
 
 	return 0;
 }
@@ -118,7 +130,6 @@ static char* proxenet_lua_execute_function(interpreter_t* interpreter, request_t
 	lua_pushnumber(lua_interpreter, request->id);
 	lua_pushlstring(lua_interpreter, request->data, request->size);
 	lua_pushlstring(lua_interpreter, uri, strlen(uri));
-
 
 
 	lua_call(lua_interpreter, 3, 1);

@@ -81,12 +81,22 @@ int proxenet_tcl_initialize_vm(plugin_t* plugin)
 /**
  *
  */
-int proxenet_tcl_destroy_vm(plugin_t* plugin)
+int proxenet_tcl_destroy_plugin(plugin_t* plugin)
 {
-	interpreter_t* interpreter;
+        plugin->state = INACTIVE;
+        plugin->pre_function = NULL;
+        plugin->post_function = NULL;
+        return 0;
+}
+
+
+/**
+ *
+ */
+int proxenet_tcl_destroy_vm(interpreter_t* interpreter)
+{
         Tcl_Interp* tcl_interpreter;
 
-	interpreter = plugin->interpreter;
 	tcl_interpreter = (Tcl_Interp*)interpreter->vm;
 
         Tcl_DeleteInterp(tcl_interpreter);
@@ -94,7 +104,9 @@ int proxenet_tcl_destroy_vm(plugin_t* plugin)
                 xlog(LOG_CRITICAL, "An error occured when deleting TCL interpreter: %s", strerror(errno));
                 return -1;
         }
+
 	interpreter->ready = false;
+        interpreter->vm = NULL;
 
 	return 0;
 }

@@ -110,28 +110,32 @@ int proxenet_python_initialize_vm(plugin_t* plugin)
 /**
  *
  */
-int proxenet_python_destroy_vm(plugin_t* plugin)
+int proxenet_python_destroy_plugin(plugin_t* plugin)
 {
-        unsigned short type;
-        const char *str;
+        plugin->state = INACTIVE;
+        Py_DECREF(plugin->pre_function);
+        Py_DECREF(plugin->post_function);
+        return 0;
+}
 
-        type = plugin->type;
-        str = supported_plugins_str[type];
 
+/**
+ *
+ */
+int proxenet_python_destroy_vm(interpreter_t* interpreter)
+{
 	if (!Py_IsInitialized()) {
 		xlog(LOG_CRITICAL, "%s\n", "Python VM should not be uninitialized here");
 		return -1;
 	}
 
-        Py_DECREF(plugin->pre_function);
-        Py_DECREF(plugin->post_function);
-
         Py_Finalize();
 
-	plugin->interpreter->ready = false;
-
-        if(cfg->verbose)
-                xlog(LOG_INFO, "VM %s (%#x) successfully terminated\n", str, type);
+        if (!Py_IsInitialized()){
+                interpreter->ready = false;
+        } else {
+                return -1;
+        }
 
 	return 0;
 }
@@ -225,7 +229,6 @@ static char* proxenet_python_execute_function(PyObject* pFuncRef, request_t *req
 	len = -1;
 
 	pArgs = Py_BuildValue(PYTHON_VALUE_FORMAT, request->id, request->data, request->size, uri);
-
 	if (!pArgs) {
 		xlog(LOG_ERROR, "%s\n", "Failed to build args");
 		PyErr_Print();
@@ -246,15 +249,13 @@ static char* proxenet_python_execute_function(PyObject* pFuncRef, request_t *req
 			result = NULL;
 
 		} else {
-			result = (char*) proxenet_xmalloc(len+1);
-			result = memcpy(result, buffer, len);
-
+			result = proxenet_xstrdup(buffer, len);
 			request->size = len;
 			request->data = result;
 		}
 
 	} else {
-		xlog(LOG_ERROR, "%s\n", "Incorrect return type (not string)");
+		xlog(LOG_ERROR, "Incorrect return type (expected: %s)\n", "ByteArray");
 		result = NULL;
 	}
 

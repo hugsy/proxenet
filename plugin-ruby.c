@@ -108,11 +108,25 @@ int proxenet_ruby_initialize_vm(plugin_t* plugin)
 /**
  *
  */
-int proxenet_ruby_destroy_vm(plugin_t* plugin)
+int proxenet_ruby_destroy_plugin(plugin_t* plugin)
 {
-        (void)plugin;
+        plugin->state = INACTIVE;
+        plugin->pre_function = NULL;
+        plugin->post_function = NULL;
 
-        // TODO: find how to free ruby vm
+	return 0;
+}
+
+
+/**
+ *
+ */
+int proxenet_ruby_destroy_vm(interpreter_t* interpreter)
+{
+        // TODO: find how to free ruby vm structs
+
+        interpreter->ready = false;
+        interpreter->vm = NULL;
 
 	return 0;
 }

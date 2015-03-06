@@ -357,7 +357,6 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
              host, port);
 #endif
 
-
 	retcode = create_connect_socket(host, port);
 	if (retcode < 0) {
 		if (errno)
@@ -366,7 +365,6 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
 			generic_http_error_page(*server_sock, "Unknown error in <i>create_connect_socket</i>");
 
 		return -1;
-
 	}
 
 #ifdef DEBUG

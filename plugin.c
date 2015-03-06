@@ -122,9 +122,9 @@ unsigned int proxenet_plugin_list_size()
 
 
 /**
- *
+ * This function zero-es out the block allocated for a specific plugin.
  */
-void proxenet_remove_plugin(plugin_t* plugin)
+void proxenet_free_plugin(plugin_t* plugin)
 {
 	char name[PATH_MAX] = {0, };
 	int len;
@@ -139,14 +139,12 @@ void proxenet_remove_plugin(plugin_t* plugin)
 	len = strlen(plugin->filename);
 	strncpy(name, plugin->filename, len);
 
-#ifdef DEBUG
-        xlog(LOG_INFO, "Freeing plugin %d '%s'\n", plugin->id, plugin->filename);
-#endif
 
 	proxenet_xfree(plugin);
 
-	if (cfg->verbose)
-		xlog(LOG_INFO, "Plugin '%s' free-ed\n", name);
+#ifdef DEBUG
+        xlog(LOG_DEBUG, "Free-ed plugin '%s'\n", name);
+#endif
 
         return;
 }
@@ -154,24 +152,27 @@ void proxenet_remove_plugin(plugin_t* plugin)
 
 
 /**
- *
+ * This function zero-es out all the blocks allocated for plugins and
+ * NULL-s the plugin_list pointer.
  */
-void proxenet_remove_all_plugins()
+void proxenet_free_all_plugins()
 {
 	plugin_t *p = plugins_list;
 	plugin_t *next;
 
 	while (p != NULL) {
 		next = p->next;
-		proxenet_remove_plugin(p);
+		proxenet_free_plugin(p);
 		p = next;
 	}
 
 	plugins_list = NULL;
 
-	if (cfg->verbose)
-		xlog(LOG_INFO, "%s\n", "Deleted all plugins");
+#ifdef DEBUG
+        xlog(LOG_DEBUG, "%s\n", "Plugins list is free-ed");
+#endif
 
+        return;
 }
 
 

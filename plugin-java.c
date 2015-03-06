@@ -135,26 +135,38 @@ int proxenet_java_initialize_vm(plugin_t* plugin)
 }
 
 
+
 /**
  *
  */
-int proxenet_java_destroy_vm(plugin_t* plugin)
+int proxenet_java_destroy_plugin(plugin_t* plugin)
 {
-	interpreter_t* interpreter;
+        plugin->state = INACTIVE;
+        plugin->pre_function = NULL;
+        plugin->post_function = NULL;
+
+        return 0;
+}
+
+
+/**
+ *
+ */
+int proxenet_java_destroy_vm(interpreter_t* interpreter)
+{
         proxenet_jvm_t *pxnt_jvm;
         JavaVM *jvm;
 
-        pxnt_jvm = (proxenet_jvm_t*) plugin->interpreter->vm;
+        pxnt_jvm = (proxenet_jvm_t*) interpreter->vm;
 	jvm = (JavaVM*) pxnt_jvm->jvm;
-
-	interpreter = plugin->interpreter;
 
         (*jvm)->DestroyJavaVM(jvm);
 
         proxenet_xfree(interpreter->vm);
 	interpreter->ready = false;
+        interpreter->vm = NULL;
 
-	return 0;
+        return 0;
 }
 
 

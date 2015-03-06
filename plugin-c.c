@@ -33,7 +33,7 @@ int proxenet_c_initialize_vm(plugin_t* plugin)
 		return -1;
 	}
 
-	plugin->interpreter = interpreter;
+	plugin->interpreter->vm = interpreter;
         plugin->interpreter->ready = true;
 
 	return 0;
@@ -43,18 +43,28 @@ int proxenet_c_initialize_vm(plugin_t* plugin)
 /**
  *
  */
-int proxenet_c_destroy_vm(plugin_t* plugin)
+int proxenet_c_destroy_plugin(plugin_t* plugin)
 {
-        if (dlclose((void*)plugin->interpreter) < 0) {
+        plugin->state = INACTIVE;
+        plugin->pre_function  = NULL;
+        plugin->post_function = NULL;
+
+        if (dlclose((void*)plugin->interpreter->vm) < 0) {
                 xlog(LOG_ERROR, "Failed to dlclose() for '%s': %s\n", plugin->name, dlerror());
                 return -1;
         }
 
-        plugin->pre_function  = NULL;
-        plugin->post_function = NULL;
+        return 0;
+}
 
-        plugin->interpreter->ready = false;
-        plugin->interpreter = NULL;
+
+/**
+ *
+ */
+int proxenet_c_destroy_vm(interpreter_t* interpreter)
+{
+        interpreter->ready = false;
+        interpreter = NULL;
         return 0;
 }
 

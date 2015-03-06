@@ -20,7 +20,8 @@ typedef struct {
 } proxenet_jvm_t;
 
 int 	proxenet_java_initialize_vm(plugin_t*);
-int	proxenet_java_destroy_vm(plugin_t*);
+int     proxenet_java_destroy_plugin(plugin_t*);
+int	proxenet_java_destroy_vm(interpreter_t*);
 int 	proxenet_java_load_file(plugin_t*);
 char* 	proxenet_java_plugin(plugin_t*, request_t*);
 

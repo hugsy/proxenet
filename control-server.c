@@ -227,8 +227,8 @@ void reload_cmd(sock_t fd, char *options, unsigned int nb_options)
 
         proxy_state = SLEEPING;
 
-        proxenet_remove_all_plugins();
         proxenet_destroy_plugins_vm();
+        proxenet_free_all_plugins();
 
         if( proxenet_initialize_plugins_list() < 0) {
                 msg = "Failed to reinitilize plugins";

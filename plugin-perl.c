@@ -161,13 +161,26 @@ int proxenet_perl_initialize_vm(plugin_t* plugin)
 /**
  *
  */
-int proxenet_perl_destroy_vm(plugin_t* plugin)
+int proxenet_perl_destroy_plugin(plugin_t* plugin)
+{
+        plugin->state = INACTIVE;
+        proxenet_xfree(plugin->pre_function);
+        proxenet_xfree(plugin->post_function);
+
+        return 0;
+}
+
+
+/**
+ *
+ */
+int proxenet_perl_destroy_vm(interpreter_t* interpreter)
 {
 	perl_destruct(my_perl);
 	perl_free(my_perl);
 
-	plugin->interpreter->vm = NULL;
-	plugin->interpreter->ready = false;
+	interpreter->vm = NULL;
+	interpreter->ready = false;
 	return 0;
 }
 

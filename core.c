@@ -271,7 +271,7 @@ void proxenet_initialize_plugins()
                         xlog(LOG_ERROR, "Removing '%s' from plugin list\n", plugin->filename);
 
                 next_plugin = plugin->next;
-                proxenet_remove_plugin(plugin);
+                proxenet_free_plugin(plugin);
                 plugin = next_plugin;
         }
 
@@ -279,7 +279,7 @@ void proxenet_initialize_plugins()
 
 
 /**
- * Kill all the interpreters allocated in a clean (i.e. API-provided) way.
+ * Disable plugins and kill all the interpreters allocated in a clean (i.e. API-provided) way.
  *
  * Caller must make sure proxenet is in safe state (child threads are joined) before calling
  * this function.
@@ -287,58 +287,83 @@ void proxenet_initialize_plugins()
 void proxenet_destroy_plugins_vm()
 {
         plugin_t *p;
+        interpreter_t *vm;
 
         for (p=plugins_list; p!=NULL; p=p->next) {
+
+                vm = NULL;
 
                 if (!p->interpreter->ready)
                         continue;
 
+                /*
+                 * The function `proxenet_*_destroy_plugin()` must set the current plugin as
+                 * INACTIVE, remove all the active references and clear allocated blocks.
+                 */
                 switch (p->type) {
 #ifdef _PYTHON_PLUGIN
-                        case _PYTHON_:
-                                proxenet_python_destroy_vm(p);
-                                break;
+                        case _PYTHON_:   proxenet_python_destroy_plugin(p); break;
 #endif
-
 #ifdef _C_PLUGIN
-                        case _C_:
-                                proxenet_c_destroy_vm(p);
-                                break;
+                        case _C_:        proxenet_c_destroy_plugin(p); break;
 #endif
-
 #ifdef _RUBY_PLUGIN
-                        case _RUBY_:
-                                proxenet_ruby_destroy_vm(p);
-                                break;
+                        case _RUBY_:     proxenet_ruby_destroy_plugin(p); break;
 #endif
-
 #ifdef _PERL_PLUGIN
-                        case _PERL_:
-                                proxenet_perl_destroy_vm(p);
-                                break;
+                        case _PERL_:     proxenet_perl_destroy_plugin(p); break;
 #endif
-
 #ifdef _LUA_PLUGIN
-                        case _LUA_:
-                                proxenet_lua_destroy_vm(p);
-                                break;
+                        case _LUA_:      proxenet_lua_destroy_plugin(p); break;
 #endif
-
 #ifdef _TCL_PLUGIN
-                        case _TCL_:
-                                proxenet_tcl_destroy_vm(p);
-                                break;
+                        case _TCL_:      proxenet_tcl_destroy_plugin(p); break;
 #endif
-
 #ifdef _JAVA_PLUGIN
-                        case _JAVA_:
-                                proxenet_java_destroy_vm(p);
-                                break;
+                        case _JAVA_:     proxenet_java_destroy_plugin(p); break;
 #endif
-                        default:
-                                break;
-
+                        default: break;
                 }
+                if(cfg->verbose)
+                        xlog(LOG_INFO, "Plugin '%s' has been destroyed.\n", p->name);
+
+                if (count_initialized_plugins_by_type(p->type) > 0)
+                        continue;
+
+                vm = p->interpreter;
+
+                /*
+                 * The function `proxenet_*_destroy_vm()` calls API to delete the VM. The function
+                 * is called when the last plugin[type] has been destroyed
+                 */
+                switch (p->type) {
+#ifdef _PYTHON_PLUGIN
+                        case _PYTHON_:   proxenet_python_destroy_vm(vm); break;
+#endif
+#ifdef _C_PLUGIN
+                        case _C_:        proxenet_c_destroy_vm(vm); break;
+#endif
+#ifdef _RUBY_PLUGIN
+                        case _RUBY_:     proxenet_ruby_destroy_vm(vm); break;
+#endif
+#ifdef _PERL_PLUGIN
+                        case _PERL_:     proxenet_perl_destroy_vm(vm); break;
+#endif
+#ifdef _LUA_PLUGIN
+                        case _LUA_:      proxenet_lua_destroy_vm(vm); break;
+#endif
+#ifdef _TCL_PLUGIN
+                        case _TCL_:      proxenet_tcl_destroy_vm(vm); break;
+#endif
+#ifdef _JAVA_PLUGIN
+                        case _JAVA_:     proxenet_java_destroy_vm(vm); break;
+#endif
+                        default: break;
+                }
+
+                if(cfg->verbose)
+                        xlog(LOG_INFO, "VM %s has been destroyed.\n", supported_plugins_str[p->type]);
+
         }
 
         return;
@@ -1323,7 +1348,7 @@ int proxenet_start()
 
         /* clean context */
         proxenet_destroy_plugins_vm();
-        proxenet_remove_all_plugins();
+        proxenet_free_all_plugins();
 
         close_socket(listening_socket);
         close_socket(control_socket);
