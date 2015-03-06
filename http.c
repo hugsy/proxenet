@@ -81,20 +81,19 @@ static int get_hostname_from_header(request_t *req)
         }
 
         /* move to start of hostname  */
-        ptr += sizeof(host_header_prefix);
+        ptr += strlen(host_header_prefix);
         ptr2 = ptr;
 
         /* copy hostname */
         for(; *ptr2 && *ptr2!=':' && *ptr2!=' ' && *ptr2!='\r'; ptr2++);
         c = *ptr2;
         *ptr2 = '\0';
-        proxenet_xfree(req->http_infos.hostname);
 	req->http_infos.hostname = proxenet_xstrdup2(ptr);
         *ptr2 = c;
 
         /* if port number, copy it */
         if (*ptr2 == ':'){
-                req->http_infos.port = atoi(ptr2);
+                req->http_infos.port = atoi(ptr2+1);
         }
 
         return 0;
@@ -168,7 +167,7 @@ int update_http_infos(request_t *req)
 	/* method  */
 	ptr = strchr(buf, ' ');
 	if (!ptr){
-                xlog(LOG_ERROR, "Cannot find HTTPs method in request %d\n", req->id);
+                xlog(LOG_ERROR, "%s\n", "Cannot find HTTP method in request");
                 return -1;
         }
 	c = *ptr;
@@ -189,9 +188,9 @@ int update_http_infos(request_t *req)
                 return -1;
         }
 
-
 	/* path */
         buf = ptr+1;
+
         if (!strncmp(buf, "http://", sizeof("http://"))){
                 req->http_infos.is_ssl = false;
                 req->http_infos.proto = "http";
@@ -255,10 +254,17 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
 		return -1;
 	}
 
-        /* req->uri = get_request_full_uri(req); */
-
 #ifdef DEBUG
-	xlog(LOG_DEBUG, "URL: %s\n", req->uri);
+	if (cfg->verbose)
+		xlog(LOG_DEBUG,
+		     "URL: %s\nmethod=%s\nproto=%s\nhostname=%s\nport=%d\npath=%s\nversion=%s\n",
+		     req->uri,
+		     req->http_infos.method,
+		     req->http_infos.proto,
+		     req->http_infos.hostname,
+		     req->http_infos.port,
+		     req->http_infos.path,
+		     req->http_infos.version);
 #endif
 
 	ssl_ctx->use_ssl = http_infos->is_ssl;
@@ -299,8 +305,10 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
 
         *client_sock = retcode;
 
-        http_infos->do_intercept = ( (cfg->intercept_mode==INTERCEPT_ONLY && fnmatch(cfg->intercept_pattern, http_infos->hostname, 0)==0) || \
-                                     (cfg->intercept_mode==INTERCEPT_EXCEPT && fnmatch(cfg->intercept_pattern, http_infos->hostname, 0)==FNM_NOMATCH) );
+        http_infos->do_intercept = ( (cfg->intercept_mode==INTERCEPT_ONLY && \
+				      fnmatch(cfg->intercept_pattern, http_infos->hostname, 0)==0) || \
+                                     (cfg->intercept_mode==INTERCEPT_EXCEPT && \
+				      fnmatch(cfg->intercept_pattern, http_infos->hostname, 0)==FNM_NOMATCH) );
 
 #ifdef DEBUG
         xlog(LOG_DEBUG, "Server '%s' %s match interception '%s' with pattern '%s'\n",

@@ -639,7 +639,7 @@ void proxenet_process_http_request(sock_t server_socket)
                         if ( (client_socket < 0 && req.id == 0) || (client_socket > 0 && req.id > 0) ) {
 
                                 /* this is where to handle proxy keep-alive */
-                                if (client_socket){
+                                if (client_socket > 1){
                                         proxenet_xfree(req.http_infos.method);
                                         proxenet_xfree(req.http_infos.hostname);
                                         proxenet_xfree(req.http_infos.path);
