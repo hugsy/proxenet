@@ -206,6 +206,22 @@ sock_t create_connect_socket(char *host, char* port)
 
 
 /**
+ * Wrapper to close socket.
+ *
+ * @param sock
+ */
+int proxenet_close_socket(sock_t sock, ssl_atom_t* ssl_atom)
+{
+        if (ssl_atom->is_valid) {
+                proxenet_ssl_finish(ssl_atom);
+                return close_socket_ssl(sock, &(ssl_atom->context));
+        }
+
+        return close_socket(sock);
+}
+
+
+/**
  *
  * @param sock
  */

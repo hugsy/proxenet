@@ -66,131 +66,38 @@ static char* get_request_full_uri(request_t* req)
 
 
 /**
- * This function extracts all the HTTP request elements from the 1st line of the request
  *
- * Request format MUST adhere to RFC2616 and be like
- * METHOD proto://hostname[:port][/location][?param=value....] HTTP/X.Y\r\n
- *
- * This function handles all allocations (and frees in case of failures) of the
- * proxenet HTTP structures.
- *
- * @return true if no error was encountered, false otherwise.
  */
-static bool get_url_information(char* request, http_request_t* http)
+static int get_hostname_from_header(request_t *req)
 {
-	char *start_pos, *cur_pos, *end_pos;
-	unsigned int str_len;
-        unsigned short port;
+        char *ptr, *ptr2, c;
+        const char host_header_prefix[] = "Host: ";
 
-	cur_pos = NULL;
-
-
-        /* find method */
-        start_pos = strchr(request, ' ');
-	if (start_pos == NULL) {
-		xlog(LOG_ERROR, "strchr(1): %s\n", "Malformed HTTP Header");
-		return false;
-	}
-
-	end_pos = strchr(start_pos+1, ' ');
-	if (end_pos == NULL) {
-		xlog(LOG_ERROR, "strchr(2): %s\n", "Malformed HTTP Header");
-		return false;
-	}
-
-	str_len = start_pos - request ;
-        http->method = (char*)proxenet_xstrdup(request, str_len);
-        if(!http->method)
-                return false;
-
-	++start_pos;
-
-	/* get protocol */
-	if (!strncmp(start_pos,"http://", 7)) {
-		http->proto = "http";
-		http->port = HTTP_DEFAULT_PORT;
-		start_pos += 7;
-
-	} else if (!strncmp(start_pos,"https://", 8)) {
-		http->proto = "https";
-		http->port = HTTPS_DEFAULT_PORT;
-		http->is_ssl = true;
-		start_pos += 8;
-
-	} else if (!strcmp(http->method, "CONNECT")) {
-		http->proto = "https";
-		http->port = HTTPS_DEFAULT_PORT;
-		http->is_ssl = true;
-
-	} else {
-		xlog(LOG_ERROR, "%s\n", "Malformed HTTP/HTTPS URL, unknown protocol");
-#ifdef DEBUG
-                if (cfg->verbose > 2)
-                        xlog(LOG_DEBUG, "%s\n", request);
-#endif
-		goto failed_hostname;
-	}
-
-	cur_pos = start_pos;
-
-
-	/* get hostname */
-	for(; *cur_pos && *cur_pos!=':' && *cur_pos!='/' && cur_pos<end_pos; cur_pos++);
-	str_len = cur_pos - start_pos;
-	http->hostname = (char*)proxenet_xstrdup(start_pos, str_len);
-        if (!http->hostname){
-                xlog(LOG_ERROR, "%s\n", "Failed to get hostname");
-                goto failed_hostname;
+        /* get Host header */
+        ptr = strstr(req->data, host_header_prefix);
+        if(!ptr){
+                xlog(LOG_ERROR, "%s\n", "No Host header found");
+                return -1;
         }
 
-	/* get port if set explicitly (i.e ':<port_num>'), otherwise default */
-	if(*cur_pos == ':') {
-		cur_pos++;
-		port = (unsigned short)atoi(cur_pos);
-                if(port)
-                        http->port = port;
-		for(;*cur_pos!='/' && cur_pos<end_pos;cur_pos++);
-	}
+        /* move to start of hostname  */
+        ptr += sizeof(host_header_prefix);
+        ptr2 = ptr;
 
-	/* get path (no need to parse) */
-	str_len = end_pos - cur_pos;
-	if (str_len > 0)
-		http->path = (char*)proxenet_xstrdup(cur_pos, str_len);
-	else
-		http->path = (char*)proxenet_xstrdup2("/");
+        /* copy hostname */
+        for(; *ptr2 && *ptr2!=':' && *ptr2!=' ' && *ptr2!='\r'; ptr2++);
+        c = *ptr2;
+        *ptr2 = '\0';
+        proxenet_xfree(req->http_infos.hostname);
+	req->http_infos.hostname = proxenet_xstrdup2(ptr);
+        *ptr2 = c;
 
-        if (!http->path) {
-                xlog(LOG_ERROR, "%s\n", "Failed to get path");
-                goto failed_path;
+        /* if port number, copy it */
+        if (*ptr2 == ':'){
+                req->http_infos.port = atoi(ptr2);
         }
 
-
-	/* get version */
-	cur_pos+= str_len + 1;
-	end_pos = strchr(cur_pos, '\r');
-	if (!end_pos){
-		goto failed_version;
-        }
-	str_len = end_pos - cur_pos;
-
-        http->version = (char*) proxenet_xstrdup(cur_pos, str_len);
-        if (!http->version){
-                xlog(LOG_ERROR, "%s\n", "Failed to get HTTP version");
-                goto failed_version;
-        }
-
-	return true;
-
-failed_version:
-        proxenet_xfree(http->path);
-
-failed_path:
-        proxenet_xfree(http->hostname);
-
-failed_hostname:
-        proxenet_xfree(http->method);
-
-        return false;
+        return 0;
 }
 
 
@@ -199,7 +106,7 @@ failed_hostname:
  *
  * @return 0 if no error was encountered, -1 otherwise.
  */
-int update_http_request(char** request, size_t* request_len)
+int format_http_request(char** request, size_t* request_len)
 {
 	size_t new_request_len = -1;
 	char *old_ptr, *new_ptr;
@@ -246,13 +153,13 @@ int update_http_request(char** request, size_t* request_len)
 
 
 /**
- * This function is called when a first HTTP request is made *AFTER* SSL interception has
+ * This function is usually called when a first HTTP request is made *AFTER* SSL interception has
  * been established. It updates all the fields of the current request_t with the new values
  * from the request.
  *
  * @return 0 if successful, -1 if any error occurs.
  */
-int update_https_infos(request_t *req)
+int update_http_infos(request_t *req)
 {
 	char *ptr, *buf, c;
 
@@ -264,29 +171,47 @@ int update_https_infos(request_t *req)
                 xlog(LOG_ERROR, "Cannot find HTTPs method in request %d\n", req->id);
                 return -1;
         }
-
 	c = *ptr;
 	*ptr = '\0';
-	proxenet_xfree(req->http_infos.method);
 	req->http_infos.method = proxenet_xstrdup2(buf);
 	*ptr = c;
 
-	buf = ptr+1;
+        if (!strcmp(req->http_infos.method, "CONNECT")){
+                req->http_infos.is_ssl = true;
+                req->http_infos.proto = "https";
+                req->http_infos.port = HTTPS_DEFAULT_PORT;
+        }
+
+
+        /* hostname and port */
+        if( get_hostname_from_header(req) < 0 ){
+                xlog(LOG_ERROR, "%s\n", "Failed to get hostname");
+                return -1;
+        }
+
 
 	/* path */
+        buf = ptr+1;
+        if (!strncmp(buf, "http://", sizeof("http://"))){
+                req->http_infos.is_ssl = false;
+                req->http_infos.proto = "http";
+                req->http_infos.port = HTTP_DEFAULT_PORT;
+                buf = strchr(ptr + sizeof("http://"), '/');
+        }
+
 	ptr = strchr(buf, ' ');
 	if (!ptr){
-                xlog(LOG_ERROR, "Cannot find HTTPs path in request %d\n", req->id);
+                xlog(LOG_ERROR, "%s\n", "Cannot find HTTP path in request");
                 return -1;
         }
 
 	c = *ptr;
 	*ptr = '\0';
-	proxenet_xfree(req->http_infos.path);
 	req->http_infos.path = proxenet_xstrdup2(buf);
 	*ptr = c;
 
 	buf = ptr+1;
+
 
 	/* version */
 	ptr = strchr(req->data, '\r');
@@ -297,13 +222,11 @@ int update_https_infos(request_t *req)
 
 	c = *ptr;
 	*ptr = '\0';
-        proxenet_xfree(req->http_infos.version);
 	req->http_infos.version = proxenet_xstrdup2(buf);
 	*ptr = c;
 
 
         /* refresh uri */
-        proxenet_xfree(req->uri);
         req->uri = get_request_full_uri(req);
 
         return 0;
@@ -327,12 +250,12 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
 
 
 	/* get target from string and establish client socket to dest */
-	if (get_url_information(req->data, http_infos) == false) {
-		xlog(LOG_ERROR, "%s\n", "Failed to extract valid parameters from URL.");
+        if (update_http_infos(req) < 0){
+                xlog(LOG_ERROR, "%s\n", "Failed to extract valid parameters from URL.");
 		return -1;
 	}
 
-        req->uri = get_request_full_uri(req);
+        /* req->uri = get_request_full_uri(req); */
 
 #ifdef DEBUG
 	xlog(LOG_DEBUG, "URL: %s\n", req->uri);

@@ -354,7 +354,7 @@ void proxenet_ssl_free_structs(ssl_atom_t* ssl)
 /**
  *
  */
-void proxenet_ssl_finish(ssl_atom_t* ssl, bool is_server)
+void proxenet_ssl_finish(ssl_atom_t* ssl)
 {
         ssl_close_notify( &ssl->context );
         proxenet_ssl_free_structs(ssl);

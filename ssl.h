@@ -36,7 +36,7 @@ int proxenet_ssl_init_client_context(ssl_atom_t* client, char* hostname);
 void proxenet_ssl_wrap_socket(proxenet_ssl_context_t* s, sock_t* sock);
 int proxenet_ssl_handshake(proxenet_ssl_context_t* s);
 
-void proxenet_ssl_finish(ssl_atom_t* ssl, bool t);
+void proxenet_ssl_finish(ssl_atom_t* ssl);
 int close_socket_ssl(sock_t sock, proxenet_ssl_context_t *s);
 
 ssize_t proxenet_ssl_read(proxenet_ssl_context_t *s, void *n, size_t l);

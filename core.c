@@ -636,7 +636,19 @@ void proxenet_process_http_request(sock_t server_socket)
                         }
 
                         /* is connection to server not established ? -> new request */
-                        if (client_socket < 0) {
+                        if ( (client_socket < 0 && req.id == 0) || (client_socket > 0 && req.id > 0) ) {
+
+                                /* this is where to handle proxy keep-alive */
+                                if (client_socket){
+                                        proxenet_xfree(req.http_infos.method);
+                                        proxenet_xfree(req.http_infos.hostname);
+                                        proxenet_xfree(req.http_infos.path);
+                                        proxenet_xfree(req.http_infos.version);
+                                        proxenet_xfree(req.uri);
+
+                                        proxenet_close_socket(client_socket, &(ssl_context.client));
+                                }
+
                                 retcode = create_http_socket(&req, &server_socket, &client_socket, &ssl_context);
                                 if (retcode < 0) {
                                         xlog(LOG_ERROR, "Failed to create %s->server socket\n", PROGNAME);
@@ -687,29 +699,39 @@ void proxenet_process_http_request(sock_t server_socket)
                         if (!cfg->proxy.host) {
 
                                 if (is_new_http_connection) {
-                                        /* check if http/https request is valid  */
+
                                         if (is_ssl) {
-                                                retcode = update_https_infos(&req);
+                                                /*
+                                                 * SSL request fields still have the values gathered in the CONNECT
+                                                 * Those values must be updated to reflect the real request
+                                                 */
+                                                retcode = update_http_infos(&req);
                                         } else {
-                                                retcode = update_http_request(&req.data, &req.size);
+                                                /*
+                                                 * Some browsers send plain HTTP requests like this
+                                                 * GET http://foo/bar.blah HTTP/1.1 ...
+                                                 * Format those kinds of requests stripping out proto & hostname
+                                                 */
+                                                retcode = format_http_request(&req.data, &req.size);
                                         }
 
-                                        if (retcode<0){
+                                        if (retcode < 0){
                                                 xlog(LOG_ERROR, "Failed to update %s information in request %d\n",
                                                      is_ssl?"HTTPS":"HTTP", req.id);
                                                 proxenet_xfree(req.data);
                                                 client_socket = -1;
                                                 break;
                                         }
-                                }
-#ifdef DEBUG
-                                else {
+                                } else {
                                         /* if here, at least 1 request has been to server */
                                         /* so simply forward  */
                                         /* e.g. using HTTP/1.1 100 Continue */
+#ifdef DEBUG
                                         xlog(LOG_DEBUG, "Resuming stream '%d'->'%d'\n", client_socket, server_socket);
-                                }
 #endif
+                                        retcode = update_http_infos(&req);
+                                }
+
                         }
 
 
@@ -867,12 +889,7 @@ void proxenet_process_http_request(sock_t server_socket)
                 xlog(LOG_DEBUG, "Closing %s->server socket #%d\n", PROGNAME, client_socket);
 #endif
 
-                if (ssl_context.client.is_valid) {
-                        proxenet_ssl_finish(&(ssl_context.client), false);
-                        close_socket_ssl(client_socket, &ssl_context.client.context);
-                } else {
-                        close_socket(client_socket);
-                }
+                proxenet_close_socket(client_socket, &(ssl_context.client));
         }
 
 
@@ -881,12 +898,7 @@ void proxenet_process_http_request(sock_t server_socket)
 #ifdef DEBUG
                 xlog(LOG_DEBUG, "Closing browser->%s socket #%d\n", PROGNAME, server_socket);
 #endif
-                if (ssl_context.server.is_valid) {
-                        proxenet_ssl_finish(&(ssl_context.server), true);
-                        close_socket_ssl(server_socket, &ssl_context.server.context);
-                } else {
-                        close_socket(server_socket);
-                }
+                proxenet_close_socket(server_socket, &(ssl_context.server));
         }
 
         /* and that's all folks */
