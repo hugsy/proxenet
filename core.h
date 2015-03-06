@@ -49,4 +49,5 @@ void 		proxenet_destroy_plugins_vm();
 int 		proxenet_initialize_plugins_list();
 void 		proxenet_initialize_plugins();
 void 		xloop(sock_t, sock_t);
+
 #endif /* _CORE_H */

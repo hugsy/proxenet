@@ -112,8 +112,7 @@ int proxenet_ruby_destroy_vm(plugin_t* plugin)
 {
         (void)plugin;
 
-        if(count_plugins_by_type(_RUBY_))
-		return -1;
+        // TODO: find how to free ruby vm
 
 	return 0;
 }
@@ -251,7 +250,7 @@ static char* proxenet_ruby_execute_function(interpreter_t* interpreter, ID rFunc
 	request->size = buflen;
 
 call_end:
-	
+
 	return data;
 }
 

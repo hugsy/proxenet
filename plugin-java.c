@@ -147,9 +147,6 @@ int proxenet_java_destroy_vm(plugin_t* plugin)
         pxnt_jvm = (proxenet_jvm_t*) plugin->interpreter->vm;
 	jvm = (JavaVM*) pxnt_jvm->jvm;
 
-	if(count_plugins_by_type(_JAVA_))
-		return -1;
-
 	interpreter = plugin->interpreter;
 
         (*jvm)->DestroyJavaVM(jvm);
@@ -240,7 +237,7 @@ static char* proxenet_java_execute_function(plugin_t* plugin, request_t *request
 
 end:
         (*jvm)->DetachCurrentThread(jvm);
-        
+
 	return buf;
 }
 

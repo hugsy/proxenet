@@ -303,8 +303,6 @@ int proxenet_read_all(sock_t sock, char** ptr, proxenet_ssl_context_t* ssl)
 			continue;
 		}
 
-                data[total_bytes_read] = '\0';
-
 		break;
 	}
 

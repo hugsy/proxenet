@@ -279,13 +279,19 @@ void proxenet_initialize_plugins()
 
 
 /**
+ * Kill all the interpreters allocated in a clean (i.e. API-provided) way.
  *
+ * Caller must make sure proxenet is in safe state (child threads are joined) before calling
+ * this function.
  */
 void proxenet_destroy_plugins_vm()
 {
         plugin_t *p;
 
         for (p=plugins_list; p!=NULL; p=p->next) {
+
+                if (!p->interpreter->ready)
+                        continue;
 
                 switch (p->type) {
 #ifdef _PYTHON_PLUGIN
@@ -334,6 +340,8 @@ void proxenet_destroy_plugins_vm()
 
                 }
         }
+
+        return;
 }
 
 
@@ -1192,7 +1200,6 @@ void xloop(sock_t sock, sock_t ctl_sock)
 
 
         kill_zombies();
-        proxenet_destroy_plugins_vm();
         pthread_attr_destroy(&pattr);
 
         return;
@@ -1247,6 +1254,8 @@ void initialize_sigmask(struct sigaction *saction)
 
         saction->sa_handler = SIG_IGN;
         sigaction(SIGPIPE,  saction, NULL);
+
+        return;
 }
 
 
@@ -1274,9 +1283,8 @@ int proxenet_start()
                 return -1;
         }
 
-#ifdef DEBUG
-        xlog(LOG_INFO, "Control socket: %d\n", control_socket);
-#endif
+        if(cfg->verbose)
+                xlog(LOG_INFO, "Control socket: %d\n", control_socket);
 
         /* create listening socket */
         listening_socket = create_bind_socket(cfg->iface, cfg->port);
@@ -1285,9 +1293,9 @@ int proxenet_start()
                 return -1;
         }
 
-#ifdef DEBUG
-        xlog(LOG_INFO, "Bind socket: %d\n", listening_socket);
-#endif
+        if(cfg->verbose)
+                xlog(LOG_INFO, "Bind socket: %d\n", listening_socket);
+
 
         /* init everything */
         initialize_sigmask(&saction);
@@ -1314,6 +1322,7 @@ int proxenet_start()
         xloop(listening_socket, control_socket);
 
         /* clean context */
+        proxenet_destroy_plugins_vm();
         proxenet_remove_all_plugins();
 
         close_socket(listening_socket);

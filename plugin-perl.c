@@ -163,10 +163,6 @@ int proxenet_perl_initialize_vm(plugin_t* plugin)
  */
 int proxenet_perl_destroy_vm(plugin_t* plugin)
 {
-
-	if (!plugin->interpreter->ready)
-		return -1;
-
 	perl_destruct(my_perl);
 	perl_free(my_perl);
 

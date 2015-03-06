@@ -311,8 +311,9 @@ int update_https_infos(request_t *req)
 
 
 /**
- * Establish a connection from proxenet -> server. If proxy forwarding configured, then process
- * request to other proxy.
+ * Establish a connection from proxenet -> server.
+ * If proxy forwarding configured, then this function performs the negociation with the other proxy.
+ * If the host applies for SSL intercept rules, this function also handles the SSL handshake.
  *
  * @return 0 if successful, -1 otherwise
  */

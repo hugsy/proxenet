@@ -83,9 +83,6 @@ int proxenet_lua_destroy_vm(plugin_t* plugin)
 	interpreter_t* interpreter;
 	lua_State* lua_interpreter;
 
-	if(count_plugins_by_type(_LUA_))
-		return -1;
-
 	interpreter = plugin->interpreter;
 	lua_interpreter = (lua_State*)interpreter->vm;
 
@@ -122,7 +119,7 @@ static char* proxenet_lua_execute_function(interpreter_t* interpreter, request_t
 	lua_pushlstring(lua_interpreter, request->data, request->size);
 	lua_pushlstring(lua_interpreter, uri, strlen(uri));
 
-	
+
 
 	lua_call(lua_interpreter, 3, 1);
 	lRet = lua_tolstring(lua_interpreter, -1, &len);

@@ -45,16 +45,6 @@ int proxenet_c_initialize_vm(plugin_t* plugin)
  */
 int proxenet_c_destroy_vm(plugin_t* plugin)
 {
-        if(count_plugins_by_type(_C_) > 0) {
-                xlog(LOG_ERROR, "%s\n", "Some C plugins are still running");
-                return -1;
-        }
-
-        if (!plugin->interpreter->ready){
-                xlog(LOG_ERROR, "%s\n", "Cannot destroy un-init dl link");
-                return -1;
-        }
-
         if (dlclose((void*)plugin->interpreter) < 0) {
                 xlog(LOG_ERROR, "Failed to dlclose() for '%s': %s\n", plugin->name, dlerror());
                 return -1;

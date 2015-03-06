@@ -86,10 +86,6 @@ int proxenet_tcl_destroy_vm(plugin_t* plugin)
 	interpreter_t* interpreter;
         Tcl_Interp* tcl_interpreter;
 
-        /* cannot destroy interpreter while active */
-	if(count_plugins_by_type(_TCL_) > 0)
-		return -1;
-
 	interpreter = plugin->interpreter;
 	tcl_interpreter = (Tcl_Interp*)interpreter->vm;
 
@@ -134,7 +130,7 @@ static char* proxenet_tcl_execute_function(interpreter_t* interpreter, request_t
         Tcl_ListObjAppendElement(tcl_interpreter, tcl_cmds_ptr, Tcl_NewStringObj(request->data, request->size));
         Tcl_ListObjAppendElement(tcl_interpreter, tcl_cmds_ptr, Tcl_NewStringObj(uri, -1));
 
-	
+
 
         /* execute the commands */
 	if (Tcl_EvalObjEx(tcl_interpreter, tcl_cmds_ptr, TCL_EVAL_DIRECT) != TCL_OK) {

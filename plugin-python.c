@@ -86,6 +86,7 @@ int proxenet_python_initialize_vm(plugin_t* plugin)
 #endif
 
 	Py_Initialize();
+
 	if (Py_IsInitialized() == false) {
 		xlog(LOG_CRITICAL, "%s\n", "Failed to initialize Python engine");
 		interpreter->vm = NULL;
@@ -111,19 +112,29 @@ int proxenet_python_initialize_vm(plugin_t* plugin)
  */
 int proxenet_python_destroy_vm(plugin_t* plugin)
 {
-	if (! Py_IsInitialized()) {
+        unsigned short type;
+        const char *str;
+
+        type = plugin->type;
+        str = supported_plugins_str[type];
+
+	if (!Py_IsInitialized()) {
 		xlog(LOG_CRITICAL, "%s\n", "Python VM should not be uninitialized here");
 		return -1;
 	}
 
-	if(count_plugins_by_type(_PYTHON_) == 0) {
-		Py_Finalize();
-	}
+        Py_DECREF(plugin->pre_function);
+        Py_DECREF(plugin->post_function);
+
+        Py_Finalize();
 
 	plugin->interpreter->ready = false;
+
+        if(cfg->verbose)
+                xlog(LOG_INFO, "VM %s (%#x) successfully terminated\n", str, type);
+
 	return 0;
 }
-
 
 
 /**
@@ -214,8 +225,6 @@ static char* proxenet_python_execute_function(PyObject* pFuncRef, request_t *req
 	len = -1;
 
 	pArgs = Py_BuildValue(PYTHON_VALUE_FORMAT, request->id, request->data, request->size, uri);
-
-	
 
 	if (!pArgs) {
 		xlog(LOG_ERROR, "%s\n", "Failed to build args");

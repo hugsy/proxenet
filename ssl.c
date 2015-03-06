@@ -333,18 +333,31 @@ int proxenet_ssl_handshake(proxenet_ssl_context_t* ctx)
 /**
  *
  */
+void proxenet_ssl_free_structs(ssl_atom_t* ssl)
+{
+        x509_crt_free( &ssl->cert );
+	rsa_free(&ssl->rsa);
+        if (&ssl->ca)
+                x509_crt_free( &ssl->ca );
+
+        if (&ssl->pkey)
+                pk_free( &ssl->pkey );
+
+        entropy_free( &ssl->entropy );
+	ctr_drbg_free( &ssl->ctr_drbg );
+	rsa_free( &ssl->rsa );
+
+        return;
+}
+
+
+/**
+ *
+ */
 void proxenet_ssl_finish(ssl_atom_t* ssl, bool is_server)
 {
         ssl_close_notify( &ssl->context );
-        x509_crt_free( &ssl->cert );
-
-	rsa_free(&ssl->rsa);
-        if (is_server)
-                pk_free( &ssl->pkey );
-
-	ctr_drbg_free( &ssl->ctr_drbg );
-	rsa_free( &ssl->rsa );
-	entropy_free( &ssl->entropy );
+        proxenet_ssl_free_structs(ssl);
 	return;
 }
 
