@@ -188,6 +188,9 @@ int update_http_infos(request_t *req)
                 return -1;
         }
 
+        if (req->http_infos.port == 0)
+                req->http_infos.port = HTTP_DEFAULT_PORT;
+
 	/* path */
         buf = ptr+1;
 
