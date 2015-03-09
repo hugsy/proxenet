@@ -193,7 +193,7 @@ static char* proxenet_java_execute_function(plugin_t* plugin, request_t *request
 
         buf = NULL;
 
-	uri = request->uri;
+	uri = request->http_infos.uri;
 	if (!uri)
 		return NULL;
 
