@@ -116,7 +116,7 @@ static char* proxenet_lua_execute_function(interpreter_t* interpreter, request_t
 	size_t len;
 	char *uri;
 
-	uri = request->uri;
+	uri = request->http_infos.uri;
 	if (!uri)
 		return NULL;
 

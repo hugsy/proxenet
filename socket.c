@@ -210,11 +210,11 @@ sock_t create_connect_socket(char *host, char* port)
  *
  * @param sock
  */
-int proxenet_close_socket(sock_t sock, ssl_atom_t* ssl_atom)
+int proxenet_close_socket(sock_t sock, ssl_atom_t* ssl)
 {
-        if (ssl_atom->is_valid) {
-                proxenet_ssl_finish(ssl_atom);
-                return close_socket_ssl(sock, &(ssl_atom->context));
+        if (ssl->is_valid) {
+                proxenet_ssl_finish(ssl);
+                return close_socket_ssl(sock, ssl);
         }
 
         return close_socket(sock);

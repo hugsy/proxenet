@@ -138,7 +138,7 @@ char* proxenet_c_plugin(plugin_t *plugin, request_t *request)
 
 	bufres = uri = NULL;
 
-        uri = request->uri;
+        uri = request->http_infos.uri;
 	if (!uri)
 		return NULL;
 

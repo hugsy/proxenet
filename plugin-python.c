@@ -223,7 +223,7 @@ static char* proxenet_python_execute_function(PyObject* pFuncRef, request_t *req
 	char *buffer, *result;
 	int ret;
 	Py_ssize_t len;
-	char *uri = request->uri;
+	char *uri = request->http_infos.uri;
 
 	result = buffer = NULL;
 	len = -1;

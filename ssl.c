@@ -336,16 +336,14 @@ int proxenet_ssl_handshake(proxenet_ssl_context_t* ctx)
 void proxenet_ssl_free_structs(ssl_atom_t* ssl)
 {
         x509_crt_free( &ssl->cert );
-	rsa_free(&ssl->rsa);
-        if (&ssl->ca)
-                x509_crt_free( &ssl->ca );
-
-        if (&ssl->pkey)
-                pk_free( &ssl->pkey );
-
+        x509_crt_free( &ssl->ca );
+        ctr_drbg_free( &ssl->ctr_drbg );
         entropy_free( &ssl->entropy );
-	ctr_drbg_free( &ssl->ctr_drbg );
-	rsa_free( &ssl->rsa );
+	rsa_free(&ssl->rsa);
+        pk_free( &ssl->pkey );
+        ssl_free( &ssl->context );
+
+        ssl->is_valid = false;
 
         return;
 }
@@ -357,7 +355,6 @@ void proxenet_ssl_free_structs(ssl_atom_t* ssl)
 void proxenet_ssl_finish(ssl_atom_t* ssl)
 {
         ssl_close_notify( &ssl->context );
-        proxenet_ssl_free_structs(ssl);
 	return;
 }
 
@@ -365,12 +362,12 @@ void proxenet_ssl_finish(ssl_atom_t* ssl)
 /**
  *
  */
-int close_socket_ssl(sock_t sock, proxenet_ssl_context_t* ssl)
+int close_socket_ssl(sock_t sock, ssl_atom_t* ssl)
 {
         int ret;
 
         ret = close_socket(sock);
-        ssl_free( ssl );
+        proxenet_ssl_free_structs(ssl);
 
         return ret;
 }

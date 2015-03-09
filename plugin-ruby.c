@@ -221,7 +221,7 @@ static char* proxenet_ruby_execute_function(interpreter_t* interpreter, ID rFunc
 
         struct proxenet_ruby_args args;
 
-	uri = request->uri;
+	uri = request->http_infos.uri;
 	if (!uri)
 		return NULL;
 

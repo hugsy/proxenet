@@ -123,7 +123,7 @@ static char* proxenet_tcl_execute_function(interpreter_t* interpreter, request_t
 	size_t len;
         int i;
 
-	uri = request->uri;
+	uri = request->http_infos.uri;
 	if (!uri)
 		return NULL;
 

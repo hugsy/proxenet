@@ -50,13 +50,12 @@ static char* get_request_full_uri(request_t* req)
 	if (!req || !http_infos)
                 return NULL;
 
-	http_infos = &req->http_infos;
 	len = sizeof("https://") + strlen(http_infos->hostname) + sizeof(":") + sizeof("65535");
 	len+= strlen(http_infos->path);
 	uri = (char*)proxenet_xmalloc(len+1);
 
 	snprintf(uri, len, "%s://%s:%d%s",
-		 http_infos->is_ssl?"https":"http",
+		 req->is_ssl?"https":"http",
 		 http_infos->hostname,
 		 http_infos->port,
 		 http_infos->path);
@@ -107,7 +106,7 @@ static int get_hostname_from_header(request_t *req)
  */
 int format_http_request(char** request, size_t* request_len)
 {
-	size_t new_request_len = -1;
+	size_t new_request_len = 0;
 	char *old_ptr, *new_ptr;
 	unsigned int i;
 	int offlen;
@@ -163,6 +162,8 @@ int update_http_infos(request_t *req)
 	char *ptr, *buf, c;
 
 	buf = req->data;
+        req->http_infos.proto = "http";
+        req->http_infos.port = HTTP_DEFAULT_PORT;
 
 	/* method  */
 	ptr = strchr(buf, ' ');
@@ -176,7 +177,7 @@ int update_http_infos(request_t *req)
 	*ptr = c;
 
         if (!strcmp(req->http_infos.method, "CONNECT")){
-                req->http_infos.is_ssl = true;
+                req->is_ssl = true;
                 req->http_infos.proto = "https";
                 req->http_infos.port = HTTPS_DEFAULT_PORT;
         }
@@ -194,11 +195,9 @@ int update_http_infos(request_t *req)
 	/* path */
         buf = ptr+1;
 
-        if (!strncmp(buf, "http://", sizeof("http://"))){
-                req->http_infos.is_ssl = false;
-                req->http_infos.proto = "http";
-                req->http_infos.port = HTTP_DEFAULT_PORT;
-                buf = strchr(ptr + sizeof("http://"), '/');
+        if (!strncmp(buf, "http://", 7)){
+                req->is_ssl = false;
+                buf = strchr(buf + 8, '/');
         }
 
 	ptr = strchr(buf, ' ');
@@ -218,7 +217,7 @@ int update_http_infos(request_t *req)
 	/* version */
 	ptr = strchr(req->data, '\r');
 	if (!ptr){
-                xlog(LOG_ERROR, "Cannot find HTTPs version in request %d\n", req->id);
+                xlog(LOG_ERROR, "%s\n", "Cannot find HTTP version");
                 return -1;
         }
 
@@ -229,9 +228,23 @@ int update_http_infos(request_t *req)
 
 
         /* refresh uri */
-        req->uri = get_request_full_uri(req);
+        req->http_infos.uri = get_request_full_uri(req);
 
         return 0;
+}
+
+
+/**
+ * Free all the heap allocated blocks on http_infos
+ */
+void free_http_infos(http_request_t *hi)
+{
+        proxenet_xfree(hi->method);
+        proxenet_xfree(hi->hostname);
+        proxenet_xfree(hi->path);
+        proxenet_xfree(hi->version);
+        proxenet_xfree(hi->uri);
+        return;
 }
 
 
@@ -250,6 +263,11 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
 	http_request_t* http_infos = &req->http_infos;
 	bool use_proxy = (cfg->proxy.host != NULL) ;
 
+        if(req->http_infos.method)proxenet_xfree(req->http_infos.method);
+        if(http_infos->hostname){printf("2\n");}
+        if(http_infos->path){printf("3\n");}
+        if(http_infos->version){printf("4\n");}
+        if(http_infos->uri){printf("5\n");}
 
 	/* get target from string and establish client socket to dest */
         if (update_http_infos(req) < 0){
@@ -261,7 +279,7 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
 	if (cfg->verbose)
 		xlog(LOG_DEBUG,
 		     "URL: %s\nmethod=%s\nproto=%s\nhostname=%s\nport=%d\npath=%s\nversion=%s\n",
-		     req->uri,
+		     req->http_infos.uri,
 		     req->http_infos.method,
 		     req->http_infos.proto,
 		     req->http_infos.hostname,
@@ -270,7 +288,7 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
 		     req->http_infos.version);
 #endif
 
-	ssl_ctx->use_ssl = http_infos->is_ssl;
+	ssl_ctx->use_ssl = req->is_ssl;
 	snprintf(sport, 5, "%u", http_infos->port);
 
 	/* do we forward to another proxy ? */
@@ -308,21 +326,21 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
 
         *client_sock = retcode;
 
-        http_infos->do_intercept = ( (cfg->intercept_mode==INTERCEPT_ONLY && \
-				      fnmatch(cfg->intercept_pattern, http_infos->hostname, 0)==0) || \
-                                     (cfg->intercept_mode==INTERCEPT_EXCEPT && \
-				      fnmatch(cfg->intercept_pattern, http_infos->hostname, 0)==FNM_NOMATCH) );
+        req->do_intercept = ( (cfg->intercept_mode==INTERCEPT_ONLY && \
+                               fnmatch(cfg->intercept_pattern, http_infos->hostname, 0)==0) || \
+                              (cfg->intercept_mode==INTERCEPT_EXCEPT && \
+                               fnmatch(cfg->intercept_pattern, http_infos->hostname, 0)==FNM_NOMATCH) );
 
 #ifdef DEBUG
         xlog(LOG_DEBUG, "Server '%s' %s match interception '%s' with pattern '%s'\n",
              http_infos->hostname,
-             http_infos->do_intercept?"do":"do not",
+             req->do_intercept?"do":"do not",
              cfg->intercept_mode==INTERCEPT_ONLY?"INTERCEPT_ONLY":"INTERCEPT_EXCEPT",
              cfg->intercept_pattern);
 #endif
 
         /* set up ssl layer */
-        if (http_infos->is_ssl) {
+        if (req->is_ssl) {
 
                 if (use_proxy) {
                         char *connect_buf = NULL;
@@ -355,7 +373,7 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
 #endif
                 }
 
-                if (http_infos->do_intercept){
+                if (req->do_intercept){
 
                         /* 1. set up proxy->server ssl session with hostname */
                         if(proxenet_ssl_init_client_context(&(ssl_ctx->client), http_infos->hostname) < 0) {
@@ -378,7 +396,7 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
                         return -1;
                 }
 
-                if (http_infos->do_intercept) {
+                if (req->do_intercept) {
 
                         /* 2. set up proxy->browser ssl session with hostname */
                         if(proxenet_ssl_init_server_context(&(ssl_ctx->server), http_infos->hostname) < 0) {

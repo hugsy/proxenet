@@ -40,8 +40,8 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIE -fPIC -Wall -Wextra -Werror-implicit-f
 if(PREFIX)
         set(CMAKE_INSTALL_PREFIX ${PREFIX} CACHE PATH "Install path prefix" FORCE)
 endif(PREFIX)
-set(CMAKE_LINK_HARDEN "-Wl,-z,relro,-z,now") # Full RelRO
-set(CMAKE_LINK_HARDEN ${CMAKE_LINK_HARDEN} -pie) # PIE
+# set(CMAKE_LINK_HARDEN "-Wl,-z,relro,-z,now") # Full RelRO
+# set(CMAKE_LINK_HARDEN ${CMAKE_LINK_HARDEN} -pie) # PIE
 
 
 # scripts supports (if libraries can be found)

@@ -594,7 +594,7 @@ void proxenet_process_http_request(sock_t server_socket)
 
                 /* is there data from web browser to proxy ? */
                 if( FD_ISSET(server_socket, &rfds ) ) {
-                        bool do_intercept = req.http_infos.do_intercept;
+                        bool do_intercept = req.do_intercept;
 
                         if(is_ssl && do_intercept) {
                                 n = proxenet_read_all(server_socket,
@@ -635,20 +635,21 @@ void proxenet_process_http_request(sock_t server_socket)
                                 goto send_to_server;
                         }
 
+                        /* proxy keep-alive */
+                        if (req.id > 0){
+#ifdef DEBUG
+                                xlog(LOG_DEBUG, "Reusing sock=%d (old request=%d, old sock=%d)\n",
+                                     server_socket, req.id, client_socket);
+#endif
+                                proxenet_close_socket(client_socket, &(ssl_context.client));
+                                free_http_infos(&(req.http_infos));
+                                req.id = 0;
+                                proxenet_xzero(&ssl_context, sizeof(ssl_context));
+                                client_socket = -1;
+                        }
+
                         /* is connection to server not established ? -> new request */
-                        if ( (client_socket < 0 && req.id == 0) || (client_socket > 0 && req.id > 0) ) {
-
-                                /* this is where to handle proxy keep-alive */
-                                if (client_socket > 1){
-                                        proxenet_xfree(req.http_infos.method);
-                                        proxenet_xfree(req.http_infos.hostname);
-                                        proxenet_xfree(req.http_infos.path);
-                                        proxenet_xfree(req.http_infos.version);
-                                        proxenet_xfree(req.uri);
-
-                                        proxenet_close_socket(client_socket, &(ssl_context.client));
-                                }
-
+                        if ( client_socket < 0 && req.id == 0) {
                                 retcode = create_http_socket(&req, &server_socket, &client_socket, &ssl_context);
                                 if (retcode < 0) {
                                         xlog(LOG_ERROR, "Failed to create %s->server socket\n", PROGNAME);
@@ -659,7 +660,7 @@ void proxenet_process_http_request(sock_t server_socket)
 
 
                                 if (ssl_context.use_ssl) {
-                                        if (req.http_infos.do_intercept == false) {
+                                        if (req.do_intercept == false) {
 #ifdef DEBUG
                                                 xlog(LOG_DEBUG, "SSL interception client <-> %s <-> server disabled\n", PROGNAME);
 #endif
@@ -691,7 +692,7 @@ void proxenet_process_http_request(sock_t server_socket)
                         if (is_new_http_connection)
                                 req.id = get_new_request_id();
 
-                        if (req.http_infos.do_intercept == false)
+                        if (req.do_intercept == false)
                                 goto send_to_server;
 
 
@@ -705,6 +706,7 @@ void proxenet_process_http_request(sock_t server_socket)
                                                  * SSL request fields still have the values gathered in the CONNECT
                                                  * Those values must be updated to reflect the real request
                                                  */
+                                                free_http_infos(&(req.http_infos));
                                                 retcode = update_http_infos(&req);
                                         } else {
                                                 /*
@@ -729,6 +731,8 @@ void proxenet_process_http_request(sock_t server_socket)
 #ifdef DEBUG
                                         xlog(LOG_DEBUG, "Resuming stream '%d'->'%d'\n", client_socket, server_socket);
 #endif
+
+                                        free_http_infos(&(req.http_infos));
                                         retcode = update_http_infos(&req);
                                 }
 
@@ -744,7 +748,7 @@ void proxenet_process_http_request(sock_t server_socket)
                                 if (cfg->verbose > 1)
                                         xlog(LOG_INFO, "%s %s %s\n",
 					     req.http_infos.method,
-					     req.uri,
+					     req.http_infos.uri,
 					     req.http_infos.version);
 
                         }
@@ -785,7 +789,7 @@ void proxenet_process_http_request(sock_t server_socket)
 
 #ifdef DEBUG
                         xlog(LOG_DEBUG, "Written %d bytes to server (socket=%s socket #%d)\n",
-                             retcode, (req.http_infos.is_ssl)?"SSL":"PLAIN", client_socket);
+                             retcode, is_ssl?"SSL":"PLAIN", client_socket);
 #endif
 
                 } /* end FD_ISSET(data_from_browser) */
@@ -793,9 +797,8 @@ void proxenet_process_http_request(sock_t server_socket)
 
                 /* is there data from remote server to proxy ? */
                 if( client_socket > 0 && FD_ISSET(client_socket, &rfds ) ) {
-                        bool do_intercept = req.http_infos.do_intercept;
 
-                        if(is_ssl && do_intercept) {
+                        if(req.is_ssl && req.do_intercept) {
                                 n = proxenet_read_all(client_socket, &req.data, &ssl_context.client.context);
                         } else {
                                 n = proxenet_read_all(client_socket, &req.data, NULL);
@@ -825,7 +828,7 @@ void proxenet_process_http_request(sock_t server_socket)
                         req.size   = (size_t) n;
 
 
-                        if (req.id > 0 && do_intercept==false){
+                        if (req.do_intercept==false){
 #ifdef DEBUG
                                 xlog(LOG_DEBUG, "Intercept disabled for '%s'->browser\n", req.http_infos.hostname);
 #endif
@@ -852,7 +855,7 @@ void proxenet_process_http_request(sock_t server_socket)
 
                 send_to_client:
                         /* send modified data to client */
-                        if (is_ssl && do_intercept)
+                        if (req.is_ssl && req.do_intercept)
                                 retcode = proxenet_ssl_write(&(ssl_context.server.context), req.data, req.size);
                         else
                                 retcode = proxenet_write(server_socket, req.data, req.size);
@@ -863,7 +866,7 @@ void proxenet_process_http_request(sock_t server_socket)
 
 #ifdef DEBUG
                         xlog(LOG_DEBUG, "Written %d bytes to browser (socket=%s socket #%d)\n",
-                             retcode, (req.http_infos.is_ssl)?"SSL":"PLAIN", client_socket);
+                             retcode, is_ssl?"SSL":"PLAIN", client_socket);
 #endif
                         proxenet_xfree(req.data);
 
@@ -876,11 +879,7 @@ void proxenet_process_http_request(sock_t server_socket)
 #ifdef DEBUG
                 xlog(LOG_DEBUG, "Free-ing request %d\n", req.id);
 #endif
-                proxenet_xfree(req.http_infos.method);
-                proxenet_xfree(req.http_infos.hostname);
-                proxenet_xfree(req.http_infos.path);
-                proxenet_xfree(req.http_infos.version);
-                proxenet_xfree(req.uri);
+                free_http_infos(&req.http_infos);
         }
 
         /* close client socket */
