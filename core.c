@@ -952,9 +952,8 @@ static void* process_thread_job(void* arg)
 {
         tinfo_t* tinfo = (tinfo_t*) arg;
         pthread_t parent_tid;
-        unsigned int tnum = tinfo->thread_num;
-
 #ifdef DEBUG
+        unsigned int tnum = tinfo->thread_num;
         xlog(LOG_DEBUG, "Starting thread %d\n", tnum);
 #endif
 
