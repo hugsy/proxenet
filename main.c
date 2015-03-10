@@ -456,7 +456,7 @@ int proxenet_init_config(int argc, char** argv)
 
 
 /**
- * free all data related to cfg
+ * Free all blocks allocated during configuration parsing
  */
 void proxenet_free_config()
 {
@@ -526,5 +526,14 @@ int main (int argc, char **argv, char **envp)
 	/* proxenet ends here */
 	proxenet_free_config();
 
-	return (retcode == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
+	if (retcode == 0) {
+                if (cfg->verbose)
+                        xlog(LOG_INFO, "%s exits successfully\n", PROGNAME);
+                return EXIT_SUCCESS;
+        } else {
+                if (cfg->verbose)
+                        xlog(LOG_INFO, "%s exits with errors\n", PROGNAME);
+                return EXIT_FAILURE;
+        }
+
 }

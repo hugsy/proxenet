@@ -151,9 +151,9 @@ int format_http_request(char** request, size_t* request_len)
 
 
 /**
- * This function is usually called when a first HTTP request is made *AFTER* SSL interception has
- * been established. It updates all the fields of the current request_t with the new values
- * from the request.
+ * This function updates all the fields of the current request_t with the new values found in the
+ * request. Since those values will be useful many times, they are strdup-ed in a specific structure
+ * (http_request_t). Those values *must* be free-ed later on.
  *
  * @return 0 if successful, -1 if any error occurs.
  */
@@ -254,15 +254,15 @@ int update_http_infos(request_t *req)
 
 
 /**
- * Free all the heap allocated blocks on http_infos
+ * Free all the heap allocated blocks on http_infos (allocated by update_http_infos()).
  */
 void free_http_infos(http_request_t *hi)
 {
-        proxenet_xfree(hi->method);
-        proxenet_xfree(hi->hostname);
-        proxenet_xfree(hi->path);
-        proxenet_xfree(hi->version);
-        proxenet_xfree(hi->uri);
+        proxenet_xclean(hi->method,   strlen(hi->method));
+        proxenet_xclean(hi->hostname, strlen(hi->hostname));
+        proxenet_xclean(hi->path,     strlen(hi->path));
+        proxenet_xclean(hi->version,  strlen(hi->version));
+        proxenet_xclean(hi->uri,      strlen(hi->uri));
         return;
 }
 

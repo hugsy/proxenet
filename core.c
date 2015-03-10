@@ -560,7 +560,7 @@ void proxenet_process_http_request(sock_t server_socket)
         proxenet_xzero(&ssl_context, sizeof(ssl_context_t));
 
         /* wait for any event on sockets */
-        for(;;) {
+        while(proxy_state == ACTIVE) {
 
                 if (server_socket < 0) {
                         xlog(LOG_ERROR, "sock browser->%s (#%d) died unexpectedly\n", PROGNAME, server_socket);
@@ -637,13 +637,15 @@ void proxenet_process_http_request(sock_t server_socket)
 
                         /* proxy keep-alive */
                         if (req.id > 0){
-                                request_t* old_req = (request_t*)proxenet_xstrdup((char*)&req, sizeof(request_t));
+                                request_t* old_req = (request_t*)proxenet_xmalloc(sizeof(request_t));
+                                memcpy(old_req, &req, sizeof(request_t));
                                 char* host = proxenet_xstrdup2( req.http_infos.hostname );
 
                                 free_http_infos(&(req.http_infos));
                                 update_http_infos(&req);
 
                                 if (strcmp( host, req.http_infos.hostname )){
+                                        /* reset the client connection parameters */
                                         xlog(LOG_WARNING, "Reusing sock=%d (old request=%d, old sock=%d) %s/%s\n",
                                              server_socket, req.id, client_socket, host, req.http_infos.hostname );
                                         proxenet_close_socket(client_socket, &(ssl_context.client));
@@ -655,13 +657,15 @@ void proxenet_process_http_request(sock_t server_socket)
                                 proxenet_xfree( host );
                         }
 
+                        req.type = REQUEST;
+                        req.id = get_new_request_id();
+
                         /* is connection to server not established ? -> new request */
                         if ( client_socket < 0) {
                                 retcode = create_http_socket(&req, &server_socket, &client_socket, &ssl_context);
                                 if (retcode < 0) {
                                         xlog(LOG_ERROR, "Failed to create %s->server socket\n", PROGNAME);
                                         proxenet_xfree(req.data);
-                                        client_socket = -1;
                                         break;
                                 }
 
@@ -689,17 +693,12 @@ void proxenet_process_http_request(sock_t server_socket)
 
                                         xlog(LOG_ERROR, "%s\n", "Failed to establish interception");
                                         proxenet_xfree(req.data);
-                                        client_socket = -1;
                                         break;
                                 }
 
                                 is_new_http_connection = true;
                         }
 
-
-                        req.type = REQUEST;
-                        if (is_new_http_connection)
-                                req.id = get_new_request_id();
 
 
                         /* if proxenet does not relay to another proxy */
@@ -727,7 +726,6 @@ void proxenet_process_http_request(sock_t server_socket)
                                                 xlog(LOG_ERROR, "Failed to update %s information in request %d\n",
                                                      is_ssl?"HTTPS":"HTTP", req.id);
                                                 proxenet_xfree(req.data);
-                                                client_socket = -1;
                                                 break;
                                         }
                                 } else {
@@ -785,6 +783,7 @@ void proxenet_process_http_request(sock_t server_socket)
                                 retcode = proxenet_write(client_socket, req.data, req.size);
                         }
 
+                        /* reset data */
                         proxenet_xfree(req.data);
                         req.size = 0;
 
@@ -906,8 +905,43 @@ void proxenet_process_http_request(sock_t server_socket)
                 proxenet_close_socket(server_socket, &(ssl_context.server));
         }
 
+#ifdef DEBUG
+        xlog(LOG_DEBUG, "%s\n", "Structure closed, leaving");
+#endif
         /* and that's all folks */
         return;
+}
+
+
+/**
+ *
+ */
+static void mark_thread_as_active(int i)
+{
+        active_threads_bitmask |= (1 << i);
+        return;
+}
+
+
+/**
+ *
+ */
+static void mark_thread_as_inactive(int i)
+{
+        active_threads_bitmask &= (unsigned long long)~(1 << i);
+        return;
+}
+
+
+/**
+ * Checks active threads bitmask to determine if a thread is alive.
+ *
+ * @param idx is the index of the thread to look up for
+ * @return true if this thread still alive
+ */
+bool is_thread_active(int idx)
+{
+        return active_threads_bitmask & (1<<idx);
 }
 
 
@@ -918,8 +952,12 @@ static void* process_thread_job(void* arg)
 {
         tinfo_t* tinfo = (tinfo_t*) arg;
         pthread_t parent_tid;
+        unsigned int tnum = tinfo->thread_num;
 
-        active_threads_bitmask |= 1 << tinfo->thread_num;
+#ifdef DEBUG
+        xlog(LOG_DEBUG, "Starting thread %d\n", tnum);
+#endif
+
         parent_tid = tinfo->main_tid;
 
         /* treat request */
@@ -933,19 +971,11 @@ static void* process_thread_job(void* arg)
                 xlog(LOG_ERROR, "Sending SIGCHLD failed: %s\n", strerror(errno));
         }
 
+#ifdef DEBUG
+        xlog(LOG_DEBUG, "Ending thread %d\n", tnum);
+#endif
+
         pthread_exit(0);
-}
-
-
-/**
- * Checks active threads bitmask to determine if a thread is alive.
- *
- * @param idx is the index of the thread to look up for
- * @return true if this thread still alive
- */
-bool is_thread_active(int idx)
-{
-        return active_threads_bitmask & (1<<idx);
 }
 
 
@@ -978,7 +1008,37 @@ static int proxenet_start_new_thread(sock_t conn, int tnum, pthread_t* thread, p
         tinfo->sock = conn;
         tinfo->main_tid = pthread_self();
 
+        mark_thread_as_active( tnum );
+
         return pthread_create(thread, tattr, tfunc, (void*)tinfo);
+}
+
+
+/**
+ *
+ */
+static void proxenet_join_thread(int i)
+{
+        int ret;
+
+        ret = pthread_join(threads[i], NULL);
+        switch(ret){
+                case EDEADLK:
+                case EINVAL:
+                        xlog(LOG_ERROR, "proxenet_join_thread() joining thread-%d produced error %d\n", i, ret);
+                        break;
+
+                case ESRCH:
+                        xlog(LOG_WARNING, "proxenet_join_thread() could not find thread-%d\n", i);
+
+                default:
+#ifdef DEBUG
+                        xlog(LOG_DEBUG, "Thread-%d has finished\n", i);
+#endif
+                        mark_thread_as_inactive( i );
+        }
+
+        return;
 }
 
 
@@ -989,35 +1049,20 @@ static int proxenet_start_new_thread(sock_t conn, int tnum, pthread_t* thread, p
  */
 static void purge_zombies()
 {
-        /* */
-        int i, retcode;
-        void* retval;
+        int i;
 
         for (i=0; i < cfg->nb_threads; i++) {
                 if (!is_thread_active(i)) continue;
 
-                retcode = pthread_kill(threads[i], 0);
-                if (retcode == ESRCH) {
-                        retcode = pthread_join(threads[i], &retval);
-                        switch(retcode){
-                                case EDEADLK:
-                                case EINVAL:
-                                        xlog(LOG_ERROR, "purge_zombies() joining thread-%d produced error %d\n", i, retcode);
-                                        break;
-
-                                case ESRCH:
-                                        xlog(LOG_WARNING, "purge_zombies() could not find thread-%d\n", i);
-
-                                default:
+                if (pthread_kill(threads[i], 0) == ESRCH) {
 #ifdef DEBUG
-                                        xlog(LOG_DEBUG, "Thread-%d has finished\n", i);
+                        xlog(LOG_DEBUG, "Joining thread-%d\n", i);
 #endif
-                                        active_threads_bitmask &= (unsigned long long)~(1<<i);
-
-
-                        }
+                        proxenet_join_thread(i);
                 }
         }
+
+        return;
 }
 
 
@@ -1032,9 +1077,10 @@ static void kill_zombies()
                 if (!is_thread_active(i))
                         continue;
 
-		/* if we have at least one zombie, try to kill them all */
-		purge_zombies();
+                proxenet_join_thread(i);
 	}
+
+        return;
 }
 
 

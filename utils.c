@@ -138,7 +138,7 @@ void* proxenet_xrealloc(void* oldptr, size_t new_size)
 
 	newptr = realloc(oldptr, new_size);
 	if (newptr == NULL) {
-		xlog(LOG_CRITICAL, "%s\n", "proxenet_xrealloc: fail to allocate space");
+		xlog(LOG_CRITICAL, "proxenet_xrealloc() failed to allocate space: %s\n", strerror(errno));
 		abort();
 	}
 
