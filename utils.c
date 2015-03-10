@@ -104,19 +104,19 @@ void* proxenet_xmalloc(size_t size)
 
 
 /**
- * Free allocated blocks.
+ * Free allocated blocks. Forcing abort() to generate a coredump.
  *
  * @param ptr: pointer to zone to free
  */
 void proxenet_xfree(void* ptr)
 {
 	if(ptr == NULL) {
-		xlog(LOG_CRITICAL, "Trying to free NULL pointer at %p\n", ptr);
+		xlog(LOG_CRITICAL, "%s\n", "Trying to free NULL pointer");
 		abort();
 	}
 
 	free(ptr);
-	ptr = NULL;
+        return;
 }
 
 
@@ -160,6 +160,20 @@ void proxenet_xzero(void* buf, size_t buflen)
 	}
 
 	memset(buf, 0, buflen);
+}
+
+
+/**
+ * Clean heap allocated block, and free it.
+ *
+ * @param buf : buffer to zero-ize
+ * @param buflen : buf length
+ */
+void proxenet_xclean(void* buf, size_t buflen)
+{
+        proxenet_xzero(buf, buflen);
+        proxenet_xfree(buf);
+        return;
 }
 
 

@@ -108,6 +108,7 @@ static inline int _proxenet_ssl_init_context(ssl_atom_t* ssl_atom, int type, cha
         }
 
 
+        /* init entropy */
         entropy_init( &(ssl_atom->entropy) );
 
         /* init rng */
@@ -182,7 +183,7 @@ static inline int _proxenet_ssl_init_context(ssl_atom_t* ssl_atom, int type, cha
                 case SSL_IS_SERVER:
                         ssl_set_ca_chain(context, &(ssl_atom->ca), NULL, hostname);
                         ssl_set_own_cert(context, &(ssl_atom->cert), &(ssl_atom->pkey));
-                        ssl_set_authmode(context, SSL_VERIFY_NONE);
+                        ssl_set_authmode(context, SSL_VERIFY_OPTIONAL);
                         ssl_set_min_version(context, SSL_MAJOR_VERSION_3, SSL_MINOR_VERSION_1); // TLSv1.0+
                         break;
 
@@ -211,6 +212,7 @@ static inline int _proxenet_ssl_init_context(ssl_atom_t* ssl_atom, int type, cha
 end_init:
         if (type==SSL_IS_SERVER)
                 proxenet_xfree(certfile);
+
         return retcode;
 }
 
@@ -265,7 +267,7 @@ int proxenet_ssl_handshake(proxenet_ssl_context_t* ctx)
                         break;
                 }
 
-        } while( retcode != 0 );
+        } while( true );
 
 
 #ifdef DEBUG_SSL

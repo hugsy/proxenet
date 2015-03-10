@@ -162,8 +162,6 @@ int update_http_infos(request_t *req)
 	char *ptr, *buf, c;
 
 	buf = req->data;
-        req->http_infos.proto = "http";
-        req->http_infos.port = HTTP_DEFAULT_PORT;
 
 	/* method  */
 	ptr = strchr(buf, ' ');
@@ -189,14 +187,21 @@ int update_http_infos(request_t *req)
                 return -1;
         }
 
-        if (req->http_infos.port == 0)
-                req->http_infos.port = HTTP_DEFAULT_PORT;
+        if (req->http_infos.port == 0){
+                if (req->is_ssl){
+                        req->http_infos.port = HTTPS_DEFAULT_PORT;
+                        req->http_infos.proto = "https";
+                } else {
+                        req->http_infos.port = HTTP_DEFAULT_PORT;
+                        req->http_infos.proto = "http";
+                }
+        }
+
 
 	/* path */
         buf = ptr+1;
 
         if (!strncmp(buf, "http://", 7)){
-                req->is_ssl = false;
                 buf = strchr(buf + 8, '/');
         }
 
@@ -229,6 +234,20 @@ int update_http_infos(request_t *req)
 
         /* refresh uri */
         req->http_infos.uri = get_request_full_uri(req);
+
+
+#ifdef DEBUG
+	if (cfg->verbose) {
+		xlog(LOG_DEBUG,
+		     "Request HTTP information:\nmethod=%s\nproto=%s\nhostname=%s\nport=%d\npath=%s\nversion=%s\n",
+		     req->http_infos.method,
+		     req->http_infos.proto,
+		     req->http_infos.hostname,
+		     req->http_infos.port,
+		     req->http_infos.path,
+		     req->http_infos.version);
+        }
+#endif
 
         return 0;
 }
@@ -263,30 +282,10 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
 	http_request_t* http_infos = &req->http_infos;
 	bool use_proxy = (cfg->proxy.host != NULL) ;
 
-        if(req->http_infos.method)proxenet_xfree(req->http_infos.method);
-        if(http_infos->hostname){printf("2\n");}
-        if(http_infos->path){printf("3\n");}
-        if(http_infos->version){printf("4\n");}
-        if(http_infos->uri){printf("5\n");}
-
-	/* get target from string and establish client socket to dest */
         if (update_http_infos(req) < 0){
                 xlog(LOG_ERROR, "%s\n", "Failed to extract valid parameters from URL.");
 		return -1;
 	}
-
-#ifdef DEBUG
-	if (cfg->verbose)
-		xlog(LOG_DEBUG,
-		     "URL: %s\nmethod=%s\nproto=%s\nhostname=%s\nport=%d\npath=%s\nversion=%s\n",
-		     req->http_infos.uri,
-		     req->http_infos.method,
-		     req->http_infos.proto,
-		     req->http_infos.hostname,
-		     req->http_infos.port,
-		     req->http_infos.path,
-		     req->http_infos.version);
-#endif
 
 	ssl_ctx->use_ssl = req->is_ssl;
 	snprintf(sport, 5, "%u", http_infos->port);
@@ -300,10 +299,10 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
 		port = sport;
 	}
 
+
 #ifdef DEBUG
-        xlog(LOG_DEBUG, "Relay request %d to %s '%s:%s'\n",
-             req->id,
-             use_proxy?"PROXY":"",
+        xlog(LOG_DEBUG, "Relay request %s to '%s:%s'\n",
+             use_proxy?"via proxy":"direct",
              host, port);
 #endif
 

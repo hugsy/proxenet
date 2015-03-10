@@ -24,9 +24,9 @@ if(GIT_EXECUTABLE)
   STRING(STRIP "${GIT_RELEASE_BRANCH}" GIT_RELEASE_BRANCH)
   STRING(STRIP "${GIT_RELEASE_COMMIT}" GIT_RELEASE_COMMIT)
   set (VERSION_REL "${GIT_RELEASE_BRANCH}:${GIT_RELEASE_COMMIT}")
-else(GIT_EXECUTABLE)
-  set (VERSION_REL "dev")
-endif(GIT_EXECUTABLE)
+else()
+  set (VERSION_REL "stable")
+endif()
 
 set (VERSION_MAJOR 0)
 set (VERSION_MINOR 3)
@@ -36,12 +36,10 @@ set (VERSION "${VERSION_MAJOR}.${VERSION_MINOR}-${VERSION_REL}")
 
 # plugin cmake build path
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/ ${CMAKE_MODULE_PATH})
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIE -fPIC -Wall -Wextra -Werror-implicit-function-declaration -fstack-protector-all")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Werror-implicit-function-declaration")
 if(PREFIX)
         set(CMAKE_INSTALL_PREFIX ${PREFIX} CACHE PATH "Install path prefix" FORCE)
 endif(PREFIX)
-# set(CMAKE_LINK_HARDEN "-Wl,-z,relro,-z,now") # Full RelRO
-# set(CMAKE_LINK_HARDEN ${CMAKE_LINK_HARDEN} -pie) # PIE
 
 
 # scripts supports (if libraries can be found)
@@ -73,8 +71,10 @@ if (DEBUG)
 
 else()
   set(CMAKE_BUILD_TYPE None)
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -fstack-protector-all -fPIE -fPIC")
   set(CMAKE_VERBOSE_MAKEFILE OFF)
+  set(CMAKE_LINK_HARDEN "-Wl,-z,relro,-z,now") # Full RelRO
+  set(CMAKE_LINK_HARDEN ${CMAKE_LINK_HARDEN} -pie) # PIE
 endif(DEBUG)
 
 
