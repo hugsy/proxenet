@@ -27,7 +27,8 @@ keys/proxenet.crt
 CMakeCache.txt
 CMakeFiles
 cmake_install.cmake
-stamp-h1 
+stamp-h1
 site/
 config.h
 Makefile
+keys/certs
