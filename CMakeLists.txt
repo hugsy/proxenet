@@ -54,7 +54,7 @@ option(USE_JAVA_PLUGIN        "Add Java script support"                ON)
 
 option(DEBUG                  "Enable Debug"                           OFF)
 option(DEBUG_SSL              "Enable SSL debug"                       OFF)
-option(DEBUG_LEAK             "Enable memleak checks"                  ON)
+option(DEBUG_LEAK             "Enable memleak checks"                  OFF)
 
 if (DEBUG)
   set(CMAKE_BUILD_TYPE Debug)
