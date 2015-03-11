@@ -254,7 +254,7 @@ void proxenet_print_plugins_list(int fd)
 /**
  *
  */
-int proxenet_get_plugin_type(char* filename)
+static int proxenet_get_plugin_type(char* filename)
 {
 	unsigned short type;
 	bool is_valid = false;
