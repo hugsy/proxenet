@@ -363,7 +363,6 @@ void proxenet_destroy_plugins_vm()
 
                 if(cfg->verbose)
                         xlog(LOG_INFO, "VM %s has been destroyed.\n", supported_plugins_str[p->type]);
-
         }
 
         return;
@@ -385,17 +384,9 @@ int proxenet_toggle_plugin(int plugin_id)
 
                 if (plugin->id == plugin_id) {
                         switch (plugin->state){
-
-                                case INACTIVE:
-                                        plugin->state = ACTIVE;
-                                        break;
-
-                                case ACTIVE:
-                                        plugin->state = INACTIVE;
-                                        break;
-
-                                default:
-                                        break;
+                                case INACTIVE: plugin->state = ACTIVE;   break;
+                                case ACTIVE:   plugin->state = INACTIVE; break;
+                                default: break;
                         }
 
                         xlog(LOG_INFO,
@@ -405,7 +396,6 @@ int proxenet_toggle_plugin(int plugin_id)
                              (plugin->state==INACTIVE ? "IN" : ""));
 
                         return (plugin->state==INACTIVE ? 0 : 1);
-
                 }
         }
 
@@ -430,45 +420,25 @@ static int proxenet_apply_plugins(request_t *request)
                 switch (p->type) {
 
 #ifdef _PYTHON_PLUGIN
-                        case _PYTHON_:
-                                plugin_function = proxenet_python_plugin;
-                                break;
+                        case _PYTHON_:  plugin_function = proxenet_python_plugin; break;
 #endif
-
 #ifdef _C_PLUGIN
-                        case _C_:
-                                plugin_function = proxenet_c_plugin;
-                                break;
+                        case _C_:       plugin_function = proxenet_c_plugin; break;
 #endif
-
 #ifdef _RUBY_PLUGIN
-                        case _RUBY_:
-                                plugin_function = proxenet_ruby_plugin;
-                                break;
+                        case _RUBY_:    plugin_function = proxenet_ruby_plugin; break;
 #endif
-
 #ifdef _PERL_PLUGIN
-                        case _PERL_:
-                                plugin_function = proxenet_perl_plugin;
-                                break;
+                        case _PERL_:    plugin_function = proxenet_perl_plugin; break;
 #endif
-
 #ifdef _LUA_PLUGIN
-                        case _LUA_:
-                                plugin_function = proxenet_lua_plugin;
-                                break;
+                        case _LUA_:     plugin_function = proxenet_lua_plugin; break;
 #endif
-
 #ifdef _TCL_PLUGIN
-                        case _TCL_:
-                                plugin_function = proxenet_tcl_plugin;
-                                break;
+                        case _TCL_:     plugin_function = proxenet_tcl_plugin; break;
 #endif
-
 #ifdef _JAVA_PLUGIN
-                        case _JAVA_:
-                                plugin_function = proxenet_java_plugin;
-                                break;
+                        case _JAVA_:    plugin_function = proxenet_java_plugin; break;
 #endif
                         default:
                                 xlog(LOG_CRITICAL, "Type %d not supported (yet)\n", p->type);
@@ -610,9 +580,7 @@ void proxenet_process_http_request(sock_t server_socket)
 #endif
 
                         if (n < 0) {
-#ifdef DEBUG
                                 xlog(LOG_ERROR, "%s\n", "read() failed, end thread");
-#endif
                                 break;
                         }
 
@@ -646,8 +614,9 @@ void proxenet_process_http_request(sock_t server_socket)
 
                                 if (strcmp( host, req.http_infos.hostname )){
                                         /* reset the client connection parameters */
-                                        xlog(LOG_WARNING, "Reusing sock=%d (old request=%d, old sock=%d) %s/%s\n",
-                                             server_socket, req.id, client_socket, host, req.http_infos.hostname );
+                                        if (cfg->verbose)
+                                                xlog(LOG_INFO, "Reusing sock=%d (old request=%d, old sock=%d) %s/%s\n",
+                                                     server_socket, req.id, client_socket, host, req.http_infos.hostname );
                                         proxenet_close_socket(client_socket, &(ssl_context.client));
                                         free_http_infos(&(req.http_infos));
                                         client_socket = -1;
@@ -721,13 +690,6 @@ void proxenet_process_http_request(sock_t server_socket)
                                                  */
                                                 retcode = format_http_request(&req.data, &req.size);
                                         }
-
-                                        if (retcode < 0){
-                                                xlog(LOG_ERROR, "Failed to update %s information in request %d\n",
-                                                     is_ssl?"HTTPS":"HTTP", req.id);
-                                                proxenet_xfree(req.data);
-                                                break;
-                                        }
                                 } else {
                                         /* if here, at least 1 request has been to server */
                                         /* so simply forward  */
@@ -735,26 +697,26 @@ void proxenet_process_http_request(sock_t server_socket)
 #ifdef DEBUG
                                         xlog(LOG_DEBUG, "Resuming stream '%d'->'%d'\n", client_socket, server_socket);
 #endif
-
                                         free_http_infos(&(req.http_infos));
                                         retcode = update_http_infos(&req);
                                 }
 
+                                if (retcode < 0){
+                                        xlog(LOG_ERROR, "Failed to update %s information in request %d\n",
+                                             is_ssl?"HTTPS":"HTTP", req.id);
+                                        proxenet_xfree(req.data);
+                                        break;
+                                }
                         }
 
 
                         if (cfg->verbose) {
-                                xlog(LOG_INFO, "New %s request to '%s:%d'\n",
-                                     is_ssl?"SSL":"plain",
-                                     req.http_infos.hostname,
-                                     req.http_infos.port);
+                                xlog(LOG_INFO, "%s request to '%s:%d'\n",
+                                     is_ssl?"SSL":"plain", req.http_infos.hostname, req.http_infos.port);
 
                                 if (cfg->verbose > 1)
                                         xlog(LOG_INFO, "%s %s %s\n",
-					     req.http_infos.method,
-					     req.http_infos.uri,
-					     req.http_infos.version);
-
+                                             req.http_infos.method, req.http_infos.uri, req.http_infos.version);
                         }
 
 #ifdef DEBUG
@@ -810,11 +772,9 @@ void proxenet_process_http_request(sock_t server_socket)
                         }
 
                         if (n < 0){
-#ifdef DEBUG
-                                xlog(LOG_DEBUG, "read() %s on cli_sock=#%d failed: %d\n",
+                                xlog(LOG_ERROR, "read() %s on cli_sock=#%d failed: %d\n",
                                      is_ssl?"SSL":"PLAIN",
                                      client_socket, n);
-#endif
                                 break;
                         }
 
@@ -867,6 +827,8 @@ void proxenet_process_http_request(sock_t server_socket)
 
                         if (retcode < 0) {
                                 xlog(LOG_ERROR, "[%d] %s\n", req.id, "proxy->client: write failed");
+                                proxenet_xfree(req.data);
+                                break;
                         }
 
 #ifdef DEBUG
@@ -887,6 +849,7 @@ void proxenet_process_http_request(sock_t server_socket)
                 free_http_infos(&(req.http_infos));
         }
 
+
         /* close client socket */
         if (client_socket > 0) {
 #ifdef DEBUG
@@ -905,8 +868,9 @@ void proxenet_process_http_request(sock_t server_socket)
                 proxenet_close_socket(server_socket, &(ssl_context.server));
         }
 
+
 #ifdef DEBUG
-        xlog(LOG_DEBUG, "%s\n", "Structure closed, leaving");
+        xlog(LOG_DEBUG, "%s\n", "Structures closed, leaving");
 #endif
         /* and that's all folks */
         return;

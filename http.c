@@ -136,7 +136,7 @@ int format_http_request(char** request, size_t* request_len)
 	new_request_len = *request_len - (new_ptr-old_ptr);
 
 #ifdef DEBUG
-	xlog(LOG_DEBUG, "Adjusting buffer to %d->%d bytes\n", *request_len, new_request_len);
+	xlog(LOG_DEBUG, "Formatting HTTP request (%dB->%dB)\n", *request_len, new_request_len);
 #endif
 
 	for (i=0; i<new_request_len - (old_ptr-*request);i++) {

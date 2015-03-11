@@ -290,13 +290,10 @@ static void proxenet_python_unlock_vm(interpreter_t *interpreter)
  */
 char* proxenet_python_plugin(plugin_t* plugin, request_t* request)
 {
-	char *dst_buf = NULL;
+	char *buf = NULL;
 	PyObject *pFunc = NULL;
 	bool is_request = (request->type==REQUEST) ? true : false;
 	interpreter_t *interpreter = plugin->interpreter;
-
-	if (!interpreter->ready)
-		return NULL;
 
 	proxenet_python_lock_vm(interpreter);
 
@@ -305,17 +302,15 @@ char* proxenet_python_plugin(plugin_t* plugin, request_t* request)
 	else
 		pFunc = (PyObject*) plugin->post_function;
 
-	dst_buf = proxenet_python_execute_function(pFunc, request);
-	if (!dst_buf) {
-		xlog(LOG_ERROR,
-		     "[%s] Error while executing plugin on %s\n",
-		     plugin->name,
-		     is_request ? "request" : "response");
+	buf = proxenet_python_execute_function(pFunc, request);
+	if (!buf) {
+		xlog(LOG_ERROR, "[%s] Error while executing plugin on %s\n",
+                     plugin->name, is_request ? "request" : "response");
 	}
 
 	proxenet_python_unlock_vm(interpreter);
 
-	return dst_buf;
+	return buf;
 }
 
 #endif /* _PYTHON_PLUGIN */
