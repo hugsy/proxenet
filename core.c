@@ -1340,6 +1340,8 @@ static void print_global_stats()
 {
         struct tm *t1, *t2;
         char buf[128];
+        float bytes_sent_kb, bytes_sent_mb;
+        float bytes_recv_kb, bytes_recv_mb;
 
         t1 = localtime(&start_time);
         t2 = localtime(&end_time);
@@ -1357,11 +1359,17 @@ static void print_global_stats()
 
         xlog(LOG_INFO, "Session duration: %lu seconds\n", (end_time-start_time));
 
-        xlog(LOG_INFO, "Number of bytes sent: %luB (%lukB, %luMB)\n",
-             bytes_sent, bytes_sent/1024, bytes_sent/(1024^2));
+        bytes_sent_kb = bytes_sent/1024.0;
+        bytes_sent_mb = bytes_sent_kb/1024.0;
+
+        xlog(LOG_INFO, "Number of bytes sent: %luB (%.2fkB, %.2fMB)\n",
+             bytes_sent, bytes_sent_kb, bytes_sent_mb);
+
+        bytes_recv_kb = bytes_recv/1024.0;
+        bytes_recv_mb = bytes_recv_kb/1024.0;
 
         xlog(LOG_INFO, "Number of bytes received: %luB (%.2fkB, %.2fMB)\n",
-             bytes_recv, bytes_recv/1024, bytes_recv/(1024^2));
+             bytes_recv,bytes_recv_kb, bytes_recv_mb);
 
         xlog(LOG_INFO, "Number of unique requests: %lu\n", (request_id-1));
 
