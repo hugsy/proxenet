@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <fnmatch.h>
+#include <time.h>
 
 #include "core.h"
 #include "main.h"
@@ -594,7 +595,7 @@ void proxenet_process_http_request(sock_t server_socket)
 
                         /* from here, n can only be positive */
                         req.size = (size_t) n;
-
+                        bytes_sent += n;
 
                         if (req.id > 0 && !req.do_intercept){
 #ifdef DEBUG
@@ -791,7 +792,7 @@ void proxenet_process_http_request(sock_t server_socket)
 
                         /* from here, n can only be positive */
                         req.size   = (size_t) n;
-
+                        bytes_recv += n;
 
                         if (req.do_intercept==false){
 #ifdef DEBUG
@@ -1311,6 +1312,64 @@ void initialize_sigmask(struct sigaction *saction)
 
 
 /**
+ *
+ */
+static inline void init_global_stats()
+{
+        bytes_sent = 0;
+        bytes_recv = 0;
+        start_time = time(NULL);
+        return;
+}
+
+
+/**
+ *
+ */
+static inline void end_global_stats()
+{
+        end_time = time(NULL);
+        return;
+}
+
+
+/**
+ * Prints a few information about the proxenet session.
+ */
+static void print_global_stats()
+{
+        struct tm *t1, *t2;
+        char buf[128];
+
+        t1 = localtime(&start_time);
+        t2 = localtime(&end_time);
+
+
+        xlog(LOG_INFO, "%s\n", "Statistics:");
+
+        proxenet_xzero(buf, sizeof(buf));
+        strftime(buf, sizeof(buf), "%F %T", t1);
+        xlog(LOG_INFO, "Start time: %s\n", buf);
+
+        proxenet_xzero(buf, sizeof(buf));
+        strftime(buf, sizeof(buf), "%F %T", t2);
+        xlog(LOG_INFO, "End time: %s\n", buf);
+
+        xlog(LOG_INFO, "Session duration: %lu seconds\n", (end_time-start_time));
+
+        xlog(LOG_INFO, "Number of bytes sent: %luB (%lukB, %luMB)\n",
+             bytes_sent, bytes_sent/1024, bytes_sent/(1024^2));
+
+        xlog(LOG_INFO, "Number of bytes received: %luB (%.2fkB, %.2fMB)\n",
+             bytes_recv, bytes_recv/1024, bytes_recv/(1024^2));
+
+        xlog(LOG_INFO, "Number of unique requests: %lu\n", (request_id-1));
+
+        return;
+}
+
+
+/**
  * This function is called right after the configuration was parsed.
  * It simply:
  * - creates the main listening sockets (control and proxy)
@@ -1369,8 +1428,15 @@ int proxenet_start()
         /* for the child threads, a request id of 0 means not allocated */
         get_new_request_id();
 
+        init_global_stats();
+
         /* prepare threads and start looping */
         xloop(listening_socket, control_socket);
+
+        end_global_stats();
+
+        if (cfg->verbose)
+                print_global_stats();
 
         /* clean context */
         proxenet_destroy_plugins_vm();

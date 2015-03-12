@@ -33,6 +33,13 @@ typedef struct thread_info {
 		plugin_t** plugin_list;
 } tinfo_t;
 
+/* stats stuff */
+unsigned long	bytes_sent;
+unsigned long	bytes_recv;
+time_t          start_time;
+time_t          end_time;
+
+
 unsigned long	request_id;
 proxenet_state 	proxy_state;
 unsigned long 	active_threads_bitmask;
