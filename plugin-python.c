@@ -255,7 +255,11 @@ static char* proxenet_python_execute_function(PyObject* pFuncRef, request_t *req
 		}
 
 	} else {
+#if _PYTHON_MAJOR_ == 3
 		xlog(LOG_ERROR, "Incorrect return type (expected: %s)\n", "ByteArray");
+#else
+		xlog(LOG_ERROR, "Incorrect return type (expected: %s)\n", "String");
+#endif
 		result = NULL;
 	}
 
