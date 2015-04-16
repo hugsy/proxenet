@@ -381,7 +381,8 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
 
                         proxenet_ssl_wrap_socket(&(ssl_ctx->client.context), client_sock);
                         if (proxenet_ssl_handshake(&(ssl_ctx->client.context)) < 0) {
-                                xlog(LOG_ERROR, "%s->server: handshake\n", PROGNAME);
+                                xlog(LOG_ERROR, "%s->'%s:%d': handshake failed\n",
+                                     PROGNAME, http_infos->hostname, http_infos->port);
                                 return -1;
                         }
 

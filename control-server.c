@@ -419,6 +419,12 @@ void plugin_cmd(sock_t fd, char *options, unsigned int nb_options)
                 return;
         }
         if (strcmp(ptr, "set") == 0) {
+                /* shift argument */
+                ptr = strtok(NULL, " \n");
+                if (!ptr){
+                        xlog(LOG_ERROR, "%s\n", "Failed to get 'set' argument");
+                        return;
+                }
                 res = plugin_cmd_set(fd, ptr);
                 if(res < 0){
                         xlog(LOG_ERROR, "%s\n", "An error occured during plugin setting");
@@ -426,6 +432,12 @@ void plugin_cmd(sock_t fd, char *options, unsigned int nb_options)
                 return;
         }
         if (strcmp(ptr, "load") == 0) {
+                /* shift argument */
+                ptr = strtok(NULL, " \n");
+                if (!ptr){
+                        xlog(LOG_ERROR, "%s\n", "Failed to get 'load' argument");
+                        return;
+                }
                 res = plugin_cmd_load(fd, ptr);
                 if(res < 0){
                         xlog(LOG_ERROR, "%s\n", "An error occured during plugin loading");

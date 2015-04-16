@@ -1368,7 +1368,7 @@ static void print_global_stats()
         bytes_recv_kb = bytes_recv/1024.0;
         bytes_recv_mb = bytes_recv_kb/1024.0;
 
-        xlog(LOG_INFO, "Number of bytes received: %luB (%.2fkB, %.2fMB)\n",
+        xlog(LOG_INFO, "Number of bytes received: %luB (%.2fkB, %5.2fMB)\n",
              bytes_recv,bytes_recv_kb, bytes_recv_mb);
 
         xlog(LOG_INFO, "Number of unique requests: %lu\n", (request_id-1));

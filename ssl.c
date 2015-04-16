@@ -261,8 +261,9 @@ int proxenet_ssl_handshake(proxenet_ssl_context_t* ctx)
                    retcode!=POLARSSL_ERR_NET_WANT_WRITE) {
                         proxenet_xzero(ssl_strerror, sizeof(ssl_strerror));
                         error_strerror(retcode, ssl_strerror, 127);
-                        xlog(LOG_ERROR, "SSL handshake failed (returns %#x): %s\n",
-                             -retcode, ssl_strerror);
+                        if (cfg->verbose > 1)
+                                xlog(LOG_ERROR, "SSL handshake failed (returns %#x): %s\n",
+                                     -retcode, ssl_strerror);
                         retcode = -1;
                         break;
                 }
