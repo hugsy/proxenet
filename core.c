@@ -636,6 +636,7 @@ void proxenet_process_http_request(sock_t server_socket)
                                 if (retcode < 0) {
                                         xlog(LOG_ERROR, "Failed to create %s->server socket\n", PROGNAME);
                                         proxenet_xfree(req.data);
+                                        req.id = 0;
                                         break;
                                 }
 

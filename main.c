@@ -72,6 +72,7 @@ static void usage(int retcode)
                  "\t-I, --intercept-only\t\t\tIntercept only hostnames matching pattern (default mode)\n"
                  "\t-E, --intercept-except\t\t\tIntercept everything except hostnames matching pattern\n"
                  "\t-m, --pattern=PATTERN\t\t\tSpecify a hostname matching pattern (default: '%s')\n"
+                 "\t-B, --binary-mode=IP:PORT\t\tDo not treat as request/response as HTTP but raw binary to target (IP:PORT).\n"
                  ,
 
                  CFG_DEFAULT_INTERCEPT_PATTERN
