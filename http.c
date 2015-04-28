@@ -82,7 +82,7 @@ static int get_hostname_from_uri(request_t* req, int offset)
 
         buf = req->data + offset;
 
-        /* block */
+        /* isolate the whole block 'IP:PORT' */
 	ptr = strchr(buf, ' ');
 	if (!ptr){
                 xlog(LOG_ERROR, "%s\n", "Invalid URI block");
@@ -98,7 +98,7 @@ static int get_hostname_from_uri(request_t* req, int offset)
         ptr = strchr(buf, ':');
 	if (ptr){
                 /* explicit port */
-                req->http_infos.port = atoi(ptr+1);
+                req->http_infos.port = (unsigned short)atoi(ptr+1);
                 *ptr = '\0';
         }
 
@@ -143,7 +143,7 @@ static int get_hostname_from_header(request_t *req)
 
         /* if port number, copy it */
         if (*ptr2 == ':'){
-                req->http_infos.port = atoi(ptr2+1);
+                req->http_infos.port = (unsigned short)atoi(ptr2+1);
         }
 
         return 0;
@@ -233,17 +233,16 @@ int update_http_infos(request_t *req)
 
 	*ptr = c;
         if (!strcmp(req->http_infos.method, "CONNECT")){
+                int offset;
+
                 req->is_ssl = true;
                 req->http_infos.proto = "https";
                 req->http_infos.port = HTTPS_DEFAULT_PORT;
+                offset = ptr - buf + 1;
 
-                /* For CONNECT, use header */
-                /* CONNECT IP:PORT HTTP/1.0 */
-                /* instead of Host: */
-
-                if( get_hostname_from_uri(req, (ptr - buf + 1)) < 0 ){
+                if( get_hostname_from_uri(req, offset) < 0 ){
                         xlog(LOG_ERROR, "%s\n", "Failed to get hostname (URI)");
-                        return -1;
+                        goto failed_hostname;
                 }
 
                 req->http_infos.path = proxenet_xstrdup2("/");
@@ -252,7 +251,7 @@ int update_http_infos(request_t *req)
                 req->http_infos.uri = get_request_full_uri(req);
                 if(!req->http_infos.uri){
                         xlog(LOG_ERROR, "%s\n", "get_request_full_uri() failed");
-                        return -1;
+                        goto failed_uri;
                 }
 
                 return 0;
@@ -261,7 +260,7 @@ int update_http_infos(request_t *req)
         /* hostname and port */
         if( get_hostname_from_header(req) < 0 ){
                 xlog(LOG_ERROR, "%s\n", "Failed to get hostname (Host header)");
-                return -1;
+                goto failed_hostname;
         }
 
         if (req->http_infos.port == 0){
@@ -285,7 +284,7 @@ int update_http_infos(request_t *req)
 	ptr = strchr(buf, ' ');
 	if (!ptr){
                 xlog(LOG_ERROR, "%s\n", "Cannot find HTTP path in request");
-                return -1;
+                goto failed_path;
         }
 
 	c = *ptr;
@@ -293,7 +292,7 @@ int update_http_infos(request_t *req)
 	req->http_infos.path = proxenet_xstrdup2(buf);
         if (!req->http_infos.path){
                 xlog(LOG_ERROR, "%s\n", "strdup(path) failed, cannot pursue...");
-                return -1;
+                goto failed_path;
         }
 	*ptr = c;
 
@@ -304,7 +303,7 @@ int update_http_infos(request_t *req)
 	ptr = strchr(req->data, '\r');
 	if (!ptr){
                 xlog(LOG_ERROR, "%s\n", "Cannot find HTTP version");
-                return -1;
+                goto failed_version;
         }
 
 	c = *ptr;
@@ -312,7 +311,7 @@ int update_http_infos(request_t *req)
 	req->http_infos.version = proxenet_xstrdup2(buf);
         if (!req->http_infos.version){
                 xlog(LOG_ERROR, "%s\n", "strdup(version) failed, cannot pursue...");
-                return -1;
+                goto failed_version;
         }
 	*ptr = c;
 
@@ -321,7 +320,7 @@ int update_http_infos(request_t *req)
         req->http_infos.uri = get_request_full_uri(req);
         if(!req->http_infos.uri){
                 xlog(LOG_ERROR, "%s\n", "get_request_full_uri() failed");
-                return -1;
+                goto failed_uri;
         }
 
 
@@ -346,6 +345,21 @@ int update_http_infos(request_t *req)
 #endif
 
         return 0;
+
+
+failed_uri:
+        proxenet_xfree(req->http_infos.version);
+
+failed_version:
+        proxenet_xfree(req->http_infos.path);
+
+failed_path:
+        proxenet_xfree(req->http_infos.hostname);
+
+failed_hostname:
+        proxenet_xfree(req->http_infos.method);
+
+        return -1;
 }
 
 

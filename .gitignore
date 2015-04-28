@@ -32,3 +32,4 @@ site/
 config.h
 Makefile
 keys/certs
+proxenet-plugins
