@@ -45,7 +45,6 @@ VALUE proxenet_ruby_require_cb(VALUE arg)
  */
 int proxenet_ruby_load_file(plugin_t* plugin)
 {
-	char* filename;
 	char* pathname;
 	int res = 0;
 
@@ -57,7 +56,6 @@ int proxenet_ruby_load_file(plugin_t* plugin)
                 return 0;
         }
 
-	filename = plugin->filename;
         pathname = plugin->fullpath;
 
 	rb_load_protect(rb_str_new_cstr(pathname), 0, &res);

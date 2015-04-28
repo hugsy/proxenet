@@ -88,6 +88,10 @@ static int get_hostname_from_header(request_t *req)
         c = *ptr2;
         *ptr2 = '\0';
 	req->http_infos.hostname = proxenet_xstrdup2(ptr);
+        if (!req->http_infos.hostname){
+                xlog(LOG_ERROR, "%s\n", "strdup(hostname) failed, cannot pursue...");
+                return -1;
+        }
         *ptr2 = c;
 
         /* if port number, copy it */
@@ -172,6 +176,11 @@ int update_http_infos(request_t *req)
 	c = *ptr;
 	*ptr = '\0';
 	req->http_infos.method = proxenet_xstrdup2(buf);
+        if (!req->http_infos.method){
+                xlog(LOG_ERROR, "%s\n", "strdup(method) failed, cannot pursue...");
+                return -1;
+        }
+
 	*ptr = c;
 
         if (!strcmp(req->http_infos.method, "CONNECT")){
@@ -214,6 +223,10 @@ int update_http_infos(request_t *req)
 	c = *ptr;
 	*ptr = '\0';
 	req->http_infos.path = proxenet_xstrdup2(buf);
+        if (!req->http_infos.path){
+                xlog(LOG_ERROR, "%s\n", "strdup(path) failed, cannot pursue...");
+                return -1;
+        }
 	*ptr = c;
 
 	buf = ptr+1;
@@ -229,17 +242,32 @@ int update_http_infos(request_t *req)
 	c = *ptr;
 	*ptr = '\0';
 	req->http_infos.version = proxenet_xstrdup2(buf);
+        if (!req->http_infos.version){
+                xlog(LOG_ERROR, "%s\n", "strdup(version) failed, cannot pursue...");
+                return -1;
+        }
 	*ptr = c;
 
 
         /* refresh uri */
         req->http_infos.uri = get_request_full_uri(req);
+        if(!req->http_infos.uri){
+                xlog(LOG_ERROR, "%s\n", "get_request_full_uri() failed");
+                return -1;
+        }
 
 
 #ifdef DEBUG
 	if (cfg->verbose) {
 		xlog(LOG_DEBUG,
-		     "Request HTTP information:\nmethod=%s\nproto=%s\nhostname=%s\nport=%d\npath=%s\nversion=%s\n",
+		     "Request HTTP information:\n"
+                     "method=%s\n"
+                     "proto=%s\n"
+                     "hostname=%s\n"
+                     "port=%d\n"
+                     "path=%s\n"
+                     "version=%s\n"
+                     ,
 		     req->http_infos.method,
 		     req->http_infos.proto,
 		     req->http_infos.hostname,
