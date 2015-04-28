@@ -65,6 +65,53 @@ static char* get_request_full_uri(request_t* req)
 
 
 /**
+ * This function defines the request type with the hostname and port based on the URI gathered
+ * from the buffer.
+ *
+ * This is for example used for
+ * CONNECT IP:PORT HTTP/1.0
+ * types of requests.
+ *
+ * If :PORT is not found, then req.http_infos.port is left untouched (must be defined priorly).
+ *
+ * @return 0 on success, -1 if error
+ */
+static int get_hostname_from_uri(request_t* req, int offset)
+{
+        char *ptr, c, *buf;
+
+        buf = req->data + offset;
+
+        /* block */
+	ptr = strchr(buf, ' ');
+	if (!ptr){
+                xlog(LOG_ERROR, "%s\n", "Invalid URI block");
+                return -1;
+        }
+
+        c = *ptr;
+	*ptr = '\0';
+
+        buf = proxenet_xstrdup2(buf);
+
+        /* host and port */
+        ptr = strchr(buf, ':');
+	if (ptr){
+                /* explicit port */
+                req->http_infos.port = atoi(ptr+1);
+                *ptr = '\0';
+        }
+
+        req->http_infos.hostname = proxenet_xstrdup2(buf);
+
+	*ptr = c;
+        proxenet_xfree(buf);
+
+        return 0;
+}
+
+
+/**
  *
  */
 static int get_hostname_from_header(request_t *req)
@@ -171,8 +218,11 @@ int update_http_infos(request_t *req)
 	ptr = strchr(buf, ' ');
 	if (!ptr){
                 xlog(LOG_ERROR, "%s\n", "Cannot find HTTP method in request");
+                if (cfg->verbose)
+                        xlog(LOG_ERROR, "Buffer sent:\n%s\n", buf);
                 return -1;
         }
+
 	c = *ptr;
 	*ptr = '\0';
 	req->http_infos.method = proxenet_xstrdup2(buf);
@@ -182,17 +232,35 @@ int update_http_infos(request_t *req)
         }
 
 	*ptr = c;
-
         if (!strcmp(req->http_infos.method, "CONNECT")){
                 req->is_ssl = true;
                 req->http_infos.proto = "https";
                 req->http_infos.port = HTTPS_DEFAULT_PORT;
-        }
 
+                /* For CONNECT, use header */
+                /* CONNECT IP:PORT HTTP/1.0 */
+                /* instead of Host: */
+
+                if( get_hostname_from_uri(req, (ptr - buf + 1)) < 0 ){
+                        xlog(LOG_ERROR, "%s\n", "Failed to get hostname (URI)");
+                        return -1;
+                }
+
+                req->http_infos.path = proxenet_xstrdup2("/");
+                req->http_infos.version = proxenet_xstrdup2("HTTP/1.0");
+
+                req->http_infos.uri = get_request_full_uri(req);
+                if(!req->http_infos.uri){
+                        xlog(LOG_ERROR, "%s\n", "get_request_full_uri() failed");
+                        return -1;
+                }
+
+                return 0;
+        }
 
         /* hostname and port */
         if( get_hostname_from_header(req) < 0 ){
-                xlog(LOG_ERROR, "%s\n", "Failed to get hostname");
+                xlog(LOG_ERROR, "%s\n", "Failed to get hostname (Host header)");
                 return -1;
         }
 
@@ -330,7 +398,7 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
 
 #ifdef DEBUG
         xlog(LOG_DEBUG, "Relay request %s to '%s:%s'\n",
-             use_proxy?"via proxy":"direct",
+             use_proxy ? "via proxy":"direct",
              host, port);
 #endif
 
