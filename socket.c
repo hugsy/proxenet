@@ -66,7 +66,7 @@ sock_t create_bind_socket(char *host, char* port)
 	sock = -1;
 	retcode = getaddrinfo(host, port, &hostinfo, &res);
 	if (retcode != 0) {
-		xlog(LOG_ERROR, "getaddrinfo('%s:%d') failed: %s\n", host, port, retcode, gai_strerror(retcode));
+		xlog(LOG_ERROR, "getaddrinfo('%s:%s') failed: %s\n", host, port, retcode, gai_strerror(retcode));
 		freeaddrinfo(res);
 		return -1;
 	}
@@ -137,7 +137,7 @@ sock_t create_connect_socket(char *host, char* port)
 	/* get host info */
 	retcode = getaddrinfo(host, port, &hostinfo, &res);
 	if ( retcode < 0 ) {
-            xlog(LOG_ERROR, "getaddrinfo('%s:%d') failed: %s\n", host, port, gai_strerror(retcode));
+            xlog(LOG_ERROR, "getaddrinfo('%s:%s') failed: %s\n", host, port, gai_strerror(retcode));
 		return -1;
 	}
 

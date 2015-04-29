@@ -139,13 +139,13 @@ static int get_hostname_from_header(request_t *req)
                 xlog(LOG_ERROR, "%s\n", "strdup(hostname) failed, cannot pursue...");
                 return -1;
         }
-        *ptr2 = c;
 
         /* if port number, copy it */
-        if (*ptr2 == ':'){
+        if (c == ':'){
                 req->http_infos.port = (unsigned short)atoi(ptr2+1);
         }
 
+        *ptr2 = c;
         return 0;
 }
 
@@ -214,7 +214,7 @@ int update_http_infos(request_t *req)
 
 	buf = req->data;
 
-	/* method  */
+	/* method */
 	ptr = strchr(buf, ' ');
 	if (!ptr){
                 xlog(LOG_ERROR, "%s\n", "Cannot find HTTP method in request");
@@ -257,20 +257,19 @@ int update_http_infos(request_t *req)
                 return 0;
         }
 
+
         /* hostname and port */
+        if (req->is_ssl){
+                req->http_infos.port = HTTPS_DEFAULT_PORT;
+                req->http_infos.proto = "https";
+        } else {
+                req->http_infos.port = HTTP_DEFAULT_PORT;
+                req->http_infos.proto = "http";
+        }
+
         if( get_hostname_from_header(req) < 0 ){
                 xlog(LOG_ERROR, "%s\n", "Failed to get hostname (Host header)");
                 goto failed_hostname;
-        }
-
-        if (req->http_infos.port == 0){
-                if (req->is_ssl){
-                        req->http_infos.port = HTTPS_DEFAULT_PORT;
-                        req->http_infos.proto = "https";
-                } else {
-                        req->http_infos.port = HTTP_DEFAULT_PORT;
-                        req->http_infos.proto = "http";
-                }
         }
 
 
