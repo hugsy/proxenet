@@ -309,14 +309,7 @@ static int plugin_cmd_set(sock_t fd, char *options)
         char *ptr;
         unsigned int plugin_id;
 
-        ptr = strtok(options, " \n");
-        if (!ptr) {
-                n = sprintf(msg, "Missing plugin id\n");
-                proxenet_write(fd, (void*)msg, n);
-                return -1;
-        }
-
-        plugin_id = (unsigned int)atoi(ptr);
+        plugin_id = (unsigned int)atoi(options);
         if (plugin_id > proxenet_plugin_list_size()) {
                 n = sprintf(msg, "Invalid plugin id\n");
                 proxenet_write(fd, (void*)msg, n);
@@ -325,7 +318,7 @@ static int plugin_cmd_set(sock_t fd, char *options)
 
         ptr = strtok(NULL, " \n");
         if(!ptr){
-                n = snprintf(msg, BUFSIZE, "Invalid set command syntax: plugin set <%d> command\n", plugin_id);
+                n = snprintf(msg, BUFSIZE, "Invalid set command syntax: plugin set %d <command>\n", plugin_id);
                 proxenet_write(fd, (void*)msg, n);
                 return -1;
         }
@@ -343,7 +336,11 @@ static int plugin_cmd_set(sock_t fd, char *options)
                 return 0;
         }
 
-        return 0;
+
+        n = snprintf(msg, BUFSIZE, "Unknown action '%s' for plugin %d\n", ptr, plugin_id);
+        proxenet_write(fd, (void*)msg, n);
+
+        return -1;
 }
 
 
