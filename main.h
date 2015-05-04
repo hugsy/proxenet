@@ -53,6 +53,8 @@ typedef struct __proxenet_config {
 
 		unsigned short try_exit;
 		unsigned short try_exit_max;
+
+                bool ie_compat;
 } conf_t;
 
 conf_t current_config;
