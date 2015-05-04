@@ -502,3 +502,120 @@ unsigned int count_initialized_plugins_by_type(supported_plugins_t type)
 
 	return i;
 }
+
+
+/**
+ * Lookup for a plugin.
+ *
+ * @param plugin_id is the identifier of the plugin
+ * @return the reference to the plugin, or NULL if plugin was not found.
+ */
+plugin_t* proxenet_get_plugin_by_id(unsigned short plugin_id)
+{
+        plugin_t *p;
+
+        for (p=plugins_list; p!=NULL; p=p->next)
+                if (p->id == plugin_id)
+                        return p;
+
+        return NULL;
+}
+
+
+/**
+ * Check and change a plugin state.
+ *
+ * @param p is the reference to the plugin to update
+ * @param state is the new state to apply
+ * @return 0 upon success, or -1 if a check has failed.
+ */
+int proxenet_plugin_set_state(unsigned short plugin_id, proxenet_state state)
+{
+        plugin_t* p;
+
+        p = proxenet_get_plugin_by_id( plugin_id );
+        if (!p)
+                return -1;
+
+        if (state!=ACTIVE && state!=INACTIVE)
+                return -1;
+
+        p->state = state;
+
+        if (cfg->verbose){
+                xlog(LOG_INFO,
+                     "Plugin %d '%s' is now %sACTIVE\n"NOCOLOR,
+                     p->id,
+                     p->name,
+                     (p->state==INACTIVE ? RED"IN" : GREEN""));
+        }
+
+        return 0;
+}
+
+
+/**
+ * Check and change a plugin prority.
+ *
+ * @param p is the reference to the plugin to update
+ * @param prority is the new prority to apply
+ * @return 0 upon success, or -1 if a check has failed.
+ */
+int proxenet_plugin_set_prority(unsigned short plugin_id, unsigned short priority)
+{
+        plugin_t* plugin;
+        plugin_t* p;
+        bool has_changed;
+
+        plugin = proxenet_get_plugin_by_id( plugin_id );
+        if (!plugin)
+                return -1;
+
+        if (priority==0 || priority>=10)
+                return -1;
+
+        if (!plugins_list)
+                return -1;
+
+        if (!plugin)
+                return -1;
+
+
+        /* 1. unlink `plugin` */
+        has_changed = false;
+        for (p=plugins_list; p!=NULL; p=p->next){
+                if (p->next == plugin){
+                        p->next = plugin->next;
+                        has_changed = true;
+                        break;
+                }
+        }
+        if (!has_changed)
+                return -1;
+
+
+        /* 2. relink `plugin` in its new position */
+        has_changed = false;
+        for (p=plugins_list; p!=NULL; p=p->next){
+                if (p->priority > priority)
+                        continue;
+
+                plugin->next = p->next;
+                p->next = plugin;
+
+                plugin->priority = priority;
+                has_changed = true;
+        }
+        if (!has_changed)
+                return -1;
+
+
+        if (cfg->verbose){
+                xlog(LOG_INFO,
+                     "Plugin %hu '%s' has a priority of %hu\n",
+                     plugin->id,
+                     plugin->name,
+                     plugin->priority);
+        }
+        return 0;
+}

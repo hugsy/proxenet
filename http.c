@@ -15,6 +15,11 @@
 #include "ssl.h"
 #include "main.h"
 
+#define HTTP_STRING  "http"
+#define HTTPS_STRING "https"
+#define HTTP_PROTO_STRING  HTTP_STRING"://"
+#define HTTPS_PROTO_STRING HTTPS_STRING"://"
+
 
 /**
  *
@@ -50,12 +55,12 @@ static char* get_request_full_uri(request_t* req)
 	if (!req || !http_infos)
                 return NULL;
 
-	len = sizeof("https://") + strlen(http_infos->hostname) + sizeof(":") + sizeof("65535");
+	len = sizeof(HTTPS_PROTO_STRING) + strlen(http_infos->hostname) + sizeof(":") + sizeof("65535");
 	len+= strlen(http_infos->path);
 	uri = (char*)proxenet_xmalloc(len+1);
 
-	snprintf(uri, len, "%s://%s:%d%s",
-		 req->is_ssl?"https":"http",
+	snprintf(uri, len, "%s%s:%d%s",
+		 req->is_ssl?HTTPS_PROTO_STRING:HTTP_PROTO_STRING,
 		 http_infos->hostname,
 		 http_infos->port,
 		 http_infos->path);
@@ -164,17 +169,18 @@ int format_http_request(char** request, size_t* request_len)
 
         offlen = -1;
 	old_ptr = new_ptr = NULL;
-	old_ptr = strstr(*request, "http://");
+	old_ptr = strstr(*request, HTTP_PROTO_STRING);
 	if (old_ptr)
 		offlen = 7;
 	else {
-		old_ptr = strstr(*request, "https://");
+		old_ptr = strstr(*request, HTTPS_PROTO_STRING);
 		if (old_ptr)
 			offlen = 8;
 	}
 
 	if (offlen < 0) {
-		xlog(LOG_ERROR, "Cannot find protocol (http|https) in request:\n%s\n", *request);
+		xlog(LOG_ERROR, "Cannot find protocol (%s|%s) in request:\n%s\n",
+                     HTTP_STRING, HTTPS_STRING, *request);
 		return -1;
 	}
 
@@ -236,7 +242,7 @@ int update_http_infos(request_t *req)
                 int offset;
 
                 req->is_ssl = true;
-                req->http_infos.proto = "https";
+                req->http_infos.proto = HTTPS_STRING;
                 req->http_infos.port = HTTPS_DEFAULT_PORT;
                 offset = ptr - buf + 1;
 
@@ -261,10 +267,10 @@ int update_http_infos(request_t *req)
         /* hostname and port */
         if (req->is_ssl){
                 req->http_infos.port = HTTPS_DEFAULT_PORT;
-                req->http_infos.proto = "https";
+                req->http_infos.proto = HTTPS_STRING;
         } else {
                 req->http_infos.port = HTTP_DEFAULT_PORT;
-                req->http_infos.proto = "http";
+                req->http_infos.proto = HTTP_STRING;
         }
 
         if( get_hostname_from_header(req) < 0 ){
@@ -276,7 +282,7 @@ int update_http_infos(request_t *req)
 	/* path */
         buf = ptr+1;
 
-        if (!strncmp(buf, "http://", 7)){
+        if (!strncmp(buf, HTTP_PROTO_STRING, strlen(HTTP_PROTO_STRING))){
                 buf = strchr(buf + 8, '/');
         }
 
@@ -323,25 +329,28 @@ int update_http_infos(request_t *req)
         }
 
 
-#ifdef DEBUG
-	if (cfg->verbose) {
-		xlog(LOG_DEBUG,
-		     "Request HTTP information:\n"
-                     "method=%s\n"
-                     "proto=%s\n"
-                     "hostname=%s\n"
-                     "port=%d\n"
-                     "path=%s\n"
-                     "version=%s\n"
-                     ,
-		     req->http_infos.method,
-		     req->http_infos.proto,
-		     req->http_infos.hostname,
-		     req->http_infos.port,
-		     req->http_infos.path,
-		     req->http_infos.version);
+        if (cfg->verbose) {
+                xlog(LOG_INFO, "New request %d to '%s'\n",
+                     req->id, req->http_infos.uri);
+
+                if (cfg->verbose >= 2) {
+                        xlog(LOG_INFO,
+                             "Request HTTP information:\n"
+                             "method=%s\n"
+                             "proto=%s\n"
+                             "hostname=%s\n"
+                             "port=%d\n"
+                             "path=%s\n"
+                             "version=%s\n"
+                             ,
+                             req->http_infos.method,
+                             req->http_infos.proto,
+                             req->http_infos.hostname,
+                             req->http_infos.port,
+                             req->http_infos.path,
+                             req->http_infos.version);
+                }
         }
-#endif
 
         return 0;
 
@@ -372,6 +381,9 @@ void free_http_infos(http_request_t *hi)
         proxenet_xclean(hi->path,     strlen(hi->path));
         proxenet_xclean(hi->version,  strlen(hi->version));
         proxenet_xclean(hi->uri,      strlen(hi->uri));
+
+        hi->proto = NULL;
+        hi->port = 0;
         return;
 }
 
