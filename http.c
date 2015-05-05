@@ -30,16 +30,21 @@ static void generic_http_error_page(sock_t sock, char* msg)
 	char* html_footer = "</body></html>";
 
 	if (write(sock, html_header, strlen(html_header)) < 0) {
-		xlog(LOG_ERROR, "%s\n", "Failed to write error HTML header");
+		xlog(LOG_ERROR, "Failed to write error HTML header: %s\n", strerror(errno));
+                return;
 	}
 
 	if(write(sock, msg, strlen(msg)) < 0){
-		xlog(LOG_ERROR, "%s\n", "Failed to write error HTML page");
+		xlog(LOG_ERROR, "Failed to write error HTML page: %s\n", strerror(errno));
+                return;
 	}
 
 	if(write(sock, html_footer, strlen(html_footer)) < 0){
-		xlog(LOG_ERROR, "%s\n", "Failed to write error HTML footer");
+		xlog(LOG_ERROR, "Failed to write error HTML footer: %s\n", strerror(errno));
+                return;
 	}
+
+        return;
 }
 
 
@@ -117,40 +122,61 @@ static int get_hostname_from_uri(request_t* req, int offset)
 
 
 /**
+ * Look up for a header in a request.
+ *
+ * @return a pointer to a malloc-ed buffer containing a copy of the value of the header if found,
+ * NULL in any other case. The buffer must be free-ed by the caller.
+ */
+static char* get_header_by_name(char* request, const char* header_name)
+{
+        char *ptr, *ptr2, c, *header_value;
+
+        /* get header */
+        ptr = strstr(request, header_name);
+        if(!ptr){
+                xlog(LOG_ERROR, "Header '%s' not found\n", header_name);
+                return NULL;
+        }
+
+        /* move to start of hostname  */
+        ptr += strlen(header_name);
+        ptr2 = ptr;
+
+        /* get the end of header line */
+        for(; *ptr2 && *ptr2!=':' && *ptr2!=' ' && *ptr2!='\r'; ptr2++);
+        c = *ptr2;
+        *ptr2 = '\0';
+
+        /* copy the value  */
+	header_value = proxenet_xstrdup2(ptr);
+        if (!header_value){
+                xlog(LOG_ERROR, "strdup(header '%s') failed.\n", header_name);
+                return NULL;
+        }
+
+        *ptr2 = c;
+        return header_value;
+}
+
+
+/**
  *
  */
 static int get_hostname_from_header(request_t *req)
 {
-        char *ptr, *ptr2, c;
-        const char host_header_prefix[] = "Host: ";
+        char *ptr;
 
-        /* get Host header */
-        ptr = strstr(req->data, host_header_prefix);
-        if(!ptr){
-                xlog(LOG_ERROR, "%s\n", "No Host header found");
-                return -1;
-        }
-
-        /* move to start of hostname  */
-        ptr += strlen(host_header_prefix);
-        ptr2 = ptr;
-
-        /* copy hostname */
-        for(; *ptr2 && *ptr2!=':' && *ptr2!=' ' && *ptr2!='\r'; ptr2++);
-        c = *ptr2;
-        *ptr2 = '\0';
-	req->http_infos.hostname = proxenet_xstrdup2(ptr);
+	req->http_infos.hostname = get_header_by_name(req->data, "Host: ");
         if (!req->http_infos.hostname){
-                xlog(LOG_ERROR, "%s\n", "strdup(hostname) failed, cannot pursue...");
                 return -1;
         }
 
         /* if port number, copy it */
-        if (c == ':'){
-                req->http_infos.port = (unsigned short)atoi(ptr2+1);
+        ptr = strchr(req->http_infos.hostname, ':');
+        if (ptr){
+                req->http_infos.port = (unsigned short)atoi(ptr+1);
         }
 
-        *ptr2 = c;
         return 0;
 }
 
@@ -538,4 +564,66 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
 
 
 	return retcode;
+}
+
+
+/**
+ *****************************************************************************************
+ *          EXPERIMENTAL
+ *          PARTIALLY TESTED
+ *****************************************************************************************
+ *
+ *
+ * Add old IE support (Compatibility View) for POST requests by forcing a 2nd read on the
+ * server socket, to make IE send the POST body.
+ * DO NOT use this mode if you are using anything but IE < 10
+ *
+ * @return 0 if successful, -1 otherwise
+ */
+int ie_compat_read_post_body(sock_t sock, request_t* req, proxenet_ssl_context_t* sslctx)
+{
+        int nb;
+        size_t old_len, body_len;
+        char *body, *clen;
+
+        if (strcmp(req->http_infos.method, "POST")!=0)
+                return 0;
+
+#ifdef DEBUG
+        xlog(LOG_DEBUG, "%s\n", "Extending request for IE support");
+#endif
+        clen = get_header_by_name(req->data, "Content-Length: ");
+        if (!clen){
+                xlog(LOG_ERROR, "%s\n", "Extending IE POST: No Content-Length");
+                return -1;
+        }
+
+        body_len = (size_t)atoi(clen);
+        proxenet_xfree(clen);
+
+        if (body_len==0){
+                return 0;
+        }
+
+        nb = proxenet_read_all(sock, &body, sslctx);
+        if (nb<0){
+                xlog(LOG_ERROR, "%s\n", "Extending IE POST: failed to read");
+                return -1;
+        }
+
+        if (nb>0){
+                old_len = req->size;
+                req->size = old_len + (size_t)nb;
+                req->data = proxenet_xrealloc(req->data, req->size);
+                memcpy(req->data + old_len, body, (size_t)nb);
+        }
+
+        proxenet_xfree(body);
+
+#ifdef DEBUG
+        xlog(LOG_DEBUG, "Extending request for IE: new_size=%d (content-length=%d)\n",
+             req->size, body_len);
+#endif
+
+        return 0;
 }

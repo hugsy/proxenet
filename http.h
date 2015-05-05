@@ -17,5 +17,6 @@ int      create_http_socket(request_t*, sock_t*, sock_t*, ssl_context_t*);
 int      format_http_request(char**, size_t*);
 int      update_http_infos(request_t*);
 void     free_http_infos(http_request_t *);
+int      ie_compat_read_post_body(sock_t, request_t*, proxenet_ssl_context_t*);
 
 #endif /* _HTTP_H */

@@ -604,8 +604,8 @@ void proxenet_process_http_request(sock_t server_socket)
 
                         /* proxy keep-alive */
                         if (req.id > 0){
-                                if (cfg->ie_compat)
-                                        goto apply_client_plugins;
+                                /* if (cfg->ie_compat) */
+                                        /* goto apply_client_plugins; */
 
                                 request_t* old_req = (request_t*)proxenet_xmalloc(sizeof(request_t));
                                 memcpy(old_req, &req, sizeof(request_t));
@@ -720,7 +720,19 @@ void proxenet_process_http_request(sock_t server_socket)
                         }
 
 
-                apply_client_plugins:
+                        if(cfg->ie_compat){
+                                if (is_ssl)
+                                        retcode = ie_compat_read_post_body(server_socket, &req, &(ssl_context.server.context));
+                                else
+                                        retcode = ie_compat_read_post_body(server_socket, &req, NULL);
+                                if (retcode < 0){
+                                        xlog(LOG_ERROR, "%s\n", "Extending IE POST: failed");
+                                        proxenet_xfree(req.data);
+                                        break;
+                                }
+                        }
+
+
                         /* apply plugins for requests (from browser to server) */
                         if (cfg->verbose) {
                                 xlog(LOG_INFO, "%s request to '%s:%d'\n",
