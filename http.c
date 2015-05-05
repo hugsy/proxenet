@@ -586,18 +586,18 @@ int ie_compat_read_post_body(sock_t sock, request_t* req, proxenet_ssl_context_t
         size_t old_len, body_len;
         char *body, *clen;
 
+        /* to speed-up, disregard requests without body */
         if (strcmp(req->http_infos.method, "POST")!=0)
                 return 0;
 
-#ifdef DEBUG
-        xlog(LOG_DEBUG, "%s\n", "Extending request for IE support");
-#endif
+        /* read Content-Length header */
         clen = get_header_by_name(req->data, "Content-Length: ");
         if (!clen){
                 xlog(LOG_ERROR, "%s\n", "Extending IE POST: No Content-Length");
                 return -1;
         }
 
+        /* if Content-Length is zero */
         body_len = (size_t)atoi(clen);
         proxenet_xfree(clen);
 
@@ -605,12 +605,24 @@ int ie_compat_read_post_body(sock_t sock, request_t* req, proxenet_ssl_context_t
                 return 0;
         }
 
+        /* if everything has already been sent (i.e. end of already received buffer is not CRLF*2) */
+        if (req->data[ req->size-4 ] != '\r')
+                return 0;
+        if (req->data[ req->size-3 ] != '\n')
+                return 0;
+        if (req->data[ req->size-2 ] != '\r')
+                return 0;
+        if (req->data[ req->size-1 ] != '\n')
+                return 0;
+
+        /* read data (if any) */
         nb = proxenet_read_all(sock, &body, sslctx);
         if (nb<0){
                 xlog(LOG_ERROR, "%s\n", "Extending IE POST: failed to read");
                 return -1;
         }
 
+        /* and extend the request buffer */
         if (nb>0){
                 old_len = req->size;
                 req->size = old_len + (size_t)nb;

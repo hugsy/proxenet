@@ -72,7 +72,7 @@ static void usage(int retcode)
                 "\t-I, --intercept-only\t\t\tIntercept only hostnames matching pattern (default mode)\n"
                 "\t-E, --intercept-except\t\t\tIntercept everything except hostnames matching pattern\n"
                 "\t-m, --pattern=PATTERN\t\t\tSpecify a hostname matching pattern (default: '%s')\n"
-                "\t-i, --ie-compatibility\t\t\tUse this option only when proxy-ing IE (experimental)\n"
+                "\t-i, --ie-compatibility\t\t\tUse this option only when proxy-ing IE (EXPERIMENTAL)\n"
                 ,
 
                 CFG_DEFAULT_INTERCEPT_PATTERN
@@ -313,7 +313,11 @@ static int parse_options (int argc, char** argv)
                         case 'y': sslcli_keyfile = optarg; break;
                         case 'Y': sslcli_keyfile_pwd = optarg; break;
 
-                        case 'i': cfg->ie_compat = true; break;
+                        case 'i':
+                                cfg->ie_compat = true;
+                                xlog(LOG_WARNING, "%s\n", "Enabling IE compatibility mode.");
+                                xlog(LOG_WARNING, "%s\n", "This mode should not be used with anything but IE <10.");
+                                break;
 
                         case '?':
                         default:
