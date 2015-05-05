@@ -78,7 +78,7 @@ void _xlog(int type, const char* fmt, ...)
 /**
  * malloc(3) wrapper. Checks size and zero-fill buffer.
  *
- * Note: (re-)allocation is a "success-or-die" process in proxenet.
+ * Note: (re-)allocation is a "succeed-or-die" process in proxenet.
  *
  * @param size: buffer size to allocate on heap
  * @return ptr: allocated zero-filled buffer pointer
