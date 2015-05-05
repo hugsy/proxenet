@@ -220,7 +220,7 @@ void reload_cmd(sock_t fd, char *options, unsigned int nb_options)
         (void) nb_options;
 
         if (get_active_threads_size() > 0) {
-                msg = "Threads still active, cannot reload";
+                msg = "Threads still active, cannot reload\n";
                 proxenet_write(fd, (void*)msg, strlen(msg));
                 return;
         }
@@ -231,7 +231,7 @@ void reload_cmd(sock_t fd, char *options, unsigned int nb_options)
         proxenet_free_all_plugins();
 
         if( proxenet_initialize_plugins_list() < 0) {
-                msg = "Failed to reinitilize plugins";
+                msg = "Failed to reinitilize plugins\n";
                 proxenet_write(fd, (void*)msg, strlen(msg));
                 proxy_state = INACTIVE;
                 return;
