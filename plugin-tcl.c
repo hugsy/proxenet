@@ -143,7 +143,6 @@ static char* proxenet_tcl_execute_function(interpreter_t* interpreter, request_t
         Tcl_ListObjAppendElement(tcl_interpreter, tcl_cmds_ptr, Tcl_NewStringObj(uri, -1));
 
 
-
         /* execute the commands */
 	if (Tcl_EvalObjEx(tcl_interpreter, tcl_cmds_ptr, TCL_EVAL_DIRECT) != TCL_OK) {
                 return NULL;
