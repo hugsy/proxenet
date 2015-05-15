@@ -27,11 +27,11 @@
  */
 static void version(bool end)
 {
-	printf("%s v%s\n", PROGNAME, VERSION);
-	if (end) {
-		proxenet_free_config();
-		exit(EXIT_SUCCESS);
-	}
+        printf("%s v%s\n", PROGNAME, VERSION);
+        if (end) {
+                proxenet_free_config();
+                exit(EXIT_SUCCESS);
+        }
 }
 
 
@@ -40,26 +40,26 @@ static void version(bool end)
  */
 static void usage(int retcode)
 {
-	FILE* fd;
-	fd = (retcode == 0) ? stdout : stderr;
+        FILE* fd;
+        fd = (retcode == 0) ? stdout : stderr;
 
         /* header  */
-	fprintf(fd,
-		"\n"RED"SYNTAX:"NOCOLOR"\n"
-		"\t%s "GREEN"[OPTIONS+]"NOCOLOR"\n"
-		"\n"RED"OPTIONS:"NOCOLOR"\n",
+        fprintf(fd,
+                "\n"RED"SYNTAX:"NOCOLOR"\n"
+                "\t%s "GREEN"[OPTIONS+]"NOCOLOR"\n"
+                "\n"RED"OPTIONS:"NOCOLOR"\n",
                 PROGNAME
                );
 
         /* general options help */
         fprintf(fd,
                 BLUE"General:"NOCOLOR"\n"
-		"\t-h, --help\t\t\t\tShow help\n"
-		"\t-V, --version\t\t\t\tShow version\n"
+                "\t-h, --help\t\t\t\tShow help\n"
+                "\t-V, --version\t\t\t\tShow version\n"
                 "\t-d, --daemon\t\t\t\tStart as daemon\n"
-		"\t-v, --verbose\t\t\t\tIncrease verbosity (default: 0)\n"
-		"\t-n, --no-color\t\t\t\tDisable colored output (better for )\n"
-		"\t-l, --logfile=/path/to/logfile\t\tLog actions in file (default stdout)\n"
+                "\t-v, --verbose\t\t\t\tIncrease verbosity (default: 0)\n"
+                "\t-n, --no-color\t\t\t\tDisable colored output (better for )\n"
+                "\t-l, --logfile=/path/to/logfile\t\tLog actions in file (default stdout)\n"
                 "\t-x, --plugins=/path/to/plugins/dir\tSpecify plugins directory (default: '%s')\n"
                 ,
 
@@ -67,39 +67,40 @@ static void usage(int retcode)
                );
 
         /* intercept options */
-         fprintf(fd,
+        fprintf(fd,
                 BLUE"Intercept mode:"NOCOLOR"\n"
-                 "\t-I, --intercept-only\t\t\tIntercept only hostnames matching pattern (default mode)\n"
-                 "\t-E, --intercept-except\t\t\tIntercept everything except hostnames matching pattern\n"
-                 "\t-m, --pattern=PATTERN\t\t\tSpecify a hostname matching pattern (default: '%s')\n"
-                 ,
+                "\t-I, --intercept-only\t\t\tIntercept only hostnames matching pattern (default mode)\n"
+                "\t-E, --intercept-except\t\t\tIntercept everything except hostnames matching pattern\n"
+                "\t-m, --pattern=PATTERN\t\t\tSpecify a hostname matching pattern (default: '%s')\n"
+                "\t-i, --ie-compatibility\t\t\tUse this option only when proxy-ing IE (EXPERIMENTAL)\n"
+                ,
 
-                 CFG_DEFAULT_INTERCEPT_PATTERN
-                );
+                CFG_DEFAULT_INTERCEPT_PATTERN
+               );
 
         /* network options */
         fprintf(fd,
                 BLUE"Network:"NOCOLOR"\n"
-		"\t-4 \t\t\t\t\tIPv4 only (default)\n"
-		"\t-6 \t\t\t\t\tIPv6 only (default: IPv4)\n"
-		"\t-t, --nb-threads=N\t\t\tNumber of threads (default: %d)\n"
-		"\t-b, --bind=bindaddr\t\t\tBind local address (default: '%s')\n"
-		"\t-p, --port=N\t\t\t\tBind local port file (default: '%s')\n"
-		"\t-X, --proxy-host=proxyhost\t\tForward to proxy\n"
-		"\t-P  --proxy-port=proxyport\t\tSpecify port for proxy (default: '%s')\n"
+                "\t-4 \t\t\t\t\tIPv4 only (default)\n"
+                "\t-6 \t\t\t\t\tIPv6 only (default: IPv4)\n"
+                "\t-t, --nb-threads=N\t\t\tNumber of threads (default: %d)\n"
+                "\t-b, --bind=bindaddr\t\t\tBind local address (default: '%s')\n"
+                "\t-p, --port=N\t\t\t\tBind local port file (default: '%s')\n"
+                "\t-X, --proxy-host=proxyhost\t\tForward to proxy\n"
+                "\t-P  --proxy-port=proxyport\t\tSpecify port for proxy (default: '%s')\n"
                 ,
 
                 CFG_DEFAULT_NB_THREAD,
-		CFG_DEFAULT_BIND_ADDR,
-		CFG_DEFAULT_BIND_PORT,
-		CFG_DEFAULT_PROXY_PORT
+                CFG_DEFAULT_BIND_ADDR,
+                CFG_DEFAULT_BIND_PORT,
+                CFG_DEFAULT_PROXY_PORT
                );
 
         /* ssl options */
         fprintf(fd,
                 BLUE"SSL:"NOCOLOR"\n"
                 "\t-c, --certfile=/path/to/ssl.crt\t\tSpecify SSL cert to use (default: '%s')\n"
-		"\t-k, --keyfile=/path/to/ssl.key\t\tSpecify SSL private key file to use (default: '%s')\n"
+                "\t-k, --keyfile=/path/to/ssl.key\t\tSpecify SSL private key file to use (default: '%s')\n"
                 "\t--keyfile-passphrase=MyPwd\t\tSpecify the password for this SSL key (default: '%s')\n"
                 "\t--sslcli-certfile=/path/to/ssl.crt\tPath to the SSL client certificate to use\n"
                 "\t--sslcli-domain=my.ssl.domain.com\tDomain to use for invoking the client certificate (default: '%s')\n"
@@ -108,7 +109,7 @@ static void usage(int retcode)
                 ,
 
                 CFG_DEFAULT_SSL_CERTFILE,
-		CFG_DEFAULT_SSL_KEYFILE,
+                CFG_DEFAULT_SSL_KEYFILE,
                 CFG_DEFAULT_SSL_KEYFILE_PWD,
                 CFG_DEFAULT_SSL_CLIENT_DOMAIN,
                 CFG_DEFAULT_SSL_KEYFILE_PWD
@@ -116,7 +117,7 @@ static void usage(int retcode)
 
         fprintf(fd, "\n");
 
-	exit(retcode);
+        exit(retcode);
 }
 
 
@@ -125,44 +126,44 @@ static void usage(int retcode)
  */
 static void help()
 {
-	const char* plugin_name;
-	const char* plugin_ext;
-	int i;
+        const char* plugin_name;
+        const char* plugin_ext;
+        int i;
 
-	version(false);
-	printf("Written by %s\n"
-	       "Released under: %s\n"
-	       "Compiled by %s (%s) with support for :\n",
+        version(false);
+        printf("Written by %s\n"
+               "Released under: %s\n"
+               "Compiled by %s (%s) with support for :\n",
 
-	       AUTHOR,
+               AUTHOR,
                LICENSE,
                CC,
                SYSTEM);
 
-	i = 0;
-	while (true) {
-		plugin_name = supported_plugins_str[i];
-		plugin_ext  = plugins_extensions_str[i];
+        i = 0;
+        while (true) {
+                plugin_name = supported_plugins_str[i];
+                plugin_ext  = plugins_extensions_str[i];
 
-		if (!plugin_name || !plugin_ext)
-			break;
+                if (!plugin_name || !plugin_ext)
+                        break;
 
-		printf("\t[+] 0x%.2x   "GREEN"%-15s"NOCOLOR" (%s)\n", i, plugin_name, plugin_ext);
-		i++;
-	}
+                printf("\t[+] 0x%.2x   "GREEN"%-15s"NOCOLOR" (%s)\n", i, plugin_name, plugin_ext);
+                i++;
+        }
 
-	if (i==0)
-		printf("\t[-] "RED"No support for plugin"NOCOLOR"\n");
+        if (i==0)
+                printf("\t[-] "RED"No support for plugin"NOCOLOR"\n");
 
 #ifdef DEBUG
-	printf("\t[+] "BLUE"Proxenet DEBUG symbols"NOCOLOR"\n");
+        printf("\t[+] "BLUE"Proxenet DEBUG symbols"NOCOLOR"\n");
 #endif
 
 #ifdef DEBUG_SSL
-	printf("\t[+] "BLUE"PolarSSL DEBUG symbols"NOCOLOR"\n");
+        printf("\t[+] "BLUE"PolarSSL DEBUG symbols"NOCOLOR"\n");
 #endif
 
-	usage(EXIT_SUCCESS);
+        usage(EXIT_SUCCESS);
 }
 
 
@@ -179,15 +180,15 @@ static char* cfg_get_valid_file(char* param)
 {
         char buf[PATH_MAX+1]={0, };
 
-	if (!realpath(param, buf)){
-		xlog(LOG_CRITICAL, "realpath(%s) failed: %s\n", param, strerror(errno));
-		return NULL;
-	}
+        if (!realpath(param, buf)){
+                xlog(LOG_CRITICAL, "realpath(%s) failed: %s\n", param, strerror(errno));
+                return NULL;
+        }
 
-	if ( !is_readable_file(buf) ){
-		xlog(LOG_CRITICAL, "Failed to read private key '%s'\n", param);
-		return NULL;
-	}
+        if ( !is_readable_file(buf) ){
+                xlog(LOG_CRITICAL, "Failed to read private key '%s'\n", param);
+                return NULL;
+        }
 
         return proxenet_xstrdup2(buf);
 }
@@ -201,19 +202,19 @@ static char* cfg_get_valid_file(char* param)
  */
 static int parse_options (int argc, char** argv)
 {
-	int curopt, curopt_idx;
-	char *logfile, *plugin_path;
+        int curopt, curopt_idx;
+        char *logfile, *plugin_path;
         char *keyfile, *keyfile_pwd, *certfile;
         char *sslcli_keyfile, *sslcli_keyfile_pwd, *sslcli_certfile, *sslcli_domain;
-	char *proxy_host, *proxy_port;
+        char *proxy_host, *proxy_port;
         char *intercept_pattern;
 
-	proxy_host = proxy_port = NULL;
+        proxy_host = proxy_port = NULL;
 
-	const struct option long_opts[]  = {
+        const struct option long_opts[]  = {
                 { "version",                           0, 0, 'V' },
-		{ "help",                              0, 0, 'h' },
-		{ "verbose",                           0, 0, 'v' },
+                { "help",                              0, 0, 'h' },
+                { "verbose",                           0, 0, 'v' },
                 { "daemon",                            0, 0, 'd' },
                 { "no-color",                          0, 0, 'n' },
                 { "plugins",                           1, 0, 'x' },
@@ -223,82 +224,86 @@ static int parse_options (int argc, char** argv)
                 { "intercept-except",                  0, 0, 'I' },
                 { "match",                             1, 0, 'm' },
 
-		{ "nb-threads",                        1, 0, 't' },
-		{ "bind",                              1, 0, 'b' },
-		{ "port",                              1, 0, 'p' },
-		{ "proxy-host",                        1, 0, 'X' },
-		{ "proxy-port",                        1, 0, 'P' },
+                { "nb-threads",                        1, 0, 't' },
+                { "bind",                              1, 0, 'b' },
+                { "port",                              1, 0, 'p' },
+                { "proxy-host",                        1, 0, 'X' },
+                { "proxy-port",                        1, 0, 'P' },
 
-		{ "certfile",                          1, 0, 'c' },
-		{ "keyfile",                           1, 0, 'k' },
+                { "certfile",                          1, 0, 'c' },
+                { "keyfile",                           1, 0, 'k' },
                 { "keyfile-passphrase",                1, 0, 'K' },
 
-		{ "sslcli-certfile",                   1, 0, 'z' },
+                { "sslcli-certfile",                   1, 0, 'z' },
                 { "sslcli-domain",                     1, 0, 'Z' },
-		{ "sslcli-keyfile",                    1, 0, 'y' },
+                { "sslcli-keyfile",                    1, 0, 'y' },
                 { "sslcli-keyfile-passphrase",         1, 0, 'Y' },
 
-		{ 0, 0, 0, 0 }
-	};
+                { "ie-compat",                         0, 0, 'i'},
 
-	cfg->iface		= CFG_DEFAULT_BIND_ADDR;
-	cfg->port		= CFG_DEFAULT_BIND_PORT;
-	cfg->logfile_fd		= CFG_DEFAULT_OUTPUT;
-	cfg->nb_threads		= CFG_DEFAULT_NB_THREAD;
-	cfg->use_color		= true;
-	cfg->ip_version		= CFG_DEFAULT_IP_VERSION;
-	cfg->try_exit		= 0;
-	cfg->try_exit_max	= CFG_DEFAULT_TRY_EXIT_MAX;
+                { 0, 0, 0, 0 }
+        };
+
+        cfg->iface		= CFG_DEFAULT_BIND_ADDR;
+        cfg->port		= CFG_DEFAULT_BIND_PORT;
+        cfg->logfile_fd		= CFG_DEFAULT_OUTPUT;
+        cfg->nb_threads		= CFG_DEFAULT_NB_THREAD;
+        cfg->use_color		= true;
+        cfg->ip_version		= CFG_DEFAULT_IP_VERSION;
+        cfg->try_exit		= 0;
+        cfg->try_exit_max	= CFG_DEFAULT_TRY_EXIT_MAX;
         cfg->daemon		= false;
 
         cfg->intercept_mode	= INTERCEPT_ONLY;
         intercept_pattern	= CFG_DEFAULT_INTERCEPT_PATTERN;
 
-	plugin_path		= CFG_DEFAULT_PLUGINS_PATH;
+        plugin_path		= CFG_DEFAULT_PLUGINS_PATH;
         logfile			= NULL;
 
-	certfile		= CFG_DEFAULT_SSL_CERTFILE;
-	keyfile			= CFG_DEFAULT_SSL_KEYFILE;
+        certfile		= CFG_DEFAULT_SSL_CERTFILE;
+        keyfile			= CFG_DEFAULT_SSL_KEYFILE;
         keyfile_pwd		= CFG_DEFAULT_SSL_KEYFILE_PWD;
 
         cfg->certsdir		= CFG_DEFAULT_SSL_CERTSDIR;
         cfg->certskey		= CFG_DEFAULT_SSL_CERTSKEY;
         cfg->certskey_pwd	= CFG_DEFAULT_SSL_CERTSPWD;
 
-	sslcli_certfile		= NULL;
+        sslcli_certfile		= NULL;
         sslcli_domain		= CFG_DEFAULT_SSL_CLIENT_DOMAIN;
         sslcli_keyfile		= NULL;
         sslcli_keyfile_pwd	= CFG_DEFAULT_SSL_KEYFILE_PWD;
 
+        cfg->ie_compat          = false;
 
-	/* parse command line arguments */
-	while (1) {
-		curopt_idx = 0;
-		curopt = getopt_long (argc,argv,
-                                      "dn46Vhvb:p:l:t:c:k:K:x:X:P:z:y:Y:IEm:",
+
+        /* parse command line arguments */
+        while (1) {
+                curopt_idx = 0;
+                curopt = getopt_long (argc,argv,
+                                      "dn46Vhvb:p:l:t:c:k:K:x:X:P:z:y:Y:IEm:i",
                                       long_opts, &curopt_idx);
-		if (curopt == -1) break;
+                if (curopt == -1) break;
 
-		switch (curopt) {
-			case 'v': cfg->verbose++; break;
-			case 'b': cfg->iface = optarg; break;
-			case 'p': cfg->port = optarg; break;
-			case 'l': logfile = optarg; break;
-			case 't': cfg->nb_threads = (unsigned short)atoi(optarg); break;
-			case 'X':
-				proxy_host = optarg;
+                switch (curopt) {
+                        case 'v': cfg->verbose++; break;
+                        case 'b': cfg->iface = optarg; break;
+                        case 'p': cfg->port = optarg; break;
+                        case 'l': logfile = optarg; break;
+                        case 't': cfg->nb_threads = (unsigned short)atoi(optarg); break;
+                        case 'X':
+                                proxy_host = optarg;
                                 proxy_port = CFG_DEFAULT_PROXY_PORT;
-				break;
-			case 'P': proxy_port = optarg; break;
-			case 'c': certfile = optarg; break;
-			case 'k': keyfile = optarg; break;
+                                break;
+                        case 'P': proxy_port = optarg; break;
+                        case 'c': certfile = optarg; break;
+                        case 'k': keyfile = optarg; break;
                         case 'K': keyfile_pwd = optarg; break;
-			case 'h': help(); break;
-			case 'V': version(true); break;
-			case 'n': cfg->use_color = false; break;
-			case '4': cfg->ip_version = AF_INET; break;
-			case '6': cfg->ip_version = AF_INET6; break;
-			case 'x': plugin_path = optarg; break;
+                        case 'h': help(); break;
+                        case 'V': version(true); break;
+                        case 'n': cfg->use_color = false; break;
+                        case '4': cfg->ip_version = AF_INET; break;
+                        case '6': cfg->ip_version = AF_INET6; break;
+                        case 'x': plugin_path = optarg; break;
                         case 'd': cfg->daemon = true; break;
                         case 'I': cfg->intercept_mode = INTERCEPT_ONLY; break;
                         case 'E': cfg->intercept_mode = INTERCEPT_EXCEPT; break;
@@ -308,37 +313,43 @@ static int parse_options (int argc, char** argv)
                         case 'y': sslcli_keyfile = optarg; break;
                         case 'Y': sslcli_keyfile_pwd = optarg; break;
 
-			case '?':
-			default:
-				usage (EXIT_FAILURE);
-		}
-		curopt_idx = 0;
-	}
+                        case 'i':
+                                cfg->ie_compat = true;
+                                xlog(LOG_WARNING, "%s\n", "Enabling IE compatibility mode.");
+                                xlog(LOG_WARNING, "%s\n", "This mode should not be used with anything but IE <10.");
+                                break;
 
-	/* validate command line arguments */
+                        case '?':
+                        default:
+                                usage (EXIT_FAILURE);
+                }
+                curopt_idx = 0;
+        }
 
-	/* logfile validation : if a logfile is given, use its FILE* for output */
-	if (logfile) {
-		cfg->logfile = realpath(logfile, NULL);
-		if (cfg->logfile == NULL){
-			xlog(LOG_CRITICAL, "realpath(logfile) failed: %s\n", strerror(errno));
-			return -1;
-		}
-		if(is_readable_file(cfg->logfile)) {
-			cfg->logfile_fd = fopen(cfg->logfile, "w");
-			if(!cfg->logfile_fd) {
-				cfg->logfile_fd = stderr;
-				xlog(LOG_CRITICAL, "[-] Failed to open '%s': %s\n", cfg->logfile, strerror(errno));
-				return -1;
-			}
-		}
-	}
+        /* validate command line arguments */
 
-	/* check if nb of threads is in boundaries */
-	if (cfg->nb_threads > MAX_THREADS) {
-		fprintf(stderr, "Thread number invalid. Setting to default.\n");
-		cfg->nb_threads = CFG_DEFAULT_NB_THREAD;
-	}
+        /* logfile validation : if a logfile is given, use its FILE* for output */
+        if (logfile) {
+                cfg->logfile = realpath(logfile, NULL);
+                if (cfg->logfile == NULL){
+                        xlog(LOG_CRITICAL, "realpath(logfile) failed: %s\n", strerror(errno));
+                        return -1;
+                }
+                if(is_readable_file(cfg->logfile)) {
+                        cfg->logfile_fd = fopen(cfg->logfile, "w");
+                        if(!cfg->logfile_fd) {
+                                cfg->logfile_fd = stderr;
+                                xlog(LOG_CRITICAL, "[-] Failed to open '%s': %s\n", cfg->logfile, strerror(errno));
+                                return -1;
+                        }
+                }
+        }
+
+        /* check if nb of threads is in boundaries */
+        if (cfg->nb_threads > MAX_THREADS) {
+                fprintf(stderr, "Thread number invalid. Setting to default.\n");
+                cfg->nb_threads = CFG_DEFAULT_NB_THREAD;
+        }
 
         /* setting the interception mode */
         cfg->intercept_pattern = proxenet_xstrdup2(intercept_pattern);
@@ -347,27 +358,27 @@ static int parse_options (int argc, char** argv)
 
 #ifdef DEBUG
         xlog(LOG_DEBUG, "Interception configured as '%s' for pattern '%s'\n",
-                cfg->intercept_mode==INTERCEPT_ONLY?"INTERCEPT_ONLY":"INTERCEPT_EXCEPT",
-                cfg->intercept_pattern);
+             cfg->intercept_mode==INTERCEPT_ONLY?"INTERCEPT_ONLY":"INTERCEPT_EXCEPT",
+             cfg->intercept_pattern);
 #endif
 
-	/* check plugins path */
-	if (!is_valid_plugin_path(plugin_path, &cfg->plugins_path, &cfg->autoload_path))
-		return -1;
+        /* check plugins path */
+        if (!is_valid_plugin_path(plugin_path, &cfg->plugins_path, &cfg->autoload_path))
+                return -1;
 
 #ifdef DEBUG
         xlog(LOG_DEBUG, "Valid plugin tree for '%s' and '%s'\n", cfg->plugins_path, cfg->autoload_path);
 #endif
 
         /* validate proxenet SSL configuration for interception */
-	/* check ssl certificate */
-	cfg->cafile = cfg_get_valid_file(certfile);
-	if (!cfg->cafile)
-		return -1;
-	/* check ssl key */
-	cfg->keyfile = cfg_get_valid_file(keyfile);
-	if (!cfg->cafile)
-		return -1;
+        /* check ssl certificate */
+        cfg->cafile = cfg_get_valid_file(certfile);
+        if (!cfg->cafile)
+                return -1;
+        /* check ssl key */
+        cfg->keyfile = cfg_get_valid_file(keyfile);
+        if (!cfg->cafile)
+                return -1;
         /* get the key passphrase */
         cfg->keyfile_pwd = proxenet_xstrdup2(keyfile_pwd);
         if (!cfg->keyfile_pwd)
@@ -393,25 +404,25 @@ static int parse_options (int argc, char** argv)
                         return -1;
         }
 
-	/* check proxy values (if any) */
-	if ( proxy_port && !proxy_host) {
-		xlog(LOG_CRITICAL, "%s\n", "Cannot use proxy-port without proxy-host");
-		return -1;
-	}
+        /* check proxy values (if any) */
+        if ( proxy_port && !proxy_host) {
+                xlog(LOG_CRITICAL, "%s\n", "Cannot use proxy-port without proxy-host");
+                return -1;
+        }
 
-	if (proxy_host) {
-		cfg->proxy.host = proxenet_xstrdup2(proxy_host);
-		if (!cfg->proxy.host) {
-			xlog(LOG_CRITICAL, "proxy %s\n", strerror(errno));
-			return -1;
-		}
+        if (proxy_host) {
+                cfg->proxy.host = proxenet_xstrdup2(proxy_host);
+                if (!cfg->proxy.host) {
+                        xlog(LOG_CRITICAL, "proxy %s\n", strerror(errno));
+                        return -1;
+                }
 
-		cfg->proxy.port = proxenet_xstrdup2(proxy_port);
-		if (!cfg->proxy.port) {
-			xlog(LOG_CRITICAL, "proxy_port %s\n", strerror(errno));
-			return -1;
-		}
-	}
+                cfg->proxy.port = proxenet_xstrdup2(proxy_port);
+                if (!cfg->proxy.port) {
+                        xlog(LOG_CRITICAL, "proxy_port %s\n", strerror(errno));
+                        return -1;
+                }
+        }
 
         /* become a daemon */
         if(cfg->daemon) {
@@ -428,7 +439,7 @@ static int parse_options (int argc, char** argv)
                 cfg->verbose = 0;
         }
 
-	return 0;
+        return 0;
 
 }
 
@@ -441,17 +452,17 @@ static int parse_options (int argc, char** argv)
  */
 int proxenet_init_config(int argc, char** argv)
 {
-	cfg = &current_config;
-	proxenet_xzero(cfg, sizeof(conf_t));
+        cfg = &current_config;
+        proxenet_xzero(cfg, sizeof(conf_t));
 
-	if (parse_options(argc, argv) < 0) {
-		xlog(LOG_CRITICAL, "%s\n", "Failed to parse arguments");
-		proxenet_free_config();
-		proxenet_xzero(cfg, sizeof(conf_t));
-		return -1;
-	}
+        if (parse_options(argc, argv) < 0) {
+                xlog(LOG_CRITICAL, "%s\n", "Failed to parse arguments");
+                proxenet_free_config();
+                proxenet_xzero(cfg, sizeof(conf_t));
+                return -1;
+        }
 
-	return 0;
+        return 0;
 }
 
 
@@ -460,32 +471,32 @@ int proxenet_init_config(int argc, char** argv)
  */
 void proxenet_free_config()
 {
-	/* those calls should be safe */
-	if (cfg->logfile)
-		proxenet_xfree(cfg->logfile);
+        /* those calls should be safe */
+        if (cfg->logfile)
+                proxenet_xfree(cfg->logfile);
 
         proxenet_xfree(cfg->intercept_pattern);
 
-	if (cfg->plugins_path) {
-		proxenet_xfree(cfg->plugins_path);
+        if (cfg->plugins_path) {
+                proxenet_xfree(cfg->plugins_path);
                 proxenet_xfree(cfg->autoload_path);
         }
 
-	if (cfg->cafile)
-		proxenet_xfree(cfg->cafile);
+        if (cfg->cafile)
+                proxenet_xfree(cfg->cafile);
 
-	if (cfg->keyfile){
-		proxenet_xfree(cfg->keyfile);
+        if (cfg->keyfile){
+                proxenet_xfree(cfg->keyfile);
                 proxenet_xfree(cfg->keyfile_pwd);
         }
 
-	if(cfg->logfile_fd)
-		fclose(cfg->logfile_fd);
+        if(cfg->logfile_fd)
+                fclose(cfg->logfile_fd);
 
-	if (cfg->proxy.host) {
-		proxenet_xfree(cfg->proxy.host);
-		proxenet_xfree(cfg->proxy.port);
-	}
+        if (cfg->proxy.host) {
+                proxenet_xfree(cfg->proxy.host);
+                proxenet_xfree(cfg->proxy.port);
+        }
 
         return;
 }
@@ -496,13 +507,13 @@ void proxenet_free_config()
  */
 int main (int argc, char **argv, char **envp)
 {
-	int retcode = -1;
+        int retcode = -1;
         (void) *envp;
 
-	/* get configuration */
-	retcode = proxenet_init_config(argc, argv);
-	if (retcode<0)
-		return EXIT_FAILURE;
+        /* get configuration */
+        retcode = proxenet_init_config(argc, argv);
+        if (retcode<0)
+                return EXIT_FAILURE;
 
         /* init certificate serial */
         seriali = rand();
@@ -510,23 +521,23 @@ int main (int argc, char **argv, char **envp)
                 xlog(LOG_INFO, "Certificate Serial starting at %lu\n", seriali);
 
 #ifdef _PERL_PLUGIN
-	/* perform plugin pre-initialisation -- currently done only for Perl */
-	proxenet_init_once_plugins(argc, argv, envp);
+        /* perform plugin pre-initialisation -- currently done only for Perl */
+        proxenet_init_once_plugins(argc, argv, envp);
 #endif
 
-	/* proxenet starts here  */
-	retcode = proxenet_start();
+        /* proxenet starts here  */
+        retcode = proxenet_start();
 
 
 #ifdef _PERL_PLUGIN
-	/* perform plugin post-deletion */
-	proxenet_delete_once_plugins();
+        /* perform plugin post-deletion */
+        proxenet_delete_once_plugins();
 #endif
 
-	/* proxenet ends here */
-	proxenet_free_config();
+        /* proxenet ends here */
+        proxenet_free_config();
 
-	if (retcode == 0) {
+        if (retcode == 0) {
                 if (cfg->verbose)
                         xlog(LOG_INFO, "%s exits successfully\n", PROGNAME);
                 return EXIT_SUCCESS;

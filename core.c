@@ -375,29 +375,27 @@ void proxenet_destroy_plugins_vm()
  *
  * @return 0 -> new status inactive
  * @return 1 -> new status active
- * @return -1 -> not found
+ * @return -1 on error
  */
 int proxenet_toggle_plugin(int plugin_id)
 {
-        plugin_t *plugin;
+        plugin_t *p;
 
-        for (plugin=plugins_list; plugin!=NULL; plugin=plugin->next) {
+        p = proxenet_get_plugin_by_id( plugin_id );
+        if (!p)
+                return -1;
 
-                if (plugin->id == plugin_id) {
-                        switch (plugin->state){
-                                case INACTIVE: plugin->state = ACTIVE;   break;
-                                case ACTIVE:   plugin->state = INACTIVE; break;
-                                default: break;
-                        }
+        switch (p->state){
+                case INACTIVE:
+                        proxenet_plugin_set_state(plugin_id, ACTIVE);
+                        return 1;
 
-                        xlog(LOG_INFO,
-                             "Plugin %d '%s' is now %sACTIVE\n",
-                             plugin->id,
-                             plugin->name,
-                             (plugin->state==INACTIVE ? "IN" : ""));
+                case ACTIVE:
+                        proxenet_plugin_set_state(plugin_id, INACTIVE);
+                        return 0;
 
-                        return (plugin->state==INACTIVE ? 0 : 1);
-                }
+                default:
+                        return -1;
         }
 
         return -1;
@@ -606,12 +604,22 @@ void proxenet_process_http_request(sock_t server_socket)
 
                         /* proxy keep-alive */
                         if (req.id > 0){
+                                /* if (cfg->ie_compat) */
+                                        /* goto apply_client_plugins; */
+
                                 request_t* old_req = (request_t*)proxenet_xmalloc(sizeof(request_t));
                                 memcpy(old_req, &req, sizeof(request_t));
                                 char* host = proxenet_xstrdup2( req.http_infos.hostname );
 
                                 free_http_infos(&(req.http_infos));
-                                update_http_infos(&req);
+
+                                if (update_http_infos(&req) < 0){
+                                        xlog(LOG_ERROR, "Failed to update HTTP information for request %d\n", req.id);
+                                        proxenet_xfree( host );
+                                        proxenet_xfree( old_req );
+                                        req.id = 0;
+                                        break;
+                                }
 
                                 if (strcmp( host, req.http_infos.hostname )){
                                         /* reset the client connection parameters */
@@ -636,6 +644,7 @@ void proxenet_process_http_request(sock_t server_socket)
                                 if (retcode < 0) {
                                         xlog(LOG_ERROR, "Failed to create %s->server socket\n", PROGNAME);
                                         proxenet_xfree(req.data);
+                                        req.id = 0;
                                         break;
                                 }
 
@@ -711,6 +720,20 @@ void proxenet_process_http_request(sock_t server_socket)
                         }
 
 
+                        if(cfg->ie_compat){
+                                if (is_ssl)
+                                        retcode = ie_compat_read_post_body(server_socket, &req, &(ssl_context.server.context));
+                                else
+                                        retcode = ie_compat_read_post_body(server_socket, &req, NULL);
+                                if (retcode < 0){
+                                        xlog(LOG_ERROR, "%s\n", "Extending IE POST: failed");
+                                        proxenet_xfree(req.data);
+                                        break;
+                                }
+                        }
+
+
+                        /* apply plugins for requests (from browser to server) */
                         if (cfg->verbose) {
                                 xlog(LOG_INFO, "%s request to '%s:%d'\n",
                                      is_ssl?"SSL":"plain", req.http_infos.hostname, req.http_infos.port);
@@ -801,6 +824,7 @@ void proxenet_process_http_request(sock_t server_socket)
                                 goto send_to_client;
                         }
 
+                        /* apply plugins for response (from server to browser) */
 #ifdef DEBUG
                         xlog(LOG_DEBUG, "Response %d pre-plugins: buflen:%lu\n",
                              req.id, req.size);
@@ -844,18 +868,17 @@ void proxenet_process_http_request(sock_t server_socket)
 
 
         if (req.id) {
-#ifdef DEBUG
-                xlog(LOG_DEBUG, "Free-ing request %d\n", req.id);
-#endif
+                if (cfg->verbose)
+                        xlog(LOG_INFO, "End of request %d, cleaning context\n", req.id);
+
                 free_http_infos(&(req.http_infos));
         }
 
 
         /* close client socket */
         if (client_socket > 0) {
-#ifdef DEBUG
-                xlog(LOG_DEBUG, "Closing %s->server socket #%d\n", PROGNAME, client_socket);
-#endif
+                if (cfg->verbose >= 2)
+                        xlog(LOG_INFO, "Closing %s->server socket #%d\n", PROGNAME, client_socket);
 
                 proxenet_close_socket(client_socket, &(ssl_context.client));
         }
@@ -863,15 +886,15 @@ void proxenet_process_http_request(sock_t server_socket)
 
         /* close local socket */
         if (server_socket > 0) {
-#ifdef DEBUG
-                xlog(LOG_DEBUG, "Closing browser->%s socket #%d\n", PROGNAME, server_socket);
-#endif
+                if (cfg->verbose >= 2)
+                        xlog(LOG_INFO, "Closing browser->%s socket #%d\n", PROGNAME, server_socket);
+
                 proxenet_close_socket(server_socket, &(ssl_context.server));
         }
 
 
 #ifdef DEBUG
-        xlog(LOG_DEBUG, "%s\n", "Structures closed, leaving");
+        xlog(LOG_DEBUG, "Request %d: Structures closed, leaving\n", req.id);
 #endif
         /* and that's all folks */
         return;

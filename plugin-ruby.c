@@ -62,7 +62,6 @@ static void proxenet_ruby_print_last_exception()
  */
 int proxenet_ruby_load_file(plugin_t* plugin)
 {
-	char* filename;
 	char* pathname;
 	int res = 0;
 

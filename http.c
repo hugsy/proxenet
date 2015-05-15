@@ -15,6 +15,11 @@
 #include "ssl.h"
 #include "main.h"
 
+#define HTTP_STRING  "http"
+#define HTTPS_STRING "https"
+#define HTTP_PROTO_STRING  HTTP_STRING"://"
+#define HTTPS_PROTO_STRING HTTPS_STRING"://"
+
 
 /**
  *
@@ -25,16 +30,21 @@ static void generic_http_error_page(sock_t sock, char* msg)
 	char* html_footer = "</body></html>";
 
 	if (write(sock, html_header, strlen(html_header)) < 0) {
-		xlog(LOG_ERROR, "%s\n", "Failed to write error HTML header");
+		xlog(LOG_ERROR, "Failed to write error HTML header: %s\n", strerror(errno));
+                return;
 	}
 
 	if(write(sock, msg, strlen(msg)) < 0){
-		xlog(LOG_ERROR, "%s\n", "Failed to write error HTML page");
+		xlog(LOG_ERROR, "Failed to write error HTML page: %s\n", strerror(errno));
+                return;
 	}
 
 	if(write(sock, html_footer, strlen(html_footer)) < 0){
-		xlog(LOG_ERROR, "%s\n", "Failed to write error HTML footer");
+		xlog(LOG_ERROR, "Failed to write error HTML footer: %s\n", strerror(errno));
+                return;
 	}
+
+        return;
 }
 
 
@@ -50,12 +60,12 @@ static char* get_request_full_uri(request_t* req)
 	if (!req || !http_infos)
                 return NULL;
 
-	len = sizeof("https://") + strlen(http_infos->hostname) + sizeof(":") + sizeof("65535");
+	len = sizeof(HTTPS_PROTO_STRING) + strlen(http_infos->hostname) + sizeof(":") + sizeof("65535");
 	len+= strlen(http_infos->path);
 	uri = (char*)proxenet_xmalloc(len+1);
 
-	snprintf(uri, len, "%s://%s:%d%s",
-		 req->is_ssl?"https":"http",
+	snprintf(uri, len, "%s%s:%d%s",
+		 req->is_ssl?HTTPS_PROTO_STRING:HTTP_PROTO_STRING,
 		 http_infos->hostname,
 		 http_infos->port,
 		 http_infos->path);
@@ -65,34 +75,106 @@ static char* get_request_full_uri(request_t* req)
 
 
 /**
+ * This function defines the request type with the hostname and port based on the URI gathered
+ * from the buffer.
+ *
+ * This is for example used for
+ * CONNECT IP:PORT HTTP/1.0
+ * types of requests.
+ *
+ * If :PORT is not found, then req.http_infos.port is left untouched (must be defined priorly).
+ *
+ * @return 0 on success, -1 if error
+ */
+static int get_hostname_from_uri(request_t* req, int offset)
+{
+        char *ptr, c, *buf;
+
+        buf = req->data + offset;
+
+        /* isolate the whole block 'IP:PORT' */
+	ptr = strchr(buf, ' ');
+	if (!ptr){
+                xlog(LOG_ERROR, "%s\n", "Invalid URI block");
+                return -1;
+        }
+
+        c = *ptr;
+	*ptr = '\0';
+
+        buf = proxenet_xstrdup2(buf);
+
+        /* host and port */
+        ptr = strchr(buf, ':');
+	if (ptr){
+                /* explicit port */
+                req->http_infos.port = (unsigned short)atoi(ptr+1);
+                *ptr = '\0';
+        }
+
+        req->http_infos.hostname = proxenet_xstrdup2(buf);
+
+	*ptr = c;
+        proxenet_xfree(buf);
+
+        return 0;
+}
+
+
+/**
+ * Look up for a header in a request.
+ *
+ * @return a pointer to a malloc-ed buffer containing a copy of the value of the header if found,
+ * NULL in any other case. The buffer must be free-ed by the caller.
+ */
+static char* get_header_by_name(char* request, const char* header_name)
+{
+        char *ptr, *ptr2, c, *header_value;
+
+        /* get header */
+        ptr = strstr(request, header_name);
+        if(!ptr){
+                xlog(LOG_ERROR, "Header '%s' not found\n", header_name);
+                return NULL;
+        }
+
+        /* move to start of hostname  */
+        ptr += strlen(header_name);
+        ptr2 = ptr;
+
+        /* get the end of header line */
+        for(; *ptr2 && *ptr2!=':' && *ptr2!=' ' && *ptr2!='\r'; ptr2++);
+        c = *ptr2;
+        *ptr2 = '\0';
+
+        /* copy the value  */
+	header_value = proxenet_xstrdup2(ptr);
+        if (!header_value){
+                xlog(LOG_ERROR, "strdup(header '%s') failed.\n", header_name);
+                return NULL;
+        }
+
+        *ptr2 = c;
+        return header_value;
+}
+
+
+/**
  *
  */
 static int get_hostname_from_header(request_t *req)
 {
-        char *ptr, *ptr2, c;
-        const char host_header_prefix[] = "Host: ";
+        char *ptr;
 
-        /* get Host header */
-        ptr = strstr(req->data, host_header_prefix);
-        if(!ptr){
-                xlog(LOG_ERROR, "%s\n", "No Host header found");
+	req->http_infos.hostname = get_header_by_name(req->data, "Host: ");
+        if (!req->http_infos.hostname){
                 return -1;
         }
 
-        /* move to start of hostname  */
-        ptr += strlen(host_header_prefix);
-        ptr2 = ptr;
-
-        /* copy hostname */
-        for(; *ptr2 && *ptr2!=':' && *ptr2!=' ' && *ptr2!='\r'; ptr2++);
-        c = *ptr2;
-        *ptr2 = '\0';
-	req->http_infos.hostname = proxenet_xstrdup2(ptr);
-        *ptr2 = c;
-
         /* if port number, copy it */
-        if (*ptr2 == ':'){
-                req->http_infos.port = atoi(ptr2+1);
+        ptr = strchr(req->http_infos.hostname, ':');
+        if (ptr){
+                req->http_infos.port = (unsigned short)atoi(ptr+1);
         }
 
         return 0;
@@ -113,17 +195,18 @@ int format_http_request(char** request, size_t* request_len)
 
         offlen = -1;
 	old_ptr = new_ptr = NULL;
-	old_ptr = strstr(*request, "http://");
+	old_ptr = strstr(*request, HTTP_PROTO_STRING);
 	if (old_ptr)
 		offlen = 7;
 	else {
-		old_ptr = strstr(*request, "https://");
+		old_ptr = strstr(*request, HTTPS_PROTO_STRING);
 		if (old_ptr)
 			offlen = 8;
 	}
 
 	if (offlen < 0) {
-		xlog(LOG_ERROR, "Cannot find protocol (http|https) in request:\n%s\n", *request);
+		xlog(LOG_ERROR, "Cannot find protocol (%s|%s) in request:\n%s\n",
+                     HTTP_STRING, HTTPS_STRING, *request);
 		return -1;
 	}
 
@@ -163,57 +246,85 @@ int update_http_infos(request_t *req)
 
 	buf = req->data;
 
-	/* method  */
+	/* method */
 	ptr = strchr(buf, ' ');
 	if (!ptr){
                 xlog(LOG_ERROR, "%s\n", "Cannot find HTTP method in request");
+                if (cfg->verbose)
+                        xlog(LOG_ERROR, "Buffer sent:\n%s\n", buf);
                 return -1;
         }
+
 	c = *ptr;
 	*ptr = '\0';
 	req->http_infos.method = proxenet_xstrdup2(buf);
-	*ptr = c;
+        if (!req->http_infos.method){
+                xlog(LOG_ERROR, "%s\n", "strdup(method) failed, cannot pursue...");
+                return -1;
+        }
 
+	*ptr = c;
         if (!strcmp(req->http_infos.method, "CONNECT")){
+                int offset;
+
                 req->is_ssl = true;
-                req->http_infos.proto = "https";
+                req->http_infos.proto = HTTPS_STRING;
                 req->http_infos.port = HTTPS_DEFAULT_PORT;
+                offset = ptr - buf + 1;
+
+                if( get_hostname_from_uri(req, offset) < 0 ){
+                        xlog(LOG_ERROR, "%s\n", "Failed to get hostname (URI)");
+                        goto failed_hostname;
+                }
+
+                req->http_infos.path = proxenet_xstrdup2("/");
+                req->http_infos.version = proxenet_xstrdup2("HTTP/1.0");
+
+                req->http_infos.uri = get_request_full_uri(req);
+                if(!req->http_infos.uri){
+                        xlog(LOG_ERROR, "%s\n", "get_request_full_uri() failed");
+                        goto failed_uri;
+                }
+
+                return 0;
         }
 
 
         /* hostname and port */
-        if( get_hostname_from_header(req) < 0 ){
-                xlog(LOG_ERROR, "%s\n", "Failed to get hostname");
-                return -1;
+        if (req->is_ssl){
+                req->http_infos.port = HTTPS_DEFAULT_PORT;
+                req->http_infos.proto = HTTPS_STRING;
+        } else {
+                req->http_infos.port = HTTP_DEFAULT_PORT;
+                req->http_infos.proto = HTTP_STRING;
         }
 
-        if (req->http_infos.port == 0){
-                if (req->is_ssl){
-                        req->http_infos.port = HTTPS_DEFAULT_PORT;
-                        req->http_infos.proto = "https";
-                } else {
-                        req->http_infos.port = HTTP_DEFAULT_PORT;
-                        req->http_infos.proto = "http";
-                }
+        if( get_hostname_from_header(req) < 0 ){
+                xlog(LOG_ERROR, "%s\n", "Failed to get hostname (Host header)");
+                goto failed_hostname;
         }
 
 
 	/* path */
         buf = ptr+1;
 
-        if (!strncmp(buf, "http://", 7)){
+        if (!strncmp(buf, HTTP_PROTO_STRING, strlen(HTTP_PROTO_STRING))){
                 buf = strchr(buf + 8, '/');
         }
 
 	ptr = strchr(buf, ' ');
 	if (!ptr){
                 xlog(LOG_ERROR, "%s\n", "Cannot find HTTP path in request");
-                return -1;
+                goto failed_path;
         }
 
 	c = *ptr;
 	*ptr = '\0';
 	req->http_infos.path = proxenet_xstrdup2(buf);
+        if (!req->http_infos.path){
+                xlog(LOG_ERROR, "%s\n", "strdup(path) failed, cannot pursue...");
+                goto failed_path;
+        }
 	*ptr = c;
 
 	buf = ptr+1;
@@ -223,33 +334,66 @@ int update_http_infos(request_t *req)
 	ptr = strchr(req->data, '\r');
 	if (!ptr){
                 xlog(LOG_ERROR, "%s\n", "Cannot find HTTP version");
-                return -1;
+                goto failed_version;
         }
 
 	c = *ptr;
 	*ptr = '\0';
 	req->http_infos.version = proxenet_xstrdup2(buf);
+        if (!req->http_infos.version){
+                xlog(LOG_ERROR, "%s\n", "strdup(version) failed, cannot pursue...");
+                goto failed_version;
+        }
 	*ptr = c;
 
 
         /* refresh uri */
         req->http_infos.uri = get_request_full_uri(req);
-
-
-#ifdef DEBUG
-	if (cfg->verbose) {
-		xlog(LOG_DEBUG,
-		     "Request HTTP information:\nmethod=%s\nproto=%s\nhostname=%s\nport=%d\npath=%s\nversion=%s\n",
-		     req->http_infos.method,
-		     req->http_infos.proto,
-		     req->http_infos.hostname,
-		     req->http_infos.port,
-		     req->http_infos.path,
-		     req->http_infos.version);
+        if(!req->http_infos.uri){
+                xlog(LOG_ERROR, "%s\n", "get_request_full_uri() failed");
+                goto failed_uri;
         }
-#endif
+
+
+        if (cfg->verbose) {
+                xlog(LOG_INFO, "New request %d to '%s'\n",
+                     req->id, req->http_infos.uri);
+
+                if (cfg->verbose >= 2) {
+                        xlog(LOG_INFO,
+                             "Request HTTP information:\n"
+                             "method=%s\n"
+                             "proto=%s\n"
+                             "hostname=%s\n"
+                             "port=%d\n"
+                             "path=%s\n"
+                             "version=%s\n"
+                             ,
+                             req->http_infos.method,
+                             req->http_infos.proto,
+                             req->http_infos.hostname,
+                             req->http_infos.port,
+                             req->http_infos.path,
+                             req->http_infos.version);
+                }
+        }
 
         return 0;
+
+
+failed_uri:
+        proxenet_xfree(req->http_infos.version);
+
+failed_version:
+        proxenet_xfree(req->http_infos.path);
+
+failed_path:
+        proxenet_xfree(req->http_infos.hostname);
+
+failed_hostname:
+        proxenet_xfree(req->http_infos.method);
+
+        return -1;
 }
 
 
@@ -263,6 +407,9 @@ void free_http_infos(http_request_t *hi)
         proxenet_xclean(hi->path,     strlen(hi->path));
         proxenet_xclean(hi->version,  strlen(hi->version));
         proxenet_xclean(hi->uri,      strlen(hi->uri));
+
+        hi->proto = NULL;
+        hi->port = 0;
         return;
 }
 
@@ -302,7 +449,7 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
 
 #ifdef DEBUG
         xlog(LOG_DEBUG, "Relay request %s to '%s:%s'\n",
-             use_proxy?"via proxy":"direct",
+             use_proxy ? "via proxy":"direct",
              host, port);
 #endif
 
@@ -417,4 +564,78 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
 
 
 	return retcode;
+}
+
+
+/**
+ *****************************************************************************************
+ *          EXPERIMENTAL
+ *          PARTIALLY TESTED
+ *****************************************************************************************
+ *
+ *
+ * Add old IE support (Compatibility View) for POST requests by forcing a 2nd read on the
+ * server socket, to make IE send the POST body.
+ * DO NOT use this mode if you are using anything but IE < 10
+ *
+ * @return 0 if successful, -1 otherwise
+ */
+int ie_compat_read_post_body(sock_t sock, request_t* req, proxenet_ssl_context_t* sslctx)
+{
+        int nb;
+        size_t old_len, body_len;
+        char *body, *clen;
+
+        /* to speed-up, disregard requests without body */
+        if (strcmp(req->http_infos.method, "POST")!=0)
+                return 0;
+
+        /* read Content-Length header */
+        clen = get_header_by_name(req->data, "Content-Length: ");
+        if (!clen){
+                xlog(LOG_ERROR, "%s\n", "Extending IE POST: No Content-Length");
+                return -1;
+        }
+
+        /* if Content-Length is zero */
+        body_len = (size_t)atoi(clen);
+        proxenet_xfree(clen);
+
+        if (body_len==0){
+                return 0;
+        }
+
+        /* if everything has already been sent (i.e. end of already received buffer is not CRLF*2) */
+        if (req->data[ req->size-4 ] != '\r')
+                return 0;
+        if (req->data[ req->size-3 ] != '\n')
+                return 0;
+        if (req->data[ req->size-2 ] != '\r')
+                return 0;
+        if (req->data[ req->size-1 ] != '\n')
+                return 0;
+
+        /* read data (if any) */
+        nb = proxenet_read_all(sock, &body, sslctx);
+        if (nb<0){
+                xlog(LOG_ERROR, "%s\n", "Extending IE POST: failed to read");
+                return -1;
+        }
+
+        /* and extend the request buffer */
+        if (nb>0){
+                old_len = req->size;
+                req->size = old_len + (size_t)nb;
+                req->data = proxenet_xrealloc(req->data, req->size);
+                memcpy(req->data + old_len, body, (size_t)nb);
+        }
+
+        proxenet_xfree(body);
+
+#ifdef DEBUG
+        xlog(LOG_DEBUG, "Extending request for IE: new_size=%d (content-length=%d)\n",
+             req->size, body_len);
+#endif
+
+        return 0;
 }
