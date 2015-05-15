@@ -50,7 +50,7 @@ static void proxenet_ruby_print_last_exception()
 	rException = rb_errinfo();         /* get last exception */
         rb_set_errinfo(Qnil);              /* clear last exception */
         rExceptStr = rb_funcall(rException, rb_intern("to_s"), 0, Qnil);
-        xlog(LOG_ERROR, "RUBY Exception: %s\n", StringValuePtr(rExceptStr));
+        xlog(LOG_ERROR, "[Ruby] Exception: %s\n", StringValuePtr(rExceptStr));
 	return;
 }
 
@@ -90,6 +90,7 @@ int proxenet_ruby_initialize_vm(plugin_t* plugin)
 {
 	static char* rArgs[] = { "ruby", "/dev/null" };
 	interpreter_t *interpreter;
+        VALUE rRet;
 
 	interpreter = plugin->interpreter;
 
@@ -109,11 +110,13 @@ int proxenet_ruby_initialize_vm(plugin_t* plugin)
 	 * init all the structures and encoding params by the vm
 	 * Details: http://rxr.whitequark.org/mri/source/ruby.c#1915
 	 */
-	if ((VALUE)ruby_process_options(2, rArgs) != Qtrue) {
-		xlog(LOG_ERROR, "%s\n", "Error on ruby_process_options()");
-		proxenet_ruby_print_last_exception();
-		return -1;
-	}
+        rRet = (VALUE)ruby_process_options(2, rArgs);
+
+        if (rRet == Qnil) {
+                xlog(LOG_ERROR, "Error on ruby_process_options(): %#x\n", rRet);
+                proxenet_ruby_print_last_exception();
+                return -1;
+        }
 
 	interpreter->vm = (void*) rb_mKernel;
 	interpreter->ready = true;
