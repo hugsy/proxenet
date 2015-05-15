@@ -54,7 +54,12 @@ option(USE_JAVA_PLUGIN        "Add Java script support"                ON)
 
 option(DEBUG                  "Enable Debug"                           OFF)
 option(DEBUG_SSL              "Enable SSL debug"                       OFF)
-option(DEBUG_LEAK             "Enable memleak checks"                  ON)
+option(DEBUG_LEAK             "Enable memleak checks"                  OFF)
+
+# enforcing debug compil when in branch dev
+if(GIT_RELEASE_BRANCH STREQUAL "dev")
+  set(DEBUG ON)
+endif()
 
 if (DEBUG)
   set(CMAKE_BUILD_TYPE Debug)
@@ -62,7 +67,8 @@ if (DEBUG)
   set(CMAKE_VERBOSE_MAKEFILE ON)
 
   if(DEBUG_LEAK)
-    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -fsanitize=address")
+
+    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG}")
   endif(DEBUG_LEAK)
 
   if (DEBUG_SSL)
