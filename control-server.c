@@ -447,6 +447,9 @@ static int plugin_cmd_change_all_status(proxenet_state new_state)
                         continue;
 
                 retcode = proxenet_plugin_set_state(p->id, new_state);
+                if (retcode < 0){
+                        xlog(LOG_ERROR, "Failed to set state %ud to plugin %ud\n", new_state, p->id);
+                }
         }
 
         return 0;
