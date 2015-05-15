@@ -27,4 +27,5 @@ $ cd proxenet && cmake . && make
 from
 
 - [Aorimn](https://github.com/Aorimn)
+- [thorgul](https://github.com/thorgul)
 - [lukejahnke](https://github.com/lukejahnke)
