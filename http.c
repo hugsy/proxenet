@@ -488,6 +488,9 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
         /* set up ssl layer */
         if (req->is_ssl) {
 
+                /* adjust do_intercept if we do not SSL intercept was explicitely disabled */
+                req->do_intercept = cfg->ssl_intercept;
+
                 if (use_proxy) {
                         char *connect_buf = NULL;
 

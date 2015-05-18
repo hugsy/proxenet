@@ -408,7 +408,7 @@ int proxenet_toggle_plugin(int plugin_id)
 static int proxenet_apply_plugins(request_t *request)
 {
         plugin_t *p = NULL;
-        char *old_data = NULL;;
+        char *old_data = NULL;
         char* (*plugin_function)(plugin_t*, request_t*) = NULL;
 
         for (p=plugins_list; p!=NULL; p=p->next) {
@@ -604,9 +604,6 @@ void proxenet_process_http_request(sock_t server_socket)
 
                         /* proxy keep-alive */
                         if (req.id > 0){
-                                /* if (cfg->ie_compat) */
-                                        /* goto apply_client_plugins; */
-
                                 request_t* old_req = (request_t*)proxenet_xmalloc(sizeof(request_t));
                                 memcpy(old_req, &req, sizeof(request_t));
                                 char* host = proxenet_xstrdup2( req.http_infos.hostname );

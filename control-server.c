@@ -27,6 +27,7 @@ static struct command_t known_commands[] = {
 	{ "reload", 	 0, &reload_cmd, "Reload the plugins" },
 	{ "threads", 	 0, &threads_cmd, "Show info about threads" },
 	{ "plugin", 	 1, &plugin_cmd, "Get/Set info about plugin"},
+        { "config", 	 1, &config_cmd, "Edit configuration at runtime"},
 
 	{ NULL, 0, NULL, NULL}
 };
@@ -519,8 +520,58 @@ void plugin_cmd(sock_t fd, char *options, unsigned int nb_options)
 
 
 invalid_plugin_action:
-        n = snprintf(msg, BUFSIZE, "Invalid action.\nSyntax\n"
+        n = snprintf(msg, BUFSIZE,
+                     "Invalid action.\nSyntax\n"
                      "plugin [list][list-all][enable-all][disable-all][set <id> toggle][load <0PluginName.ext>]\n");
+        proxenet_write(fd, (void*)msg, n);
+        return;
+}
+
+
+/**
+ * Edit configuration
+ */
+void config_cmd(sock_t fd, char *options, unsigned int nb_options)
+{
+        char msg[BUFSIZE] = {0, };
+        char *ptr;
+        int n;
+
+        (void) options;
+        (void) nb_options;
+
+        /* usage */
+        ptr = strtok(options, " \n");
+        if (!ptr)
+                goto invalid_config_action;
+
+        if (strcmp(ptr, "ssl-intercept") == 0) {
+                /* shift argument */
+                ptr = strtok(NULL, " \n");
+                if (!ptr){
+                        xlog(LOG_ERROR, "%s\n", "Failed to get argument");
+                        return;
+                }
+
+                if ( strcasecmp(ptr, "true") == 0){
+                        cfg->ssl_intercept = true;
+                        if (cfg->verbose)
+                                xlog(LOG_INFO, "%s\n", "[config] Enabled SSL intercept");
+                        proxenet_write(fd, "SSL intercept enabled\n", 25);
+                        return;
+                } else if ( strcasecmp(ptr, "false") == 0){
+                        cfg->ssl_intercept = false;
+                        if (cfg->verbose)
+                                xlog(LOG_INFO, "%s\n", "[config] Disabled SSL intercept");
+                        proxenet_write(fd, "SSL intercept disabled\n", 26);
+                        return;
+                }
+        }
+
+invalid_config_action:
+        n = snprintf(msg, BUFSIZE,
+                     "Invalid action.\nSyntax\n"
+                     "config [ssl-intercept true|false]\n");
         proxenet_write(fd, (void*)msg, n);
         return;
 }

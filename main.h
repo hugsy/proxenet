@@ -55,6 +55,7 @@ typedef struct __proxenet_config {
 		unsigned short try_exit_max;
 
                 bool ie_compat;
+                bool ssl_intercept;
 } conf_t;
 
 conf_t current_config;
