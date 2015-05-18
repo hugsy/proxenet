@@ -23,7 +23,7 @@
 
 
 /**
- *
+ * Print version and exit if required
  */
 static void version(bool end)
 {
@@ -36,7 +36,7 @@ static void version(bool end)
 
 
 /**
- *
+ * Print usage and exit.
  */
 static void usage(int retcode)
 {
@@ -72,7 +72,8 @@ static void usage(int retcode)
                 "\t-I, --intercept-only\t\t\tIntercept only hostnames matching pattern (default mode)\n"
                 "\t-E, --intercept-except\t\t\tIntercept everything except hostnames matching pattern\n"
                 "\t-m, --pattern=PATTERN\t\t\tSpecify a hostname matching pattern (default: '%s')\n"
-                "\t-i, --ie-compatibility\t\t\tUse this option only when proxy-ing IE (EXPERIMENTAL)\n"
+                "\t-N, --no-ssl-intercept\t\t\tDo not intercept any SSL traffic\n"
+                "\t-i, --ie-compatibility\t\t\tUse this option only when proxy-ing IE\n"
                 ,
 
                 CFG_DEFAULT_INTERCEPT_PATTERN
@@ -240,6 +241,7 @@ static int parse_options (int argc, char** argv)
                 { "sslcli-keyfile-passphrase",         1, 0, 'Y' },
 
                 { "ie-compat",                         0, 0, 'i'},
+                { "no-ssl-intercept",                  0, 0, 'N'},
 
                 { 0, 0, 0, 0 }
         };
@@ -274,13 +276,14 @@ static int parse_options (int argc, char** argv)
         sslcli_keyfile_pwd	= CFG_DEFAULT_SSL_KEYFILE_PWD;
 
         cfg->ie_compat          = false;
+        cfg->ssl_intercept      = true;
 
 
         /* parse command line arguments */
         while (1) {
                 curopt_idx = 0;
                 curopt = getopt_long (argc,argv,
-                                      "dn46Vhvb:p:l:t:c:k:K:x:X:P:z:y:Y:IEm:i",
+                                      "dn46Vhvb:p:l:t:c:k:K:x:X:P:z:y:Y:IEm:Ni",
                                       long_opts, &curopt_idx);
                 if (curopt == -1) break;
 
@@ -312,7 +315,7 @@ static int parse_options (int argc, char** argv)
                         case 'Z': sslcli_domain = optarg; break;
                         case 'y': sslcli_keyfile = optarg; break;
                         case 'Y': sslcli_keyfile_pwd = optarg; break;
-
+                        case 'N': cfg->ssl_intercept = false; break;
                         case 'i':
                                 cfg->ie_compat = true;
                                 xlog(LOG_WARNING, "%s\n", "Enabling IE compatibility mode.");
