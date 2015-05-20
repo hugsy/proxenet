@@ -19,8 +19,8 @@ $ cd proxenet && cmake . && make
 
 
 ### Documentation
-[![Documentation Status](https://readthedocs.org/projects/proxenet/badge/?version=latest)](https://proxenet.readthedocs.org/en/latest/)
-
+[![Documentation Status (master)](https://readthedocs.org/projects/proxenet/badge/?version=master)](https://proxenet.readthedocs.org/en/latest/)
+[![Documentation Status (dev)](https://readthedocs.org/projects/proxenet/badge/?version=dev)](https://proxenet.readthedocs.org/en/dev/)
 
 ### Authors
 `proxenet` was developed by [hugsy](https://github.com/hugsy) with contributions
