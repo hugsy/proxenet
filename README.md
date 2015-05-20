@@ -15,8 +15,8 @@ $ cd proxenet && cmake . && make
 
 
 ### Build status
-[![Continuous Integration status](https://secure.travis-ci.org/hugsy/proxenet.png)](https://travis-ci.org/hugsy/proxenet)
-
+[![Continuous Integration status (master)](https://secure.travis-ci.org/hugsy/proxenet.png?branch=master)](https://travis-ci.org/hugsy/proxenet?branch=master)
+[![Continuous Integration status (dev)](https://secure.travis-ci.org/hugsy/proxenet.png?branch=dev)](https://travis-ci.org/hugsy/proxenet?branch=dev)
 
 ### Documentation
 [![Documentation Status (master)](https://readthedocs.org/projects/proxenet/badge/?version=master)](https://proxenet.readthedocs.org/en/latest/)
