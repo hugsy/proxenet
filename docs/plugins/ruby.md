@@ -46,8 +46,8 @@ module AddHeader
     end
 
     def proxenet_response_hook(response_id, response, uri)
-    return response
-
+        return response
+    end
 end
 
 if __FILE__ == $0
