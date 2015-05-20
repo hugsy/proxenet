@@ -1,9 +1,17 @@
 site_name: proxenet documentation
 theme: readthedocs
 pages:
-- [index.md, Home]
-- [compil.md, Compilation]
-- [config.md, Configuration]
-- [plugin.md, Plugins]
-- [refs.md, References]
-- [runtime.md, Runtime]
+- ['index.md', 'Home']
+- ['compil.md', 'Compilation']
+- ['config.md', 'Configuration']
+- ['plugin.md', 'HowTo write plugins']
+- ['plugins/index.md', 'Plugins', Index']
+- ['plugins/python.md', 'Plugins', Python']
+- ['plugins/perl.md', 'Plugins', Perl']
+- ['plugins/java.md', 'Plugins', Java']
+- ['plugins/ruby.md', 'Plugins', 'Ruby']
+- ['plugins/c.md', 'Plugins', 'C']
+- ['plugins/lua.md', 'Plugins', 'Lua']
+- ['plugins/tcl.md', 'Plugins', 'Tcl']
+- ['runtime.md', 'Runtime']
+- ['refs.md', 'References']
