@@ -18,6 +18,10 @@ The [plugin page](../plugin) explains the general structure for writing
 or jump directly to your favorite language page.
 
 
-| [Python](python.md) | [Ruby](ruby.md)  | [Java](java.md) |
-| [Perl](perl.md)     | [C](c.md)        | [Tcl](tcl.md)   |
-| [Lua](lua.md)     |  |  |
+   - [Python](python.md)
+   - [Ruby](ruby.md)
+   - [Java](java.md)
+   - [Perl](perl.md)
+   - [C](c.md)
+   - [Tcl](tcl.md)
+   - [Lua](lua.md)
