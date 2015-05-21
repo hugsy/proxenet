@@ -1,9 +1,22 @@
 # proxenet
 
-![proxenet](img/proxenet.png)
+## Definition
+
+From Ancient Greek, *πρόξενος* (*próksenos*, "public guest").
+
+1. A negotiator; a factor; a go-between.
+2. A negotiator involved in immoral bargains (see *pimp*).
 
 
 ## What is proxenet ?
+
+>
+> `proxenet` is a ~~user~~*hacker* friendly proxy for web application penetration
+> tests.
+>
+
+![proxenet](img/proxenet-capture1.png)
+
 `proxenet` is a multi-threaded proxy which allows you manipulate your HTTP
 requests and responses using your favorite scripting language. No need to learn
 Java (like for [Burp](http://portswigger.net/burp/extender/)) or Python (like

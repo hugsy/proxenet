@@ -557,13 +557,13 @@ void config_cmd(sock_t fd, char *options, unsigned int nb_options)
                         cfg->ssl_intercept = true;
                         if (cfg->verbose)
                                 xlog(LOG_INFO, "%s\n", "[config] Enabled SSL intercept");
-                        proxenet_write(fd, "SSL intercept enabled\n", 25);
+                        proxenet_write(fd, "SSL intercept enabled\n", 22);
                         return;
                 } else if ( strcasecmp(ptr, "false") == 0){
                         cfg->ssl_intercept = false;
                         if (cfg->verbose)
                                 xlog(LOG_INFO, "%s\n", "[config] Disabled SSL intercept");
-                        proxenet_write(fd, "SSL intercept disabled\n", 26);
+                        proxenet_write(fd, "SSL intercept disabled\n", 23);
                         return;
                 }
         }
