@@ -21,7 +21,7 @@
 #include "core.h"
 #include "utils.h"
 
-#define PROXENET_CERT_SERIAL_SIZE      32
+#define PROXENET_CERT_SERIAL_SIZE      X509_RFC5280_MAX_SERIAL_LEN
 #define PROXENET_CERT_NOT_BEFORE       "20010101000000"
 #define PROXENET_CERT_NOT_AFTER        "20301231235959"
 #define PROXENET_CERT_MAX_PATHLEN      -1
@@ -138,7 +138,7 @@ free_all:
  *
  * @return 0 if successful, -1 otherwise
  */
-int ca_generate_crt(ctr_drbg_context *ctr_drbg, unsigned char* csrbuf, size_t csrbuf_len, unsigned char* crtbuf, size_t crtbuf_len)
+static int ca_generate_crt(ctr_drbg_context *ctr_drbg, unsigned char* csrbuf, size_t csrbuf_len, unsigned char* crtbuf, size_t crtbuf_len)
 {
         int retcode = -1;
         char errbuf[128] = {0, };
@@ -169,7 +169,7 @@ int ca_generate_crt(ctr_drbg_context *ctr_drbg, unsigned char* csrbuf, size_t cs
 #endif
 
         /* set serial */
-        serial_str = (char*)alloca(PROXENET_CERT_SERIAL_SIZE);
+        serial_str = (char*)alloca(PROXENET_CERT_SERIAL_SIZE+1);
         retcode = ca_get_serial(&serial_str, PROXENET_CERT_SERIAL_SIZE);
         if(retcode < 0) {
                 goto exit;
@@ -363,7 +363,7 @@ static int create_crt(char* hostname, char* crtpath)
         if(cfg->verbose)
                 xlog(LOG_INFO, "New CRT '%s'\n", crtpath);
 
-        /* supprime le csr & free les rsrc */
+        /* delete csr & free rsrc */
         retcode = 0;
 
 exit:
