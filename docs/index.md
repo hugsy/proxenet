@@ -11,7 +11,11 @@ From Ancient Greek, *πρόξενος* (*próksenos*, "public guest").
 ## What is proxenet ?
 
 >
+<<<<<<< HEAD
 > `proxenet` is a ~~user~~*hacker* friendly proxy for web application penetration
+=======
+> `proxenet` is a ~~user~~**hacker** friendly proxy for web application penetration
+>>>>>>> 9b071963412e55218144ec1a97a8b4b3937eae4e
 > tests.
 >
 
