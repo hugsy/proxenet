@@ -41,7 +41,24 @@ VALUE proxenet_ruby_require_cb(VALUE arg)
 
 
 /**
+ * Print message from last exception triggered by ruby
+ */
+static void proxenet_ruby_print_last_exception()
+{
+	VALUE rException, rExceptStr;
+
+	rException = rb_errinfo();         /* get last exception */
+        rb_set_errinfo(Qnil);              /* clear last exception */
+        rExceptStr = rb_funcall(rException, rb_intern("to_s"), 0, Qnil);
+        xlog(LOG_ERROR, "RUBY Exception: %s\n", StringValuePtr(rExceptStr));
+	return;
+}
+
+
+/**
+ * Safely load a Ruby script in the VM
  *
+ * @return 0 upon success, -1 otherwise
  */
 int proxenet_ruby_load_file(plugin_t* plugin)
 {
@@ -58,15 +75,16 @@ int proxenet_ruby_load_file(plugin_t* plugin)
 
         pathname = plugin->fullpath;
 
-	rb_load_protect(rb_str_new_cstr(pathname), 0, &res);
+	rb_load_protect(rb_str_new2(pathname), false, &res);
 	if (res != 0) {
-		xlog(LOG_ERROR, "[Ruby] Error %d when load file '%s'\n", res, pathname);
+	        xlog(LOG_ERROR, "[Ruby] Error %d when load file '%s'\n", res, pathname);
+		proxenet_ruby_print_last_exception();
 		return -1;
 	}
 
-#ifdef DEBUG
-	xlog(LOG_DEBUG, "%s\n", pathname);
-#endif
+	if (cfg->verbose)
+		xlog(LOG_INFO, "[Ruby] '%s' is loaded\n", pathname);
+
 	return 0;
 }
 
@@ -76,6 +94,7 @@ int proxenet_ruby_load_file(plugin_t* plugin)
  */
 int proxenet_ruby_initialize_vm(plugin_t* plugin)
 {
+	static char* rArgs[] = { "ruby", "/dev/null" };
 	interpreter_t *interpreter;
 
 	interpreter = plugin->interpreter;
@@ -91,12 +110,18 @@ int proxenet_ruby_initialize_vm(plugin_t* plugin)
 	/* init vm */
 	ruby_init();
 
+	/*
+	 * The hack of calling ruby_process_options() with /dev/null allows to simply (in one call)
+	 * init all the structures and encoding params by the vm
+	 * Details: http://rxr.whitequark.org/mri/source/ruby.c#1915
+	 */
+	if ((VALUE)ruby_process_options(2, rArgs) != Qtrue) {
+		xlog(LOG_ERROR, "%s\n", "Error on ruby_process_options()");
+		proxenet_ruby_print_last_exception();
+		return -1;
+	}
+
 	interpreter->vm = (void*) rb_mKernel;
-
-        ruby_script(PROGNAME);
-
-	ruby_init_loadpath();
-
 	interpreter->ready = true;
 
 	return 0;
@@ -121,7 +146,7 @@ int proxenet_ruby_destroy_plugin(plugin_t* plugin)
  */
 int proxenet_ruby_destroy_vm(interpreter_t* interpreter)
 {
-        // TODO: find how to free ruby vm structs
+	ruby_cleanup(0);
 
         interpreter->ready = false;
         interpreter->vm = NULL;
@@ -131,11 +156,10 @@ int proxenet_ruby_destroy_vm(interpreter_t* interpreter)
 
 
 /**
- *
+ * Initialize Ruby plugin
  */
 int proxenet_ruby_initialize_function(plugin_t* plugin, req_t type)
 {
-
 	/* checks */
 	if (!plugin->name) {
 		xlog(LOG_ERROR, "%s\n", "null plugin name");
@@ -153,7 +177,6 @@ int proxenet_ruby_initialize_function(plugin_t* plugin, req_t type)
 			if (plugin->pre_function) {
 				xlog(LOG_WARNING, "Pre-hook function already defined for '%s'\n", plugin->name);
 				return 0;
-
 			}
 
 			plugin->pre_function  = (void*) rb_intern(CFG_REQUEST_PLUGIN_FUNCTION);
@@ -197,26 +220,24 @@ int proxenet_ruby_initialize_function(plugin_t* plugin, req_t type)
  * this should not create a blocking/bottleneck situation since the access to rb_mKernel is
  * mutex-protected by proxenet before
  *
- *
+ * @return the result of rb_funcall2()
  */
-static void* _safe_call_func(void* arg)
+static VALUE proxenet_safe_func_call(VALUE arg)
 {
         struct proxenet_ruby_args* args = (struct proxenet_ruby_args*) arg;
-        VALUE rRet = rb_funcall2(args->rVM, args->rFunc, 3, args->rArgs);
-        return (void*)rRet;
+        return rb_funcall2(args->rVM, args->rFunc, 3, args->rArgs);
 }
 
 
 /**
  *
  */
-static char* proxenet_ruby_execute_function(interpreter_t* interpreter, ID rFunc, request_t* request)
+static char* proxenet_ruby_execute_function(VALUE module, ID rFunc, request_t* request)
 {
 	char *buf, *data;
-	int buflen, i;
+	int buflen, i, state;
 	VALUE rRet;
 	char *uri;
-
         struct proxenet_ruby_args args;
 
 	uri = request->http_infos.uri;
@@ -224,7 +245,7 @@ static char* proxenet_ruby_execute_function(interpreter_t* interpreter, ID rFunc
 		return NULL;
 
 	/* build args */
-	args.rVM = (VALUE)interpreter->vm;
+	args.rVM = module;
 
         args.rFunc = rFunc;
 
@@ -232,12 +253,19 @@ static char* proxenet_ruby_execute_function(interpreter_t* interpreter, ID rFunc
 	args.rArgs[1] = rb_str_new(request->data, request->size);
 	args.rArgs[2] = rb_str_new2(uri);
 
-        for(i=0; i<3; i++) {
-                rb_gc_register_address(&args.rArgs[i]);
+	for(i=0; i<3; i++) {
+	  rb_gc_register_address(&args.rArgs[i]);
 	}
 
 	/* safe function call */
-        rRet = (VALUE)_safe_call_func(&args);
+	rRet = rb_protect(proxenet_safe_func_call, (VALUE)&args, &state);
+
+	if (state){
+		proxenet_ruby_print_last_exception();
+		data = NULL;
+		goto call_end;
+	}
+
 	if (!rRet) {
 		xlog(LOG_ERROR, "%s\n", "[ruby] funcall2() failed");
 		data = NULL;
@@ -245,10 +273,6 @@ static char* proxenet_ruby_execute_function(interpreter_t* interpreter, ID rFunc
 	}
 
 	rb_check_type(rRet, T_STRING);
-
-        for(i=0; i<3; i++) {
-                rb_gc_unregister_address(&args.rArgs[i]);
-	}
 
 
 	/* copy result to exploitable buffer */
@@ -263,12 +287,16 @@ static char* proxenet_ruby_execute_function(interpreter_t* interpreter, ID rFunc
 
 call_end:
 
+	for(i=0; i<3; i++) {
+		rb_gc_unregister_address(&args.rArgs[i]);
+        }
+
 	return data;
 }
 
 
 /**
- *
+ * Lock Ruby VM
  */
 static void proxenet_ruby_lock_vm(interpreter_t *interpreter)
 {
@@ -277,7 +305,7 @@ static void proxenet_ruby_lock_vm(interpreter_t *interpreter)
 
 
 /**
- *
+ * Unlock Ruby VM
  */
 static void proxenet_ruby_unlock_vm(interpreter_t *interpreter)
 {
@@ -292,7 +320,10 @@ char* proxenet_ruby_plugin(plugin_t* plugin, request_t* request)
 {
 	char* buf = NULL;
 	interpreter_t *interpreter = plugin->interpreter;
+	VALUE module;
 	ID rFunc;
+
+	module = rb_const_get(rb_cObject, rb_intern(plugin->name + 1));
 
 	if (request->type == REQUEST)
 		rFunc = (ID) plugin->pre_function;
@@ -300,7 +331,7 @@ char* proxenet_ruby_plugin(plugin_t* plugin, request_t* request)
 		rFunc = (ID) plugin->post_function;
 
         proxenet_ruby_lock_vm(interpreter);
-	buf = proxenet_ruby_execute_function(interpreter, rFunc, request);
+	buf = proxenet_ruby_execute_function(module, rFunc, request);
 	proxenet_ruby_unlock_vm(interpreter);
 	return buf;
 }
