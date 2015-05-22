@@ -49,6 +49,7 @@ static void print_cert_serial(proxenet_ssl_buf_t serial)
         m = alloca(l*3 + 1);
         proxenet_xzero(m, l*3 + 1);
         for(i=0; i<l; i++) sprintf(&m[i*3], "%.2x:", s[i]);
+        m[l*3-1] = '\x00';
         xlog(LOG_INFO, "Serial is '%s' (len=%u)\n", m, l);
         return;
 }
