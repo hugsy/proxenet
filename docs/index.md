@@ -5,7 +5,7 @@
 From Ancient Greek, *πρόξενος* (*próksenos*, "public guest").
 
 1. A negotiator; a factor; a go-between.
-2. A negotiator involved in immoral bargains (see *pimp*).
+2. A mediator involved in immoral bargains (see *pimp*).
 
 
 ## What is proxenet ?
@@ -55,9 +55,9 @@ Here are a sample of features already supported by `proxenet`:
 - Written in C
     - Fast (heavy thread use)
     - Efficient (POSIX compatible)
-    - Low memory footprint
+    - Low memory footprint (for the core)
 - Can interact with any language
-- Supports already plugins in :
+- Provides plugins support for the following languages:
     - C
     - Python
     - Lua
@@ -70,7 +70,7 @@ Here are a sample of features already supported by `proxenet`:
     - SSL client certificate authentication
 - IPv4/IPv6
 - HTTP Proxy forwarding
-- Hosts white/black filtering
+- White-list/Black-list hosts filtering
 - Command interface out-of-band
 - Nice TTY colors :D
 - 100% Open-Source
@@ -95,6 +95,7 @@ So the simple but powerful idea behind `proxenet` is to allow pentesters to
 **easily** interact with their HTTP requests/responses in their favorite
 high-level language.
 
+Jump to section [Plugin](plugin) to start writing plugins now.
 
 ## Language Versions
 
@@ -122,4 +123,4 @@ both written in Java.
 ## Want to help
 
 Report crashes or improvement patches using the GitHub issues page of the
-project.
+project. This project follows the *beers4bugs* bounty policy.

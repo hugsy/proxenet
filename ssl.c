@@ -66,7 +66,7 @@ static void proxenet_ssl_debug(void *who, int level, const char *str )
 /**
  *
  */
-static inline int _proxenet_ssl_init_context(ssl_atom_t* ssl_atom, int type, char* hostname)
+static inline int _proxenet_ssl_init_context(ssl_atom_t* ssl_atom, int type, char* hostname, proxenet_ssl_buf_t serial)
 {
         int retcode = -1;
         char ssl_error_buffer[128] = {0, };
@@ -80,7 +80,7 @@ static inline int _proxenet_ssl_init_context(ssl_atom_t* ssl_atom, int type, cha
 
         /* We only define a certificate if we're a server, or the user requested SSL cert auth */
         if (type==SSL_IS_SERVER) {
-                if (proxenet_lookup_crt(hostname, &certfile) < 0){
+                if (proxenet_lookup_crt(hostname, serial, &certfile) < 0){
                         xlog(LOG_ERROR, "proxenet_lookup_crt() failed for '%s'\n", hostname);
                         return -1;
                 }
@@ -88,9 +88,9 @@ static inline int _proxenet_ssl_init_context(ssl_atom_t* ssl_atom, int type, cha
                 keyfile = cfg->certskey;
                 keyfile_pwd = cfg->certskey_pwd;
 
-                if(cfg->verbose)
+                if(cfg->verbose > 1)
                         xlog(LOG_INFO, "Using Server CRT '%s' (key='%s', pwd='%s') \n",
-                        certfile, keyfile, keyfile_pwd);
+                             certfile, keyfile, keyfile_pwd);
         }
 
         else if(use_ssl_client_auth){
@@ -98,13 +98,11 @@ static inline int _proxenet_ssl_init_context(ssl_atom_t* ssl_atom, int type, cha
                 keyfile = cfg->sslcli_keyfile;
                 keyfile_pwd = cfg->sslcli_keyfile_pwd;
                 domain = cfg->sslcli_domain;
-#ifdef DEBUG
-                xlog(LOG_DEBUG,
-                     "Configuring SSL client certificate:\n\tcert='%s'\n\tkey='%s'\n\tdomain='%s'\n",
-                     certfile,
-                     keyfile,
-                     domain);
-#endif
+
+                if(cfg->verbose > 1)
+                        xlog(LOG_DEBUG,
+                             "Configuring SSL client certificate:\n\tcert='%s'\n\tkey='%s'\n\tdomain='%s'\n",
+                             certfile, keyfile, domain);
         }
 
 
@@ -220,9 +218,9 @@ end_init:
 /**
  *
  */
-int proxenet_ssl_init_server_context(ssl_atom_t *server, char* hostname)
+int proxenet_ssl_init_server_context(ssl_atom_t *server, char* hostname, proxenet_ssl_buf_t serial)
 {
-        return _proxenet_ssl_init_context(server, SSL_IS_SERVER, hostname);
+        return _proxenet_ssl_init_context(server, SSL_IS_SERVER, hostname, serial);
 }
 
 
@@ -231,7 +229,8 @@ int proxenet_ssl_init_server_context(ssl_atom_t *server, char* hostname)
  */
 int proxenet_ssl_init_client_context(ssl_atom_t* client, char* hostname)
 {
-        return _proxenet_ssl_init_context(client, SSL_IS_CLIENT, hostname);
+        proxenet_ssl_buf_t serial;
+        return _proxenet_ssl_init_context(client, SSL_IS_CLIENT, hostname, serial);
 }
 
 
@@ -261,31 +260,29 @@ int proxenet_ssl_handshake(proxenet_ssl_context_t* ctx)
                    retcode!=POLARSSL_ERR_NET_WANT_WRITE) {
                         proxenet_xzero(ssl_strerror, sizeof(ssl_strerror));
                         error_strerror(retcode, ssl_strerror, 127);
-                        if (cfg->verbose > 1)
-                                xlog(LOG_ERROR, "SSL handshake failed (returns %#x): %s\n",
-                                     -retcode, ssl_strerror);
-                        retcode = -1;
+                        xlog(LOG_ERROR, "SSL handshake failed (returns %#x): %s\n", -retcode, ssl_strerror);
                         break;
                 }
 
         } while( true );
 
 
-#ifdef DEBUG_SSL
-        proxenet_xzero(errbuf, sizeof(errbuf));
-        strncat(errbuf, "SSL Handshake: ", sizeof(errbuf)-strlen(errbuf)-1);
-        if (retcode) {
-                snprintf(errbuf+strlen(errbuf), sizeof(errbuf)-strlen(errbuf)-1,
-                         RED"fail"NOCOLOR" [%d]",
-                         retcode);
-        } else {
-                snprintf(errbuf+strlen(errbuf), sizeof(errbuf)-strlen(errbuf)-1,
-                         GREEN"success"NOCOLOR" [proto='%s',cipher='%s']",
-                         ssl_get_version( ctx ),
-                         ssl_get_ciphersuite( ctx ) );
+        if (cfg->verbose){
+                proxenet_xzero(ssl_strerror, sizeof(ssl_strerror));
+
+                if (retcode) {
+                        snprintf(ssl_strerror, sizeof(ssl_strerror)-1,
+                                 "SSL Handshake: "RED"fail"NOCOLOR" [%d]",
+                                 retcode);
+                } else {
+                        snprintf(ssl_strerror, sizeof(ssl_strerror)-1,
+                                 "SSL Handshake: "GREEN"success"NOCOLOR" [proto='%s',cipher='%s']",
+                                 ssl_get_version( ctx ),
+                                 ssl_get_ciphersuite( ctx ) );
+                }
+                xlog(LOG_INFO, "%s\n", ssl_strerror);
         }
-        xlog(LOG_DEBUG, "%s\n", errbuf);
-#endif
+
 
 #ifdef DEBUG_SSL
         if(retcode == 0) {

@@ -12,20 +12,16 @@
 
 #include <polarssl/x509_crt.h>
 #include <polarssl/x509_csr.h>
+#include <polarssl/x509.h>
 #include <polarssl/entropy.h>
 #include <polarssl/ctr_drbg.h>
 #include <polarssl/error.h>
 
+#include "ssl.h"
 #include "minica.h"
 #include "main.h"
 #include "core.h"
 #include "utils.h"
-
-#define PROXENET_CERT_SERIAL_SIZE      X509_RFC5280_MAX_SERIAL_LEN
-#define PROXENET_CERT_NOT_BEFORE       "20010101000000"
-#define PROXENET_CERT_NOT_AFTER        "20301231235959"
-#define PROXENET_CERT_MAX_PATHLEN      -1
-#define PROXENET_CERT_SUBJECT          "CN=%s,OU=BlackHats,O=World Domination Corp.,C=US"
 
 
 static pthread_mutex_t	certificate_mutex;
@@ -39,15 +35,48 @@ static pthread_mutex_t	certificate_mutex;
 
 
 /**
- * Get the next serial
+ * Print certificate serial.
  *
- * @return serial
  */
-static int ca_get_serial(char** buf, int buflen)
+static void print_cert_serial(proxenet_ssl_buf_t serial)
 {
-        unsigned long s;
-        s = ++seriali;
-        return snprintf(*buf, buflen, "%lu", s);;
+        size_t i, l;
+        char *m;
+        unsigned char *s;
+
+        s = serial.p;
+        l = serial.len;
+        m = alloca(l*3 + 1);
+        proxenet_xzero(m, l*3 + 1);
+        for(i=0; i<l; i++) sprintf(&m[i*3], "%.2x:", s[i]);
+        xlog(LOG_INFO, "Serial is '%s' (len=%u)\n", m, l);
+        return;
+}
+
+
+/**
+ * Get the serial from the certificate of the server
+ *
+ * @return 0 if success, -1 otherwise
+ */
+int proxenet_get_cert_serial(ssl_atom_t* ssl, proxenet_ssl_buf_t *serial)
+{
+        proxenet_ssl_context_t* ctx;
+        const x509_crt *crt;
+
+        ctx = &ssl->context;
+        crt = ssl_get_peer_cert(ctx);
+        if (!crt){
+                xlog(LOG_ERROR, "%s\n", "Failed to get peer certificate");
+                return -1;
+        }
+
+        *serial = crt->serial;
+
+        if (cfg->verbose)
+                print_cert_serial(*serial);
+
+        return 0;
 }
 
 
@@ -138,13 +167,12 @@ free_all:
  *
  * @return 0 if successful, -1 otherwise
  */
-static int ca_generate_crt(ctr_drbg_context *ctr_drbg, unsigned char* csrbuf, size_t csrbuf_len, unsigned char* crtbuf, size_t crtbuf_len)
+static int ca_generate_crt(ctr_drbg_context *ctr_drbg, unsigned char* csrbuf, size_t csrbuf_len, unsigned char* crtbuf, size_t crtbuf_len, proxenet_ssl_buf_t serial_buf)
 {
         int retcode = -1;
         char errbuf[128] = {0, };
         char subject_name[128] = {0, };
         char issuer_name[128] = {0, };
-        char *serial_str;
 
         x509_csr csr;
         x509_crt issuer_crt;
@@ -168,20 +196,12 @@ static int ca_generate_crt(ctr_drbg_context *ctr_drbg, unsigned char* csrbuf, si
         xlog(LOG_DEBUG, "%s\n", "CRT load cert & key");
 #endif
 
-        /* set serial */
-        serial_str = (char*)alloca(PROXENET_CERT_SERIAL_SIZE+1);
-        retcode = ca_get_serial(&serial_str, PROXENET_CERT_SERIAL_SIZE);
-        if(retcode < 0) {
-                goto exit;
-        }
-
-        retcode = mpi_read_string(&serial, 10, serial_str);
+        retcode = mpi_read_binary(&serial, serial_buf.p, serial_buf.len);
         if(retcode < 0) {
                 polarssl_strerror(retcode, errbuf, sizeof(errbuf));
                 xlog(LOG_ERROR, "mpi_read_string() returned -0x%02x - %s\n", -retcode, errbuf);
                 goto exit;
         }
-
 
         /* load proxenet CA certificate */
         retcode = x509_crt_parse_file(&issuer_crt, cfg->cafile);
@@ -305,7 +325,7 @@ exit:
  *
  * @return 0 if successful, -1 otherwise
  */
-static int create_crt(char* hostname, char* crtpath)
+static int create_crt(char* hostname, proxenet_ssl_buf_t serial, char* crtpath)
 {
         int retcode, fd;
         unsigned char csrbuf[4096]={0, };
@@ -325,6 +345,7 @@ static int create_crt(char* hostname, char* crtpath)
         retcode = ca_generate_csr(&ctr_drbg, hostname, csrbuf, sizeof(csrbuf));
         if(retcode<0)
                 goto exit;
+
 #ifdef DEBUG_SSL
         xlog(LOG_DEBUG, "CSR for '%s':\n%s\n", hostname, csrbuf);
 #endif
@@ -333,9 +354,11 @@ static int create_crt(char* hostname, char* crtpath)
 #ifdef DEBUG_SSL
         xlog(LOG_DEBUG, "Signing CSR for '%s' with '%s'(key='%s')\n", hostname, cfg->cafile, cfg->keyfile);
 #endif
-        retcode = ca_generate_crt(&ctr_drbg, csrbuf, sizeof(csrbuf), crtbuf, sizeof(crtbuf));
+
+        retcode = ca_generate_crt(&ctr_drbg, csrbuf, sizeof(csrbuf), crtbuf, sizeof(crtbuf), serial);
         if(retcode<0)
                 goto exit;
+
 #ifdef DEBUG_SSL
         xlog(LOG_DEBUG, "CRT signed for '%s':\n%s\n", hostname, crtbuf);
 #endif
@@ -380,7 +403,7 @@ exit:
  *
  * @return 0 if successful, -1 otherwise
  */
-int proxenet_lookup_crt(char* hostname, char** crtpath)
+int proxenet_lookup_crt(char* hostname, proxenet_ssl_buf_t serial, char** crtpath)
 {
         int retcode, n;
         char buf[PATH_MAX];
@@ -446,7 +469,7 @@ int proxenet_lookup_crt(char* hostname, char** crtpath)
         }
 
         /* if not, create && release lock && returns  */
-        retcode = create_crt(hostname, crt_realpath);
+        retcode = create_crt(hostname, serial, crt_realpath);
         if (retcode < 0){
                 xlog(LOG_ERROR, "create_crt(hostname='%s', crt='%s') has failed\n",
                      hostname, crt_realpath);

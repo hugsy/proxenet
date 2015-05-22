@@ -13,6 +13,7 @@
 #define HTTPS_DEFAULT_PORT 443
 
 
+void     generic_http_error_page(sock_t, char*);
 int      create_http_socket(request_t*, sock_t*, sock_t*, ssl_context_t*);
 int      format_http_request(char**, size_t*);
 int      update_http_infos(request_t*);

@@ -14,6 +14,7 @@
 #include "http.h"
 #include "ssl.h"
 #include "main.h"
+#include "minica.h"
 
 #define HTTP_STRING  "http"
 #define HTTPS_STRING "https"
@@ -24,7 +25,7 @@
 /**
  *
  */
-static void generic_http_error_page(sock_t sock, char* msg)
+void generic_http_error_page(sock_t sock, char* msg)
 {
 	char* html_header = "<html><body><h1>proxenet error page</h1><br/>";
 	char* html_footer = "</body></html>";
@@ -455,11 +456,13 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
 
 	retcode = create_connect_socket(host, port);
 	if (retcode < 0) {
-		if (errno)
-			generic_http_error_page(*server_sock, strerror(errno));
-		else
-			generic_http_error_page(*server_sock, "Unknown error in <i>create_connect_socket</i>");
+                char msg[512]={0,};
 
+                snprintf(msg, sizeof(msg), "Cannot connect to %s:%s<br><br>Reason: %s",
+                         host, port,
+                         errno?strerror(errno):"Unknown error in <i>create_connect_socket</i>");
+
+                generic_http_error_page(*server_sock, msg);
 		return -1;
 	}
 
@@ -530,9 +533,12 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
                         }
 
                         proxenet_ssl_wrap_socket(&(ssl_ctx->client.context), client_sock);
-                        if (proxenet_ssl_handshake(&(ssl_ctx->client.context)) < 0) {
-                                xlog(LOG_ERROR, "%s->'%s:%d': handshake failed\n",
-                                     PROGNAME, http_infos->hostname, http_infos->port);
+
+                        retcode = proxenet_ssl_handshake(&(ssl_ctx->client.context));
+                        if (retcode < 0) {
+                                xlog(LOG_ERROR, "%s->'%s:%d': SSL handshake failed [code: %#x]\n",
+                                     PROGNAME, http_infos->hostname, http_infos->port, retcode);
+
                                 return -1;
                         }
 
@@ -547,9 +553,14 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
                 }
 
                 if (req->do_intercept) {
+                        proxenet_ssl_buf_t serial;
+
+                        if(proxenet_get_cert_serial(&(ssl_ctx->client), &serial)<0){
+                                return -1;
+                        }
 
                         /* 2. set up proxy->browser ssl session with hostname */
-                        if(proxenet_ssl_init_server_context(&(ssl_ctx->server), http_infos->hostname) < 0) {
+                        if(proxenet_ssl_init_server_context(&(ssl_ctx->server), http_infos->hostname, serial) < 0) {
                                 return -1;
                         }
 
@@ -590,7 +601,8 @@ int ie_compat_read_post_body(sock_t sock, request_t* req, proxenet_ssl_context_t
         char *body, *clen;
 
         /* to speed-up, disregard requests without body */
-        if (strcmp(req->http_infos.method, "POST")!=0)
+        if (strcmp(req->http_infos.method, "POST")!=0 && \
+            strcmp(req->http_infos.method, "PUT")!=0)
                 return 0;
 
         /* read Content-Length header */
