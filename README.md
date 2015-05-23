@@ -1,9 +1,12 @@
 ## Proxenet
 
+![logo](img/proxenet-logo.png)
+
 ### What is it?
-`proxenet` is a fully DIY web proxy for pentest(ers). It is a C-based proxy that
-allows you to interact with higher level languages for modifying on-the-fly
-requests/responses sent by your Web browser.
+`proxenet` is a hacker friendly DIY web proxy for pentest(ers). It is a C-based
+proxy that allows you to interact with higher level languages (like Python,
+Ruby, Java, etc.) for modifying on-the-fly requests/responses sent by your Web
+browser.
 
 
 ### How to start
