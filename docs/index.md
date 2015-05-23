@@ -1,4 +1,4 @@
-# proxenet
+![logo](img/proxenet-logo.png)
 
 ## Definition
 
@@ -15,7 +15,7 @@ From Ancient Greek, *πρόξενος* (*próksenos*, "public guest").
 > penetration tests.
 >
 
-![proxenet](img/proxenet-capture1.png)
+![capture1](img/proxenet-capture1.png)
 
 `proxenet` is a multi-threaded proxy which allows you manipulate your HTTP
 requests and responses using your favorite scripting language. No need to learn
