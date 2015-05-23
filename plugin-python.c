@@ -16,10 +16,9 @@
  */
 
 #include <Python.h>
-
 #include <string.h>
-#include <alloca.h>
 #include <pthread.h>
+
 
 #include "core.h"
 #include "main.h"

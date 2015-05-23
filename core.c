@@ -23,6 +23,10 @@
 #include <fnmatch.h>
 #include <time.h>
 
+#if defined( __DARWIN__ ) || defined( __FREESBD__ )
+#include <signal.h>
+#endif
+
 #include "core.h"
 #include "main.h"
 #include "utils.h"

@@ -5,10 +5,13 @@
 #include <stdio.h>
 #include <errno.h>
 #include <unistd.h>
-#include <alloca.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <pthread.h>
+
+#ifdef __LINUX__
+#include <alloca.h>
+#endif
 
 #include <polarssl/x509_crt.h>
 #include <polarssl/x509_csr.h>

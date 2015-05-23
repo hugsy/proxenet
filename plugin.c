@@ -1,4 +1,3 @@
-#include <alloca.h>
 #include <fcntl.h>
 #include <dirent.h>
 #include <stdio.h>
@@ -11,6 +10,10 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+
+#ifdef __LINUX__
+#include <alloca.h>
+#endif
 
 #include "core.h"
 #include "utils.h"

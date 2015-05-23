@@ -13,6 +13,11 @@
  *
  */
 
+#ifdef __FREESBD__
+#include <sys/socket.h>
+#include <netinet/in.h>
+#endif
+
 #define MAX_THREADS                           50                        // maximum number of threads
 #define CFG_DEFAULT_BIND_ADDR                 "localhost"               // default binding address
 #define CFG_DEFAULT_BIND_PORT                 "8008"                    // default binding port

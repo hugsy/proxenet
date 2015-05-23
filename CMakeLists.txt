@@ -29,7 +29,7 @@ else()
 endif()
 
 set (VERSION_MAJOR 0)
-set (VERSION_MINOR 3)
+set (VERSION_MINOR 4)
 
 set (VERSION "${VERSION_MAJOR}.${VERSION_MINOR}-${VERSION_REL}")
 
@@ -79,8 +79,12 @@ else()
   set(CMAKE_BUILD_TYPE None)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -fstack-protector-all -fPIE -fPIC")
   set(CMAKE_VERBOSE_MAKEFILE OFF)
-  set(CMAKE_LINK_HARDEN "-Wl,-z,relro,-z,now") # Full RelRO
-  set(CMAKE_LINK_HARDEN ${CMAKE_LINK_HARDEN} -pie) # PIE
+
+  if( ${CMAKE_SYSTEM_NAME} MATCHES "Linux" )
+    set(CMAKE_LINK_HARDEN "-Wl,-z,relro,-z,now") # Full RelRO
+    set(CMAKE_LINK_HARDEN ${CMAKE_LINK_HARDEN} -pie) # PIE
+  endif()
+
 endif(DEBUG)
 
 
@@ -97,6 +101,14 @@ utils.c utils.h
 plugin.c plugin.h
 )
 
+# adding OS specific info
+if( ${CMAKE_SYSTEM_NAME} MATCHES "Linux" )
+  add_definitions(-D__LINUX__)
+elseif( ${CMAKE_SYSTEM_NAME} MATCHES "Darwin" )
+  add_definitions(-D__DARWIN__)
+elseif( ${CMAKE_SYSTEM_NAME} MATCHES "FreeBSD" )
+  add_definitions(-D__FREESBD__)
+endif()
 
 # adding cmake directory
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
@@ -109,7 +121,8 @@ set(EXTRA_LIBS "-lpthread")
 find_package(PolarSSL REQUIRED)
 if(POLARSSL_FOUND  AND  POLARSSL_INCLUDE_DIR  AND  POLARSSL_LIBRARIES)
   add_definitions(-DHAVE_POLARSSL)
-  set(EXTRA_LIBS ${EXTRA_LIBS} polarssl)
+  include_directories(${POLARSSL_INCLUDE_DIR})
+  set(EXTRA_LIBS ${EXTRA_LIBS} ${POLARSSL_LIBRARIES})
   set(_POLARSSL_VERSION_ ${POLARSSL_VERSION})
   message("-- PolarSSL ${POLARSSL_VERSION} found!")
 else()

@@ -134,12 +134,13 @@ static void help()
         version(false);
         printf("Written by %s\n"
                "Released under: %s\n"
-               "Compiled by %s (%s) with support for :\n",
-
+               "Using library: PolarSSL %s\n"
+               "Compiled by %s (%s) with support for :\n"
+               ,
                AUTHOR,
                LICENSE,
-               CC,
-               SYSTEM);
+               _POLARSSL_VERSION_,
+               CC, SYSTEM);
 
         i = 0;
         while (true) {

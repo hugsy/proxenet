@@ -13,8 +13,6 @@
 #include <lua.h>
 #include <lualib.h>
 #include <lauxlib.h>
-
-#include <alloca.h>
 #include <string.h>
 
 #include "core.h"

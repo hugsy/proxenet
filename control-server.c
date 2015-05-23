@@ -6,9 +6,18 @@
 #include <string.h>
 #include <strings.h>
 #include <errno.h>
-#include <alloca.h>
 #include <netdb.h>
 #include <stdlib.h>
+
+#ifdef __LINUX__
+#include <alloca.h>
+#endif
+
+#ifdef __FREEBSD__
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#endif
 
 #include "control-server.h"
 #include "core.h"
@@ -19,15 +28,15 @@
 
 
 static struct command_t known_commands[] = {
-	{ "quit", 	 0, &quit_cmd, "Make "PROGNAME" leave kindly" },
-	{ "help", 	 0, &help_cmd, "Show this menu" },
-	{ "pause", 	 0, &pause_cmd, "Toggle pause" },
-	{ "info", 	 0, &info_cmd, "Display information about environment" },
-	{ "verbose", 	 1, &verbose_cmd, "Get/Set verbose level"},
-	{ "reload", 	 0, &reload_cmd, "Reload the plugins" },
-	{ "threads", 	 0, &threads_cmd, "Show info about threads" },
-	{ "plugin", 	 1, &plugin_cmd, "Get/Set info about plugin"},
-        { "config", 	 1, &config_cmd, "Edit configuration at runtime"},
+	{ "quit", 	 0, &quit_cmd,     "Make "PROGNAME" leave kindly" },
+	{ "help", 	 0, &help_cmd,     "Show this menu" },
+	{ "pause", 	 0, &pause_cmd,    "Toggle pause" },
+	{ "info", 	 0, &info_cmd,     "Display information about environment" },
+	{ "verbose", 	 1, &verbose_cmd,  "Get/Set verbose level"},
+	{ "reload", 	 0, &reload_cmd,   "Reload the plugins" },
+	{ "threads", 	 0, &threads_cmd,  "Show info about threads" },
+	{ "plugin", 	 1, &plugin_cmd,   "Get/Set info about plugin"},
+        { "config", 	 1, &config_cmd,   "Edit configuration at runtime"},
 
 	{ NULL, 0, NULL, NULL}
 };

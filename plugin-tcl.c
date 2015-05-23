@@ -11,8 +11,6 @@
  */
 
 #include <tcl.h>
-
-#include <alloca.h>
 #include <string.h>
 #include <errno.h>
 

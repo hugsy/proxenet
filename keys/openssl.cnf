@@ -1,60 +1,66 @@
 #
 # OpenSSL configuration file for proxenet used by Makefile
+# It contains default values to be used by OpenSSL to generate
+# the keys for the proxenet CA.
+#
+# You can use it manually, or through the Makefile with the command
+# $ make keys
+# from this directory
 #
 # @_hugsy_
 #
 
-dir				    	= .
+dir                           = .
 
 [ ca ]
-default_ca				= CA_proxenet
+default_ca                    = CA_proxenet
 
 [ CA_proxenet ]
-serial					= $dir/serial
-database				= $dir/certindex.txt
-new_certs_dir                           = $dir/certs
-certificate				= $dir/cacert.pem
-private_key				= $dir/private/cakey.pem
-default_days			        = 3650
-default_md				= md5
-preserve				= no
-email_in_dn				= no
-nameopt					= default_ca
-certopt					= default_ca
-policy					= policy_match
+serial                        = $dir/serial
+database                      = $dir/certindex.txt
+new_certs_dir                 = $dir/certs
+certificate                   = $dir/cacert.pem
+private_key                   = $dir/private/cakey.pem
+default_days                  = 3650
+default_md                    = sha1
+preserve                      = no
+email_in_dn                   = no
+nameopt                       = default_ca
+certopt                       = default_ca
+policy                        = policy_match
 
 [ policy_match ]
-countryName             	= match
-stateOrProvinceName			= match
-organizationName			= match
-organizationalUnitName      = optional
-commonName                  = supplied
-emailAddress				= optional
+countryName                   = match
+stateOrProvinceName           = match
+organizationName              = match
+organizationalUnitName        = optional
+commonName                    = supplied
+emailAddress                  = optional
 
 [ req ]
-default_bits				= 1024
-default_keyfile				= proxenet.key
-default_md				    = md5
-string_mask				    = nombstr
-distinguished_name			= req_distinguished_name
-req_extensions				= v3_req
+default_bits                  = 1024
+default_keyfile               = proxenet.key
+default_md                    = sha1
+string_mask                   = nombstr
+distinguished_name            = req_distinguished_name
+req_extensions                = v3_req
 
 [ req_distinguished_name ]
-0.organizationName			= Organization Name (company)
-organizationalUnitName	    = Organizational Unit Name (department, division)
-emailAddress				= Email Address
-emailAddress_max			= 40
-localityName				= Locality Name (city, district)
-stateOrProvinceName			= State or Province Name (full name)
-countryName		            = Country Name (2 letter code)
-countryName_min				= 2
-countryName_max				= 2
-commonName				    = Common Name (hostname, IP, or your name)
-commonName_max				= 64
+0.organizationName            = Organization Name (company)
+organizationalUnitName        = Organizational Unit Name (department, division)
+emailAddress                  = Email Address
+emailAddress_max              = 40
+localityName                  = Locality Name (city, district)
+stateOrProvinceName           = State or Province Name (full name)
+countryName                   = Country Name (2 letter code)
+countryName_min               = 2
+countryName_max               = 2
+commonName                    = Common Name (hostname, IP, or your name)
+commonName_max                = 64
 
 0.organizationName_default      = World Domination Corp.
 organizationalUnitName_default  = BlackHats
-localityName_default	        = bleh
+localityName_default            = bleh
 stateOrProvinceName_default     = blah
 countryName_default             = FR
 emailAddress_default            = proxenet@worldomination.corp
@@ -63,10 +69,10 @@ issuerAltName_default           = Magic Cat
 subjectAltName_default          = Magic Cat
 
 [ v3_ca ]
-basicConstraints    			= CA:TRUE
-subjectKeyIdentifier			= hash
-authorityKeyIdentifier			= keyid:always,issuer:always
+basicConstraints                = CA:TRUE
+subjectKeyIdentifier            = hash
+authorityKeyIdentifier          = keyid:always,issuer:always
 
 [ v3_req ]
-basicConstraints        		= CA:FALSE
+basicConstraints                = CA:FALSE
 subjectKeyIdentifier            = hash

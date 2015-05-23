@@ -11,7 +11,7 @@ From Ancient Greek, *πρόξενος* (*próksenos*, "public guest").
 ## What is proxenet ?
 
 >
-> `proxenet` is a ~~user~~ **hacker** friendly proxy for web application
+> `proxenet` is a **hacker** friendly proxy for web application
 > penetration tests.
 >
 
@@ -82,7 +82,7 @@ Here are a sample of features already supported by `proxenet`:
 
 Some people might miss the beautiful interface some other GUI-friendly proxies
 provide. So be it! Plug `proxenet` as a relay behind your favorite `Burp`,
-`Zap`, `Proxystrike`, `abrupt`, etc. and enjoy the show!
+`Zap`, `Proxystrike`, `burst`, etc. and enjoy the show!
 
 
 ## Write-Your-Own-Plugins

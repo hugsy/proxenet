@@ -61,7 +61,7 @@ void _xlog(int type, const char* fmt, ...)
 
 
 #ifdef DEBUG
-	fprintf(cfg->logfile_fd, "tid-%ld ", pthread_self());
+	fprintf(cfg->logfile_fd, "tid-%lu ", pthread_self());
 #endif
 
 	va_start(ap, fmt);

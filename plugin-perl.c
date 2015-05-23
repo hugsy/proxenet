@@ -14,7 +14,11 @@
 #include <EXTERN.h>
 #include <perl.h>
 #include <string.h>
+#include <stdlib.h>
+
+#ifdef __LINUX__
 #include <alloca.h>
+#endif
 
 #include "core.h"
 #include "plugin.h"

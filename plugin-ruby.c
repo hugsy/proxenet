@@ -12,7 +12,6 @@
 
 
 #include <pthread.h>
-#include <alloca.h>
 #include <string.h>
 #include <ruby.h>
 #include <ruby/thread.h>

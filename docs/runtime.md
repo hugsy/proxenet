@@ -39,7 +39,7 @@ OPTIONS:
 
 ### Explaining Runtime
 When started, `proxenet` will start initializing plugins and appending them to
-a list **if** then they are valid (filename convention and syntaxically
+a list **only if** they are valid (filename convention and syntaxically
 valid). Then it will start looking for events.
 
 ```
@@ -56,13 +56,12 @@ Plugins list:
 |_ priority=2   id=2   type=Python    [0x0] name=InjectRequest        (ACTIVE)
 |_ priority=2   id=3   type=Lua       [0x1] name=InjectRequest        (ACTIVE)
 |_ priority=9   id=4   type=Python    [0x0] name=Intercept            (ACTIVE)
-INFO: Starting interactive mode, press h for help
 ```
 
 In this example, 4 plugins were automatically loaded and will be executed **on
 every** request/response. This is important to keep in mind.
 
-`proxenet` allows you to interact with engine through a Unix socket, by default
+`proxenet` allows you to interact with the engine through a Unix socket, by default
 located at `/tmp/proxenet-control-socket`. You can connect using `ncat`
 command, and display help menu help with `help` command:
 ```

@@ -25,9 +25,10 @@ if(!POLARSSL_INCLUDE_DIR AND !POLARSSL_LIBRARIES)
 endif()
 
 execute_process(
-    COMMAND bash -c "echo \"#include <polarssl/version.h>\n#include <stdio.h>\nint main(){printf(POLARSSL_VERSION_STRING);return 0;}\">a.c;cc a.c -lpolarssl;./a.out;rm -f a.out a.c"
+    COMMAND bash -c "echo \"#include <polarssl/version.h>\n#include <stdio.h>\nint main(){printf(POLARSSL_VERSION_STRING);return 0;}\">a.c;cc a.c -I${POLARSSL_INCLUDE_DIR} ${POLARSSL_LIBRARIES} ;./a.out;rm -f a.c a.out"
     OUTPUT_VARIABLE POLARSSL_VERSION
     )
+
 string(REPLACE "." ";" POLARSSL_VERSION_LIST ${POLARSSL_VERSION})
 
 list(GET ${POLARSSL_VERSION_LIST} 0 POLARSSL_VERSION_MAJOR)
