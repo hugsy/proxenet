@@ -1,6 +1,6 @@
 ## Proxenet
 
-![logo](img/proxenet-logo.png)
+![logo](docs/img/proxenet-logo.png)
 
 ### What is it?
 `proxenet` is a hacker friendly DIY web proxy for pentest(ers). It is a C-based
