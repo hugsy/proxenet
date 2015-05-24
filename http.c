@@ -438,8 +438,6 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
 	http_request_t* http_infos = &req->http_infos;
 	bool use_proxy = (cfg->proxy.host != NULL) ;
 
-        xlog(LOG_WARNING, "Request: %s", req->data);
-
         if (update_http_infos(req) < 0){
                 xlog(LOG_ERROR, "%s\n", "Failed to extract valid parameters from URL.");
 		return -1;
