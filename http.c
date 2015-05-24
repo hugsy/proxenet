@@ -123,10 +123,12 @@ static int get_hostname_from_uri(request_t* req, int offset)
 
 
 /**
- * Look up for a header in a request.
+ * Look up for a header in a request. If found, this function will allocate a buffer containing
+ * the header value (after the ': ') until a line RET (CR/LF) is found.
+ * If not found, it returns NULL.
  *
- * @return a pointer to a malloc-ed buffer containing a copy of the value of the header if found,
- * NULL in any other case. The buffer must be free-ed by the caller.
+ * @note if found, the allocated buffer *MUST* be free-ed by caller.
+ * @return a pointer to a malloc-ed buffer with the header value, or NULL if not found.
  */
 static char* get_header_by_name(char* request, const char* header_name)
 {
@@ -144,7 +146,7 @@ static char* get_header_by_name(char* request, const char* header_name)
         ptr2 = ptr;
 
         /* get the end of header line */
-        for(; *ptr2 && *ptr2!=':' && *ptr2!=' ' && *ptr2!='\r'; ptr2++);
+        for(; *ptr2 && *ptr2!='\r' && *ptr2!='\n'; ptr2++);
         c = *ptr2;
         *ptr2 = '\0';
 
@@ -165,18 +167,24 @@ static char* get_header_by_name(char* request, const char* header_name)
  */
 static int get_hostname_from_header(request_t *req)
 {
-        char *ptr;
+        char *ptr, *header;
 
-	req->http_infos.hostname = get_header_by_name(req->data, "Host: ");
-        if (!req->http_infos.hostname){
+	header = get_header_by_name(req->data, "Host: ");
+        if (!header){
                 return -1;
         }
 
         /* if port number, copy it */
-        ptr = strchr(req->http_infos.hostname, ':');
+        ptr = strchr(header, ':');
         if (ptr){
+                *ptr = '\0';
+                req->http_infos.hostname = proxenet_xstrdup2(header);
                 req->http_infos.port = (unsigned short)atoi(ptr+1);
+        } else {
+                req->http_infos.hostname = proxenet_xstrdup2(header);
         }
+
+        proxenet_xfree(header);
 
         return 0;
 }
@@ -429,6 +437,8 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
 	char sport[6] = {0, };
 	http_request_t* http_infos = &req->http_infos;
 	bool use_proxy = (cfg->proxy.host != NULL) ;
+
+        xlog(LOG_WARNING, "Request: %s", req->data);
 
         if (update_http_infos(req) < 0){
                 xlog(LOG_ERROR, "%s\n", "Failed to extract valid parameters from URL.");
