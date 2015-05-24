@@ -12,7 +12,10 @@
 
 #include <dlfcn.h>
 #include <string.h>
+
+#ifdef __LINUX__
 #include <alloca.h>
+#endif
 
 #include "core.h"
 #include "utils.h"
