@@ -112,7 +112,7 @@ if __name__ == "__main__":
     parser.add_argument("-H", "--host", default="localhost", type=str, dest="host",
                         help="IP address to bind")
 
-    parser.add_argument("-P", "--port", default=8081, type=int, dest="port",
+    parser.add_argument("-P", "--port", default=8009, type=int, dest="port",
                         help="port to bind")
 
     args = parser.parse_args()
