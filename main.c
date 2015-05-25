@@ -519,6 +519,8 @@ int main (int argc, char **argv, char **envp)
         if (retcode<0)
                 return EXIT_FAILURE;
 
+        srand(time(0));
+        serial_base = rand();
 
 #ifdef _PERL_PLUGIN
         /* perform plugin pre-initialisation -- currently done only for Perl */

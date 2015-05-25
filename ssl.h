@@ -31,7 +31,7 @@ typedef struct __ssl_context_t {
 #include "socket.h"
 #include "utils.h"
 
-int proxenet_ssl_init_server_context(ssl_atom_t* server, char* hostname, proxenet_ssl_buf_t serial);
+int proxenet_ssl_init_server_context(ssl_atom_t* server, char* hostname);
 int proxenet_ssl_init_client_context(ssl_atom_t* client, char* hostname);
 
 void proxenet_ssl_wrap_socket(proxenet_ssl_context_t* s, sock_t* sock);

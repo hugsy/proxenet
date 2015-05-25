@@ -561,14 +561,9 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
                 }
 
                 if (req->do_intercept) {
-                        proxenet_ssl_buf_t serial;
-
-                        if(proxenet_get_cert_serial(&(ssl_ctx->client), &serial)<0){
-                                return -1;
-                        }
 
                         /* 2. set up proxy->browser ssl session with hostname */
-                        if(proxenet_ssl_init_server_context(&(ssl_ctx->server), http_infos->hostname, serial) < 0) {
+                        if(proxenet_ssl_init_server_context(&(ssl_ctx->server), http_infos->hostname) < 0) {
                                 return -1;
                         }
 

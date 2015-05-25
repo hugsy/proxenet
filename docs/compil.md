@@ -12,9 +12,9 @@ thoroughly documented) API.
 
 Installing PolarSSL library is pretty straight-forward. Here with an example with version 1.3.9:
 ``` bash
-~$ curl -s https://github.com/polarssl/polarssl/archive/polarssl-1.3.9.tar.gz | tar xfz -
-~$ cd polarssl-1.3.9
-~$ make && sudo make install
+$ curl -fsSL https://github.com/polarssl/polarssl/archive/polarssl-1.3.9.tar.gz | tar xfz -
+$ cd polarssl-1.3.9
+$ make && sudo make install
 ```
 
 For most distro, a simple
