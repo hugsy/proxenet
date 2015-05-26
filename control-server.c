@@ -53,7 +53,7 @@ static void _send_threads_info(sock_t fd)
         int i, n;
 
         n = snprintf(msg, sizeof(msg),
-                     "{ Running/Max threads: %d/%d\n",
+                     "- Running/Max threads: %d/%d\n",
                      get_active_threads_size(),
                      cfg->nb_threads);
         proxenet_write(fd, (void*)msg, n);
@@ -149,18 +149,18 @@ void info_cmd(sock_t fd, char *options, unsigned int nb_options)
 
         /* generic info  */
         n = snprintf(msg, sizeof(msg),
-                     "{'info':"
-                     " {'Configuration':["
-                     "  {'Listening interface':'%s/%s'},"
-                     "  {'Supported IP version':'%s'},"
-                     "  {'Logging file': '%s'},"
-                     "  {'SSL private key': '%s'},"
-                     "  {'SSL certificate': '%s'},"
-                     "  {'Proxy': '%s [%s]'},"
-                     "  {'Plugins directory': '%s'},"
-                     "  {'Autoloading plugins directory': '%s'},"
-                     "  {'Number of requests treated':'%lu'},"
-                     ,
+                     "{\"info\":["
+                     " {\"Configuration\":["
+                     "  {\"Listening interface\": \"%s/%s\"},"
+                     "  {\"Supported IP version\": \"%s\"},"
+                     "  {\"Logging file\": \"%s\"},"
+                     "  {\"SSL private key\": \"%s\"},"
+                     "  {\"SSL certificate\": \"%s\"},"
+                     "  {\"Proxy\": \"%s [%s]\"},"
+                     "  {\"Plugins directory\": \"%s\"},"
+                     "  {\"Autoloading plugins directory\": \"%s\"},"
+                     "  {\"Number of requests treated\":\"%lu\"}"
+                     "  ]},",
                      cfg->iface, cfg->port,
                      (cfg->ip_version==AF_INET)? "IPv4": (cfg->ip_version==AF_INET6)?"IPv6": "ANY",
                      (cfg->logfile)?cfg->logfile:"stdout",
@@ -175,30 +175,31 @@ void info_cmd(sock_t fd, char *options, unsigned int nb_options)
         proxenet_write(fd, (void*)msg, n);
 
         /* threads info  */
-        /* _send_threads_info(fd); */
-        n = snprintf(msg, sizeof(msg), "{'Running/Max threads': '%d/%d'},",
+        proxenet_write(fd, "{\"Threads\":[", 12);
+        n = snprintf(msg, sizeof(msg), "{\"Running/Max threads\": \"%d/%d\"},",
                      get_active_threads_size(), cfg->nb_threads);
         proxenet_write(fd, (void*)msg, n);
 
-        proxenet_write(fd, "{'Threads':[", 12);
+        proxenet_write(fd, "{\"Details\":[", 12);
         for (i=0; i < cfg->nb_threads; i++) {
                 if (!is_thread_active(i)) continue;
                 memset(msg, 0, sizeof(msg));
-                n = snprintf(msg, sizeof(msg), "{'Thread-%d':'%lu'},", i, threads[i]);
+                n = snprintf(msg, sizeof(msg), "{\"Thread-%d\": \"%lu\"},", i, threads[i]);
                 proxenet_write(fd, (void*)msg, n);
         }
-        proxenet_write(fd, "]},", 3);
-
+        proxenet_write(fd, "]}", 2);
+	proxenet_write(fd, "]},", 3);
+	
         /* plugins info */
-        proxenet_write(fd, "{'Plugins':[", 12);
+        proxenet_write(fd, "{\"Plugins\": [", 12);
         if (proxenet_plugin_list_size()) {
                 proxenet_print_plugins_list(fd);
         } else {
-                proxenet_write(fd, (void*)"{'No plugin loaded':''}", 23);
+                proxenet_write(fd, (void*)"{\"No plugin loaded\": \"\"}", 23);
         }
-        proxenet_write(fd, "]},", 3);
+        proxenet_write(fd, "]}", 2);
 
-        proxenet_write(fd, "]}}", 3);
+        proxenet_write(fd, "]}", 2);
         return;
 }
 
