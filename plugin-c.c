@@ -79,6 +79,13 @@ int proxenet_c_initialize_function(plugin_t* plugin, req_t type)
 {
 	void *interpreter;
 
+        if (plugin->interpreter==NULL || plugin->interpreter->ready==false){
+                xlog(LOG_ERROR, "%s\n", "[c] not ready (dlopen() failed?)");
+                return -1;
+        }
+
+        interpreter = (void *) plugin->interpreter->vm;
+
 	/* if already initialized, return ok */
 	if (plugin->pre_function && type==REQUEST)
 		return 0;
@@ -86,7 +93,6 @@ int proxenet_c_initialize_function(plugin_t* plugin, req_t type)
 	if (plugin->post_function && type==RESPONSE)
 		return 0;
 
-	interpreter = (void *) plugin->interpreter;
 
 	if (type == REQUEST) {
 		plugin->pre_function = dlsym(interpreter, CFG_REQUEST_PLUGIN_FUNCTION);
@@ -157,11 +163,11 @@ char* proxenet_c_plugin(plugin_t *plugin, request_t *request)
                 goto end_exec_c_plugin;
         }
 
-        request->data = proxenet_xstrdup(request->data, buflen);
+        request->data = proxenet_xstrdup(bufres, buflen);
         request->size = buflen;
 
 end_exec_c_plugin:
-	return bufres;
+	return request->data;
 }
 
 #endif
