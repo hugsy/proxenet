@@ -1,5 +1,6 @@
 #!/usr/bin/env python2.7
 import os, sys, socket, argparse
+import json
 
 try:
     from bottle import request, route, template, run, static_file
@@ -90,6 +91,7 @@ def info():
     if not is_proxenet_running(): return build_html(body=not_running_html())
     res = sr("info")
     fmt = format_result(res)
+    # fmt = json.loads( res )
     return build_html(body=fmt, title="Info page", page="info")
 
 
