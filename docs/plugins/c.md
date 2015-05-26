@@ -45,7 +45,7 @@ the request/response **MUST** update this value. See the example below for
 demonstration.
 
 `proxenet` does not recognize plain C files so it should be compiled first as a
-[shared object](tldp.org/HOWTO/Program-Library-HOWTO/shared-libraries.html). The
+[shared object](http://tldp.org/HOWTO/Program-Library-HOWTO/shared-libraries.html). The
 following command might just do the trick:
 
 ```bash
