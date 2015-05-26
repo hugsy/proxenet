@@ -1,4 +1,4 @@
-# java plugin
+# Java plugin
 
 This page will explain how to write a java plugin for `proxenet`.
 
@@ -29,7 +29,7 @@ public class MyPlugin
 ```
 
 `proxenet` cannot compile by itself to Java bytecode. So you need to generate
-the .class file, like this:
+the `.class` file, like this:
 ```bash
 $ javac MyPlugin.java
 ```
