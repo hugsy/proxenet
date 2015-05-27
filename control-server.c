@@ -89,6 +89,8 @@ static int plugin_cmd_list_json(sock_t fd, bool only_loaded)
         char msg[BUFSIZE] = {0, };
         int n;
 
+        proxenet_write(fd, "{", 1);
+
         for (p=plugins_list; p; p=p->next) {
                 if (only_loaded && p->state!=INACTIVE)
                         continue;
@@ -111,6 +113,8 @@ static int plugin_cmd_list_json(sock_t fd, bool only_loaded)
                              (p->state==ACTIVE?"":"IN"));
                 proxenet_write(fd, msg, n);
         }
+
+        proxenet_write(fd, "}", 1);
 
         return 0;
 }
@@ -170,10 +174,10 @@ void pause_cmd(sock_t fd, char *options, unsigned int nb_options)
         (void) nb_options;
 
         if (proxy_state==SLEEPING) {
-                msg = "sleep-mode -> 0\n";
+                msg = "{\"sleep-mode\": 0}";
                 proxy_state = ACTIVE;
         } else {
-                msg = "sleep-mode -> 1\n";
+                msg = "{\"sleep-mode\": 1}";
                 proxy_state = SLEEPING;
         }
 
@@ -237,13 +241,8 @@ void info_cmd(sock_t fd, char *options, unsigned int nb_options)
         proxenet_write(fd, "}},", 3);
 
         /* plugins info */
-        proxenet_write(fd, "\"Plugins\": {", 12);
-        if (proxenet_plugin_list_size()) {
-                plugin_cmd_list_json(fd, false);
-        } else {
-                proxenet_write(fd, "\"info\": \"No plugin loaded\"", 26);
-        }
-        proxenet_write(fd, "}", 1);
+        proxenet_write(fd, "\"Plugins\": ", 11);
+        plugin_cmd_list_json(fd, false);
 
         proxenet_write(fd, "}}", 2);
         return;
@@ -597,7 +596,7 @@ void plugin_cmd(sock_t fd, char *options, unsigned int nb_options)
                 goto invalid_plugin_action;
 
         if (strcmp(ptr, "list") == 0) {
-                plugin_cmd_list_json(fd, true);
+                plugin_cmd_list_json(fd, false);
                 return;
         }
         if (strcmp(ptr, "list-all") == 0) {

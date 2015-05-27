@@ -1,9 +1,9 @@
 #!/usr/bin/env python2.7
 import os, sys, socket, argparse
-import json
+import json, cgi,time
 
 try:
-    from bottle import request, route, get, post, run, static_file
+    from bottle import request, route, get, post, run, static_file, redirect
 except ImportError:
     sys.stderr.write("Missing package `bottle`\n")
     exit(1)
@@ -126,13 +126,54 @@ def plugin():
     html = """<div class="panel panel-default">"""
     html += """<div class="panel-heading"><h3 class="panel-title">{}</h3></div>""".format(title)
     html += """<table class="table table-hover table-condensed">"""
-    html += "<tr><th>Name</th><th>Type</th></tr>"
+    html += "<tr><th>Name</th><th>Type</th><th>Status</th></tr>"
     for k,v in js[title].iteritems():
         _type, _is_loaded = v
-        html += "<tr><td>{}</td><td>{}{}</td></tr>".format(k, _type, " <b>Loaded</b>" if _is_loaded else "")
+        html += "<tr><td>{}</td><td>{}</td>".format(k, _type)
+        if _is_loaded:
+            html += """<td><button type="button" class="btn btn-default btn-xs" data-toggle="button" aria-pressed="true" disabled='true'">Loaded</button></td></tr>"""
+        else:
+            html += """<td><button type="button" class="btn btn-default btn-xs" data-toggle="button" aria-pressed="false" onclick="window.location='/plugin/load/{}'">Load</button></td></tr>""".format(k)
     html += "</table></div>"""
 
-    return build_html(body=html, title="List all plugins available", page="plugin")
+    time.sleep(0.5)
+    res = sr("plugin list")
+    js = json.loads( res )
+    html += """<div class="panel panel-default">"""
+    html += """<div class="panel-heading"><h3 class="panel-title">Plugins loaded</h3></div>"""
+    html += """<table class="table table-hover table-condensed">"""
+    html += "<tr><th>Id</th><th>Name</th><th>Priority</th><th>Status</th><th>Action</th></tr>"
+    for name in js.keys():
+        p = js[name]
+        html += "<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td>".format(p['id'], name, p['priority'], p['state'])
+        if p['state']=="INACTIVE":
+            html += """<td><button type="button" class="btn btn-default btn-xs" data-toggle="button" aria-pressed="false" onclick="window.location='/plugin/1/enable'">Enable</button></td>"""
+        else:
+            html += """<td><button type="button" class="btn btn-default btn-xs" data-toggle="button" aria-pressed="false" onclick="window.location='/plugin/1/disable'">Disable</button></td>"""
+        html += "</tr>"
+
+    html += "</div>"""
+    return build_html(body=html, title="Plugins detail", page="plugin")
+
+
+@get('/plugin/load/<fname>')
+def plugin_load(fname):
+    if not is_proxenet_running(): return build_html(body=not_running_html())
+    res = sr("plugin load {}".format(fname))
+    if "error" in res:
+        return build_html(body="""<div class="alert alert-danger" role="alert">Failed to load <b>{}</b></div>""".format(cgi.escape(fname)))
+    else:
+        return build_html(body="""<div class="alert alert-success" role="alert"><b>{}</b> loaded successfully</div>""".format(cgi.escape(fname)))
+
+
+@get('/plugin/<id:int>/<action>')
+def plugin_toggle(id,action):
+    if not is_proxenet_running(): return build_html(body=not_running_html())
+    res = sr("plugin set {} toggle".format(id))
+    if "error" in res:
+        return build_html(body="""<div class="alert alert-danger" role="alert">Failed to change state for plugin {}</div>""".format(id))
+    else:
+        return build_html(body="""<div class="alert alert-success" role="alert">Plugin {} state changed</div>""".format(id))
 
 
 @get('/threads')
@@ -148,16 +189,26 @@ def threads():
     html += "</ul></div></div>"""
 
     html += """<div class="col-lg-6"><div class="btn-group" role="group" aria-label="">
-    <button type="button" class="btn btn-default">Increment</button>
-    <button type="button" class="btn btn-default">Decrement</button>
+    <button type="button" class="btn btn-default" onclick="window.location='/threads/inc'">Increment</button>
+    <button type="button" class="btn btn-default" onclick="window.location='/threads/dec'">Decrement</button>
     </div></div><div class="col-lg-6">
     <div class="input-group">
-      <input type="text" class="form-control" placeholder="Number of threads">
-      <span class="input-group-btn">
-        <button class="btn btn-default" type="button">Apply</button>
-      </span></div></div>"""
-
+    <form method="GET" action="#">
+    <input type="text" class="form-control" placeholder="Number of threads">
+    <span class="input-group-btn">
+    <button class="btn btn-default" type="button">Apply</button>
+    </span></div></form></div>"""
     return build_html(body=html, title="Get information on Threads", page="threads")
+
+
+@get('/threads/<word>')
+def threads_set(word):
+    if not is_proxenet_running(): return build_html(body=not_running_html())
+    if word not in ("inc", "dec", "set"):
+        return "Error"
+    res = sr("threads {}".format(word))
+    redirect("/threads")
+    return
 
 
 if __name__ == "__main__":
