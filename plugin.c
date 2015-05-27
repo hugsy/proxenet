@@ -255,9 +255,13 @@ void proxenet_print_plugins_list(int fd)
 
 
 /**
+ * Get the proxenet type associated to a specific file name. The type
+ * is guessed by the filename extension.
  *
+ * @param the file name of the plugin
+ * @return the type (int) of the file name if found, -1 otherwise
  */
-static int proxenet_get_plugin_type(char* filename)
+int proxenet_get_plugin_type(char* filename)
 {
 	unsigned short type;
 	bool is_valid = false;
@@ -284,7 +288,7 @@ static int proxenet_get_plugin_type(char* filename)
  * @param name : plugin name to look up
  * @return true if a match is found, false in any other case
  */
-static bool is_plugin_loaded(char* name)
+bool proxenet_is_plugin_loaded(char* name)
 {
 	plugin_t* p;
 	for(p=plugins_list; p!=NULL; p=p->next){
@@ -294,67 +298,6 @@ static bool is_plugin_loaded(char* name)
         }
 
         return false;
-}
-
-
-/**
- * Print all plugins available in the plugin directory
- *
- * @param fd file descriptor to write output on
- */
-void proxenet_print_all_plugins(int fd)
-{
-        struct dirent *dir_ptr=NULL;
-	DIR *dir = NULL;
-	char* name = NULL;
-        char msg[2048] = {0, };
-        int n, type;
-
-        dir = opendir(cfg->plugins_path);
-	if (dir == NULL) {
-		xlog(LOG_ERROR, "Failed to open '%s': %s\n", cfg->plugins_path, strerror(errno));
-                n = snprintf(msg, sizeof(msg), "Error while opening dir '%s': %s\n", cfg->plugins_path, strerror(errno));
-                proxenet_write(fd, msg, n);
-		return;
-	}
-
-        n = snprintf(msg, sizeof(msg),
-                     "Enumerating all plugins in "BLUE"%s"NOCOLOR"\n",
-                     cfg->plugins_path);
-        proxenet_write(fd, msg, n);
-
-	while ((dir_ptr=readdir(dir))) {
-                type = -1;
-                name = dir_ptr->d_name;
-		if (!strcmp(name,".") || !strcmp(name,".."))
-                        continue;
-
-                type = proxenet_get_plugin_type(name);
-		if (type < 0)
-                        continue;
-
-                if (is_plugin_loaded(name)) {
-                        n = snprintf(msg, sizeof(msg),
-                                     "[*] "GREEN"%s"NOCOLOR" ("RED"%s"NOCOLOR") - already loaded\n",
-                                     name, supported_plugins_str[type]);
-                } else {
-                        n = snprintf(msg, sizeof(msg),
-                                     "[*] "CYAN"%s"NOCOLOR" ("RED"%s"NOCOLOR")\n",
-                                     name, supported_plugins_str[type]);
-                }
-
-                proxenet_write(fd, msg, n);
-                proxenet_xzero(msg, sizeof(msg));
-        }
-
-        if (closedir(dir) < 0){
-		xlog(LOG_ERROR, "Failed to close '%s': %s\n", cfg->plugins_path, strerror(errno));
-                n = snprintf(msg, sizeof(msg), "Error while closing dir '%s': %s\n", cfg->plugins_path, strerror(errno));
-                proxenet_write(fd, msg, n);
-		return;
-        }
-
-        return;
 }
 
 
