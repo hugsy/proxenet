@@ -177,7 +177,6 @@ int proxenet_ruby_initialize_function(plugin_t* plugin, req_t type)
 	switch(type) {
 		case REQUEST:
 			if (plugin->pre_function) {
-				xlog(LOG_WARNING, "Pre-hook function already defined for '%s'\n", plugin->name);
 				return 0;
 			}
 
@@ -192,7 +191,6 @@ int proxenet_ruby_initialize_function(plugin_t* plugin, req_t type)
 
 		case RESPONSE:
 			if (plugin->post_function) {
-				xlog(LOG_WARNING, "Post-hook function already defined for '%s'\n", plugin->name);
 				return 0;
 			}
 
