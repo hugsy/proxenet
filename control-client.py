@@ -2,12 +2,7 @@
 # -*- coding: utf-8 -*-
 # -*- mode: python -*-
 
-import argparse
-import socket
-import datetime
-import os
-import rlcompleter
-import readline
+import argparse, socket, datetime, os, json, rlcompleter, readline
 
 
 __author__    =   "hugsy"
@@ -84,7 +79,10 @@ if __name__ == "__main__":
                 recv_until(cli)
                 break
 
-            cmd = raw_input( recv_until(cli) )
+            res = recv_until(cli)
+            data, prompt = res[:-4], res[-4:]
+            print data
+            cmd = raw_input( prompt )
             cli.send(cmd.strip()+"\n")
             if cmd.strip() == "quit":
                 do_loop = False

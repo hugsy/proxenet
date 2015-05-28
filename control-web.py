@@ -211,6 +211,16 @@ def threads_set(word):
     return
 
 
+@route('/config')
+def config():
+    if not is_proxenet_running(): return build_html(body=not_running_html())
+    html = """<div class="panel panel-default">"""
+    html += """<div class="panel-heading"><h3 class="panel-title">Configuration</h3></div>"""
+    html += """<div class="panel-body"><ul>"""
+    html += "</ul></div></div>"""
+    return build_html(body=html, title="proxenet Configuration", page="config")
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(usage = __usage__, description = __desc__)
 

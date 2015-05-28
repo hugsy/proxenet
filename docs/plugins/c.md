@@ -49,7 +49,7 @@ demonstration.
 following command might just do the trick:
 
 ```bash
-$ cc -Wall -Werror -fPIC -shared -o MyPlugin.o MyPlugin.c
+$ cc -Wall -Werror -fPIC -shared -o MyPlugin.so MyPlugin.c
 ```
 
 ## Example
@@ -60,14 +60,15 @@ $ cc -Wall -Werror -fPIC -shared -o MyPlugin.o MyPlugin.c
 #include <stdlib.h>
 #include <sys/types.h>
 
-struct info {
-    const char* AUTHOR;
-    const char* PLUGIN_NAME;
-};
+typedef struct info {
+                const char* AUTHOR;
+                const char* PLUGIN_NAME;
+} c_plugin_info_t;
 
-struct info AddHeader = {
-    .AUTHOR = "hugsy";
-    .PLUGIN_NAME = "AddHeader";
+
+c_plugin_info_t MyPlugin = {
+    .AUTHOR = "hugsy",
+    .PLUGIN_NAME = "AddHeader"
 };
 
 

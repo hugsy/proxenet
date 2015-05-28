@@ -33,13 +33,11 @@
 static struct command_t known_commands[] = {
 	{ "quit", 	 0, &quit_cmd,     "Make "PROGNAME" leave kindly" },
 	{ "help", 	 0, &help_cmd,     "Show this menu" },
-	{ "pause", 	 0, &pause_cmd,    "Toggle pause" },
 	{ "info", 	 0, &info_cmd,     "Display information about environment" },
-	{ "verbose", 	 1, &verbose_cmd,  "Get/Set verbose level"},
 	{ "reload", 	 0, &reload_cmd,   "Reload the plugins" },
 	{ "threads", 	 0, &threads_cmd,  "Show info about threads" },
 	{ "plugin", 	 1, &plugin_cmd,   "Get/Set info about plugin"},
-        { "config", 	 1, &config_cmd,   "Edit configuration at runtime"},
+    { "config", 	 1, &config_cmd,   "Edit configuration at runtime"},
 
 	{ NULL, 0, NULL, NULL}
 };
@@ -141,46 +139,20 @@ void quit_cmd(sock_t fd, char *options, unsigned int nb_options)
 void help_cmd(sock_t fd, char *options, unsigned int nb_options)
 {
         struct command_t *cmd;
-        char *msg;
-        unsigned int msglen = 20 + 80 + 3;
+        char msg[BUFSIZE];
+        int n;
 
         (void) options;
         (void) nb_options;
 
-        msg = "Command list:\n";
-        proxenet_write(fd, (void*)msg, strlen(msg));
-
+        proxenet_write(fd, "{\"Command list\":{", 17);
         for (cmd=known_commands; cmd && cmd->name; cmd++) {
-                msg = alloca(msglen+1);
-                proxenet_xzero(msg, msglen+1);
-                snprintf(msg, msglen+1, "%-15s\t%s\n", cmd->name, cmd->desc);
-                proxenet_write(fd, (void*)msg, strlen(msg));
+                proxenet_xzero(msg, sizeof(msg));
+                n = snprintf(msg, sizeof(msg), "\"%s\": \"%s\",", cmd->name, cmd->desc);
+                proxenet_write(fd, msg, n);
         }
+        proxenet_write(fd, "\"\":\"\"}", 6);
 
-        return;
-}
-
-
-/**
- * (De)-Activate pause mode (suspend and block interception)
- */
-void pause_cmd(sock_t fd, char *options, unsigned int nb_options)
-{
-        char *msg;
-
-        (void) options;
-        (void) nb_options;
-
-        if (proxy_state==SLEEPING) {
-                msg = "{\"sleep-mode\": 0}";
-                proxy_state = ACTIVE;
-        } else {
-                msg = "{\"sleep-mode\": 1}";
-                proxy_state = SLEEPING;
-        }
-
-        xlog(LOG_INFO, "%s", msg);
-        proxenet_write(fd, (void*)msg, strlen(msg));
         return;
 }
 
@@ -235,43 +207,6 @@ void info_cmd(sock_t fd, char *options, unsigned int nb_options)
         return;
 }
 
-
-/**
- * Increase/Decrease verbosity of proxenet (useful for logging/debugging)
- */
-void verbose_cmd(sock_t fd, char *options, unsigned int nb_options)
-{
-        char msg[BUFSIZE] = {0, };
-        char *ptr;
-        int n, level;
-
-        (void) options;
-        (void) nb_options;
-
-        ptr = strtok(options, " \n");
-        if (!ptr){
-                n = snprintf(msg, BUFSIZE, "{\"verbose\": \"current level is %d\"}",
-                             cfg->verbose);
-                proxenet_write(fd, (void*)msg, n);
-                return;
-        }
-
-        if ( (level=atoi(ptr)) > 0 && level<MAX_VERBOSE_LEVEL){
-                cfg->verbose = level;
-                n = snprintf(msg, BUFSIZE, "{\"verbose\": \"level is set to %d\"}",
-                             cfg->verbose);
-        }
-        else if (strcmp(ptr, "inc")==0 && cfg->verbose<MAX_VERBOSE_LEVEL)
-                n = snprintf(msg, BUFSIZE, "{\"verbose\": \"level is now %d\"}", ++cfg->verbose);
-        else if (strcmp(ptr, "dec")==0 && cfg->verbose>0)
-                n = snprintf(msg, BUFSIZE, "{\"verbose\": \"level is now %d\"}", --cfg->verbose);
-        else
-                n = snprintf(msg, BUFSIZE, "{\"error\": \"Invalid action\"}");
-
-        proxenet_write(fd, (void*)msg, n);
-
-        return;
-}
 
 
 /**
@@ -352,25 +287,25 @@ void threads_cmd(sock_t fd, char *options, unsigned int nb_options)
 static int plugin_cmd_list_available(sock_t fd)
 {
         struct dirent *dir_ptr=NULL;
-	DIR *dir = NULL;
-	char* name = NULL;
+        DIR *dir = NULL;
+        char* name = NULL;
         char msg[2048] = {0, };
         int n, type;
         bool first_iter = true;
 
         dir = opendir(cfg->plugins_path);
-	if (dir == NULL) {
-		xlog(LOG_ERROR, "Failed to open '%s': %s\n", cfg->plugins_path, strerror(errno));
+        if (dir == NULL) {
+                xlog(LOG_ERROR, "Failed to open '%s': %s\n", cfg->plugins_path, strerror(errno));
                 n = snprintf(msg, sizeof(msg), "{\"Error\": \"Cannot open '%s': %s\"}",
                              cfg->plugins_path, strerror(errno));
                 proxenet_write(fd, msg, n);
-		return -1;
-	}
+                return -1;
+        }
 
         n = snprintf(msg, sizeof(msg),"{\"Plugins available in %s\": {",
                      cfg->plugins_path);
         proxenet_write(fd, msg, n);
-	while ((dir_ptr=readdir(dir))) {
+        while ((dir_ptr=readdir(dir))) {
                 type = -1;
                 name = dir_ptr->d_name;
 		if (!strcmp(name,".") || !strcmp(name,".."))
@@ -638,13 +573,101 @@ invalid_plugin_action:
 
 
 /**
+ * Increase/Decrease verbosity of proxenet (useful for logging/debugging)
+ */
+static void config_verbose_cmd(sock_t fd, char *options)
+{
+        char msg[BUFSIZE] = {0, };
+        char *ptr;
+        int n, level;
+
+         ptr = strtok(options, " \n");
+        if (!ptr){
+                n = snprintf(msg, BUFSIZE, "{\"verbose\": \"current level is %d\"}",
+                             cfg->verbose);
+                proxenet_write(fd, (void*)msg, n);
+                return;
+        }
+
+        if ( (level=atoi(ptr)) > 0 && level<MAX_VERBOSE_LEVEL){
+                cfg->verbose = level;
+                n = snprintf(msg, BUFSIZE, "{\"verbose\": \"level is set to %d\"}",
+                             cfg->verbose);
+        }
+        else if (strcmp(ptr, "inc")==0 && cfg->verbose<MAX_VERBOSE_LEVEL)
+                n = snprintf(msg, BUFSIZE, "{\"verbose\": \"level is now %d\"}", ++cfg->verbose);
+        else if (strcmp(ptr, "dec")==0 && cfg->verbose>0)
+                n = snprintf(msg, BUFSIZE, "{\"verbose\": \"level is now %d\"}", --cfg->verbose);
+        else
+                n = snprintf(msg, BUFSIZE, "{\"error\": \"Invalid action\"}");
+
+        proxenet_write(fd, (void*)msg, n);
+
+        return;
+}
+
+
+/**
+ * (De)-Activate pause mode (suspend and block interception)
+ */
+static void config_pause_cmd(sock_t fd, char *options)
+{
+        char *msg;
+
+        (void) options;
+
+        if (proxy_state==SLEEPING) {
+                msg = "{\"sleep-mode\": 0}";
+                proxy_state = ACTIVE;
+        } else {
+                msg = "{\"sleep-mode\": 1}";
+                proxy_state = SLEEPING;
+        }
+
+        xlog(LOG_INFO, "%s\n", msg);
+        proxenet_write(fd, (void*)msg, strlen(msg));
+        return;
+}
+
+
+/**
+ * (De)-Activate SSL interception mode
+ */
+static void config_ssl_intercept_cmd(sock_t fd, char* options)
+{
+        char *ptr;
+
+        (void) options;
+
+        /* shift argument */
+        ptr = strtok(NULL, " \n");
+        if (!ptr){
+                xlog(LOG_ERROR, "%s\n", "Failed to get argument");
+                return;
+        }
+
+        if ( strcasecmp(ptr, "true") == 0){
+                cfg->ssl_intercept = true;
+                if (cfg->verbose)
+                        xlog(LOG_INFO, "%s\n", "[config] Enabled SSL intercept");
+                proxenet_write(fd, "{\"SSL intercept\": \"enabled\"}", 28);
+                return;
+        } else if ( strcasecmp(ptr, "false") == 0){
+                cfg->ssl_intercept = false;
+                if (cfg->verbose)
+                        xlog(LOG_INFO, "%s\n", "[config] Disabled SSL intercept");
+                proxenet_write(fd, "{\"SSL intercept\": \"disabled\"}", 29);
+                return;
+        }
+}
+
+
+/**
  * Edit configuration
  */
 void config_cmd(sock_t fd, char *options, unsigned int nb_options)
 {
-        char msg[BUFSIZE] = {0, };
         char *ptr;
-        int n;
 
         (void) options;
         (void) nb_options;
@@ -654,34 +677,17 @@ void config_cmd(sock_t fd, char *options, unsigned int nb_options)
         if (!ptr)
                 goto invalid_config_action;
 
-        if (strcmp(ptr, "ssl-intercept") == 0) {
-                /* shift argument */
-                ptr = strtok(NULL, " \n");
-                if (!ptr){
-                        xlog(LOG_ERROR, "%s\n", "Failed to get argument");
-                        return;
-                }
+        if (strcmp(ptr, "ssl-intercept") == 0)
+                return config_ssl_intercept_cmd(fd, ptr);
 
-                if ( strcasecmp(ptr, "true") == 0){
-                        cfg->ssl_intercept = true;
-                        if (cfg->verbose)
-                                xlog(LOG_INFO, "%s\n", "[config] Enabled SSL intercept");
-                        proxenet_write(fd, "SSL intercept enabled\n", 22);
-                        return;
-                } else if ( strcasecmp(ptr, "false") == 0){
-                        cfg->ssl_intercept = false;
-                        if (cfg->verbose)
-                                xlog(LOG_INFO, "%s\n", "[config] Disabled SSL intercept");
-                        proxenet_write(fd, "SSL intercept disabled\n", 23);
-                        return;
-                }
-        }
+        if (strcmp(ptr, "pause") == 0)
+                return config_pause_cmd(fd, ptr);
+
+        if (strcmp(ptr, "verbose") == 0)
+                return config_verbose_cmd(fd, ptr);
 
 invalid_config_action:
-        n = snprintf(msg, BUFSIZE,
-                     "Invalid action.\nSyntax\n"
-                     "config [ssl-intercept true|false]\n");
-        proxenet_write(fd, (void*)msg, n);
+        proxenet_write(fd, "{\"error\": \"Invalid action.\"}", 28);
         return;
 }
 
