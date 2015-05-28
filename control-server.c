@@ -50,14 +50,14 @@ static struct command_t known_commands[] = {
  *
  * @param fd the socket to send data to
  */
-static void _send_threads_info(sock_t fd)
+static void send_threads_list_as_json(sock_t fd)
 {
         char msg[BUFSIZE] = {0,};
         int i, n;
         bool first_item = true;
 
         n = snprintf(msg, sizeof(msg),
-                     "{\"Threads\":{"
+                     "\"Threads\":{"
                      "\"Max threads\": %d,"
                      "\"Running threads\": %d,",
                      cfg->nb_threads, get_active_threads_size());
@@ -72,8 +72,6 @@ static void _send_threads_info(sock_t fd)
                 n = snprintf(msg, sizeof(msg), "\"Thread-%d\": %lu", i, threads[i]);
                 proxenet_write(fd, (void*)msg, n);
         }
-        proxenet_write(fd, "}", 1);
-
         proxenet_write(fd, "}}", 2);
         return;
 }
@@ -82,7 +80,7 @@ static void _send_threads_info(sock_t fd)
 /**
  * Enumerate all plugins loaded
  */
-static int plugin_cmd_list_json(sock_t fd, bool only_loaded)
+static int send_plugin_list_as_json(sock_t fd, bool only_loaded)
 {
         plugin_t *p;
         bool first_iter=true;
@@ -193,7 +191,7 @@ void pause_cmd(sock_t fd, char *options, unsigned int nb_options)
 void info_cmd(sock_t fd, char *options, unsigned int nb_options)
 {
         char msg[BUFSIZE] = {0, };
-        int i, n;
+        int n;
 
         (void) options;
         (void) nb_options;
@@ -226,23 +224,12 @@ void info_cmd(sock_t fd, char *options, unsigned int nb_options)
         proxenet_write(fd, (void*)msg, n);
 
         /* threads info  */
-        proxenet_write(fd, "\"Threads\": {", 12);
-        n = snprintf(msg, sizeof(msg), "\"Running/Max threads\": \"%d/%d\",",
-                     get_active_threads_size(), cfg->nb_threads);
-        proxenet_write(fd, (void*)msg, n);
-
-        proxenet_write(fd, "\"Details\": {", 12);
-        for (i=0; i < cfg->nb_threads; i++) {
-                if (!is_thread_active(i)) continue;
-                memset(msg, 0, sizeof(msg));
-                n = snprintf(msg, sizeof(msg), "\"Thread-%d\": \"%lu\",", i, threads[i]);
-                proxenet_write(fd, (void*)msg, n);
-        }
-        proxenet_write(fd, "}},", 3);
+        send_threads_list_as_json(fd);
+        proxenet_write(fd, ",", 1);
 
         /* plugins info */
         proxenet_write(fd, "\"Plugins\": ", 11);
-        plugin_cmd_list_json(fd, false);
+        send_plugin_list_as_json(fd, false);
 
         proxenet_write(fd, "}}", 2);
         return;
@@ -340,7 +327,9 @@ void threads_cmd(sock_t fd, char *options, unsigned int nb_options)
 
         ptr = strtok(options, " \n");
         if (!ptr){
-                _send_threads_info(fd);
+                proxenet_write(fd, "{", 1);
+                send_threads_list_as_json(fd);
+                proxenet_write(fd, "}", 1);
                 return;
         }
 
@@ -596,7 +585,7 @@ void plugin_cmd(sock_t fd, char *options, unsigned int nb_options)
                 goto invalid_plugin_action;
 
         if (strcmp(ptr, "list") == 0) {
-                plugin_cmd_list_json(fd, false);
+                send_plugin_list_as_json(fd, false);
                 return;
         }
         if (strcmp(ptr, "list-all") == 0) {
