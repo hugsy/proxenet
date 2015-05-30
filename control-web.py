@@ -185,7 +185,13 @@ def threads():
     html = """<div class="panel panel-default">"""
     html += """<div class="panel-heading"><h3 class="panel-title">{}</h3></div>""".format(title)
     html += """<div class="panel-body"><ul>"""
-    for k,v in js[title].iteritems(): html += "<li>{}: {}</li>".format(k, v)
+    for k,v in js[title].iteritems():
+        if v.__class__.__name__ == "dict":
+            html += "<li>{}:<ol>".format(k)
+            for a,b in v.iteritems(): html += "<li>{} &#8594; {}</li>".format(a,b)
+            html += "</li>"
+        else:
+            html += "<li>{}: {}</li>".format(k, v)
     html += "</ul></div></div>"""
 
     html += """<div class="col-lg-6"><div class="btn-group" role="group" aria-label="">
@@ -214,10 +220,18 @@ def threads_set(word):
 @route('/config')
 def config():
     if not is_proxenet_running(): return build_html(body=not_running_html())
-    html = """<div class="panel panel-default">"""
-    html += """<div class="panel-heading"><h3 class="panel-title">Configuration</h3></div>"""
-    html += """<div class="panel-body"><ul>"""
-    html += "</ul></div></div>"""
+    res = sr("config list")
+    js = json.loads( res )
+    title = js.keys()[0]
+    values = js[title]
+    html  = """<div class="panel panel-default">"""
+    html += """<div class="panel-heading"><h3 class="panel-title">{}</h3></div>""".format( title )
+    html += """<div class="panel-body">"""
+    html += """<table class="table table-hover table-condensed">"""
+    html += """<tr><th>Setting</th><th>Value</th></tr>"""
+    for k,v in values.iteritems():  html += "<tr><td><code>{}</code></td><td>{}</td></tr>".format(k,v)
+    html += "</table></div></div>"""
+
     return build_html(body=html, title="proxenet Configuration", page="config")
 
 

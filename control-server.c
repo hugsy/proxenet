@@ -29,6 +29,9 @@
 
 #define BUFSIZE 4096
 
+#define ERR_INVALID_SYNTAX_JSON(x) { proxenet_write(x, "{\"error\": \"Invalid syntax\"}", 27); }
+#define ERR_MISSING_ARGUMENT_JSON(x) { proxenet_write(x, "{\"error\": \"Missing argument\"}", 29); }
+
 static void quit_cmd(sock_t  fd, char *options, unsigned int nb_options);
 static void help_cmd(sock_t fd, char *options, unsigned int nb_options);
 static void info_cmd(sock_t fd, char *options, unsigned int nb_options);
@@ -178,7 +181,7 @@ static void info_cmd(sock_t fd, char *options, unsigned int nb_options)
         /* generic info  */
         n = snprintf(msg, sizeof(msg),
                      "{\"info\":"
-                     " {\"Configuration\":{"
+                     " {\"Information\":{"
                      "  \"Listening interface\": \"%s/%s\","
                      "  \"Supported IP version\": \"%s\","
                      "  \"Logging file\": \"%s\","
@@ -566,122 +569,116 @@ invalid_plugin_action:
 
 
 /**
- * Increase/Decrease verbosity of proxenet (useful for logging/debugging)
+ * List configuration settings
  */
-static void config_verbose_cmd(sock_t fd, char *options)
+static void plugin_config_cmd_list(sock_t fd)
 {
-        char msg[BUFSIZE] = {0, };
-        char *ptr;
-        int n, level;
+        char msg[BUFSIZE];
+        int n;
 
-         ptr = strtok(options, " \n");
-        if (!ptr){
-                n = snprintf(msg, BUFSIZE, "{\"verbose\": \"current level is %d\"}",
-                             cfg->verbose);
-                proxenet_write(fd, (void*)msg, n);
-                return;
-        }
+        n = snprintf(msg, BUFSIZE,
+                     "{\"Configuration parameters\":"
+                     "{"
+                     " \"verbose\": %d,"
+                     " \"state\": \"%s\","
+                     " \"logfile\": \"%s\","
+                     " \"intercept_pattern\": \"%s\","
+                     " \"ssl_intercept\": \"%s\""
+                     "}"
+                     "}"
+                     ,
+                     cfg->verbose,
+                     proxy_state==SLEEPING?"SLEEPING":"ACTIVE",
+                     (cfg->logfile)?cfg->logfile:"stdout",
+                     cfg->intercept_pattern,
+                     cfg->ssl_intercept?"true":"false"
+                    );
 
-        if ( (level=atoi(ptr)) > 0 && level<MAX_VERBOSE_LEVEL){
-                cfg->verbose = level;
-                n = snprintf(msg, BUFSIZE, "{\"verbose\": \"level is set to %d\"}",
-                             cfg->verbose);
-        }
-        else if (strcmp(ptr, "inc")==0 && cfg->verbose<MAX_VERBOSE_LEVEL)
-                n = snprintf(msg, BUFSIZE, "{\"verbose\": \"level is now %d\"}", ++cfg->verbose);
-        else if (strcmp(ptr, "dec")==0 && cfg->verbose>0)
-                n = snprintf(msg, BUFSIZE, "{\"verbose\": \"level is now %d\"}", --cfg->verbose);
-        else
-                n = snprintf(msg, BUFSIZE, "{\"error\": \"Invalid action\"}");
-
-        proxenet_write(fd, (void*)msg, n);
-
+        proxenet_write(fd, msg, n);
         return;
 }
 
 
 /**
- * (De)-Activate pause mode (suspend and block interception)
- */
-static void config_pause_cmd(sock_t fd, char *options)
-{
-        char *msg;
-
-        (void) options;
-
-        if (proxy_state==SLEEPING) {
-                msg = "{\"sleep-mode\": 0}";
-                proxy_state = ACTIVE;
-        } else {
-                msg = "{\"sleep-mode\": 1}";
-                proxy_state = SLEEPING;
-        }
-
-        xlog(LOG_INFO, "%s\n", msg);
-        proxenet_write(fd, (void*)msg, strlen(msg));
-        return;
-}
-
-
-/**
- * (De)-Activate SSL interception mode
- */
-static void config_ssl_intercept_cmd(sock_t fd, char* options)
-{
-        char *ptr;
-
-        (void) options;
-
-        /* shift argument */
-        ptr = strtok(NULL, " \n");
-        if (!ptr){
-                xlog(LOG_ERROR, "%s\n", "Failed to get argument");
-                return;
-        }
-
-        if ( strcasecmp(ptr, "true") == 0){
-                cfg->ssl_intercept = true;
-                if (cfg->verbose)
-                        xlog(LOG_INFO, "%s\n", "[config] Enabled SSL intercept");
-                proxenet_write(fd, "{\"SSL intercept\": \"enabled\"}", 28);
-                return;
-        } else if ( strcasecmp(ptr, "false") == 0){
-                cfg->ssl_intercept = false;
-                if (cfg->verbose)
-                        xlog(LOG_INFO, "%s\n", "[config] Disabled SSL intercept");
-                proxenet_write(fd, "{\"SSL intercept\": \"disabled\"}", 29);
-                return;
-        }
-}
-
-
-/**
- * Edit configuration
+ * View or edit configuration
  */
 static void config_cmd(sock_t fd, char *options, unsigned int nb_options)
 {
         char *ptr;
+        char msg[BUFSIZE]={0,};
+        bool edit;
+        int n;
 
         (void) options;
         (void) nb_options;
 
         /* usage */
         ptr = strtok(options, " \n");
-        if (!ptr)
-                goto invalid_config_action;
+        if (!ptr){
+                ERR_INVALID_SYNTAX_JSON(fd);
+                return;
+        }
 
-        if (strcmp(ptr, "ssl-intercept") == 0)
-                return config_ssl_intercept_cmd(fd, ptr);
+        if (strcmp(ptr, "list")==0)
+                return plugin_config_cmd_list(fd);
 
-        if (strcmp(ptr, "pause") == 0)
-                return config_pause_cmd(fd, ptr);
+        if (strcmp(ptr, "set")==0)
+                edit = true;
+        else if (strcmp(ptr, "get")==0)
+                edit = false;
+        else {
+                ERR_INVALID_SYNTAX_JSON(fd);
+                return;
+        }
 
-        if (strcmp(ptr, "verbose") == 0)
-                return config_verbose_cmd(fd, ptr);
+        ptr = strtok(options, " \n");
+        if (!ptr){
+                ERR_MISSING_ARGUMENT_JSON(fd);
+                return;
+        }
 
-invalid_config_action:
-        proxenet_write(fd, "{\"error\": \"Invalid action.\"}", 28);
-        return;
+        if (!strcmp(ptr, "intercept_pattern")){
+                ptr = strtok(options, " \n");
+                if (!ptr){ ERR_MISSING_ARGUMENT_JSON(fd); return; }
+                proxenet_xfree( cfg->intercept_pattern );
+                cfg->intercept_pattern = proxenet_xstrdup2(ptr);
+                n = snprintf(msg, sizeof(msg), "{\"success\": \"Intercept pattern is now '%s'\" }", cfg->intercept_pattern);
+                proxenet_write(fd, msg, n);
+                return;
+        }
+
+        if (!strcmp(ptr, "verbose")){
+                ptr = strtok(options, " \n");
+                if (!ptr){ ERR_MISSING_ARGUMENT_JSON(fd); return; }
+                cfg->verbose = atoi(ptr);
+                n = snprintf(msg, sizeof(msg), "{\"success\": \"Verbose is now '%d'\" }", cfg->verbose);
+                proxenet_write(fd, msg, n);
+                return;
+        }
+
+        if (!strcmp(ptr, "ssl_intercept")){
+                ptr = strtok(options, " \n");
+                if (!ptr){ ERR_MISSING_ARGUMENT_JSON(fd); return; }
+                cfg->ssl_intercept = strcasecmp(ptr,"true")==0?true:false;
+                n = snprintf(msg, sizeof(msg), "{\"success\": \"SSL Intercept is set to %d\" }", cfg->ssl_intercept);
+                proxenet_write(fd, msg, n);
+                return;
+        }
+
+        if (!strcmp(ptr, "pause")){
+                proxy_state = SLEEPING;
+                n = snprintf(msg, sizeof(msg), "{\"success\": \""PROGNAME" is paused\" }");
+                proxenet_write(fd, msg, n);
+                return;
+        }
+
+        if (!strcmp(ptr, "unpause")){
+                proxy_state = ACTIVE;
+                n = snprintf(msg, sizeof(msg), "{\"success\": \""PROGNAME" is unpaused\" }");
+                proxenet_write(fd, msg, n);
+                return;
+        }
+
 }
 
 
