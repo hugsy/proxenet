@@ -24,11 +24,10 @@ if(NOT ${POLARSSL_LIBRARIES})
   find_library(POLARSSL_LIBRARIES NAMES polarssl)
 endif()
 
-find_package_handle_standard_args(POLARSSL REQUIRED_VARS
-  POLARSSL_INCLUDE_DIR POLARSSL_LIBRARIES)
+find_package_handle_standard_args(POLARSSL REQUIRED_VARS POLARSSL_INCLUDE_DIR POLARSSL_LIBRARIES)
 
-if(!POLARSSL_INCLUDE_DIR AND !POLARSSL_LIBRARIES)
-  message(FATAL_ERROR "Cannot find PolarSSL library")
+if( ${POLARSSL_LIBRARIES-NOTFOUND} )
+  message(FATAL_ERROR "Failed to get info from PolarSSL library, check your PolarSSL installation")
   set(POLARSSL_FOUND False)
   return()
 endif()

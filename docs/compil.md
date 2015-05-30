@@ -2,33 +2,17 @@
 
 ### Pre-requisites
 
-`proxenet` requires a recent version of
-[PolarSSL library](https://polarssl.org/source-code), on version 1.3 and
-up. Support for version 1.2.x was definitively abandonned.
+`proxenet` requires:
 
-The choice for PolarSSL as main SSL development library came because of its easy
-integration in multi-threaded environment, along with a simple (but yet
-thoroughly documented) API.
-
-Installing PolarSSL library is pretty straight-forward. Here with an example with version 1.3.9:
-``` bash
-$ curl -fsSL https://github.com/polarssl/polarssl/archive/polarssl-1.3.9.tar.gz | tar xfz -
-$ cd polarssl-1.3.9
-$ make && sudo make install
-```
-
-For most distro, a simple
-```bash
-$ apt-get install libpolarssl-dev   # for Debian-based Linux
-or
-$ yum install libpolarssl-devel     # for RedHat-based Linux
-```
-will be enough.
+1. `cmake` as a building engine
+2. `polarssl` for the SSL library
 
 
-### Compilation
-In order to build `proxenet` you will need to have
-[CMake](http://www.cmake.org).
+#### CMake
+
+##### Linux
+
+Most distributions will provide `cmake` with their main packaging system.
 
 If you don't have it, just run
 ```bash
@@ -37,19 +21,75 @@ or
 $ yum install cmake       # for RedHat-based Linux
 ```
 
-Then, you can proceed with the compilation.
+##### Mac OSX
+
+The best and easiest way to have `cmake` on OSX is through `brew`.
+```bash
+$ brew install cmake
+```
+
+##### FreeBSD
+
+From FreeBSD 10 and up, `cmake` is provided through `pkg`
+```bash
+$ pkg install cmake
+```
+
+#### PolarSSL
+`proxenet` requires a recent version of
+[PolarSSL library](https://polarssl.org/source-code), on version 1.3 and
+up. Support for version 1.2.x was definitively abandonned.
+
+The choice for PolarSSL as main SSL development library came because of its easy
+integration in multi-threaded environment, along with a simple (but yet
+thoroughly documented) API.
+
+##### Pre-compiled
+
+For most distro, a simple
+```bash
+$ apt-get install libpolarssl-dev   # for Debian-based Linux
+or
+$ yum install libpolarssl-devel     # for RedHat-based Linux
+or
+$ brew install polarssl             # for Mac OSX
+```
+will be enough.
+
+*Note*: FreeBSD provides by default an old version of PolarSSL (1.2
+ branch). This branch is not supported any more, so please install from source
+ as explained below.
+
+
+##### From source
+
+Installing PolarSSL library from source is pretty straight-forward. Here with an
+example with version 1.3.9:
+``` bash
+$ curl -fsSL https://github.com/polarssl/polarssl/archive/polarssl-1.3.9.tar.gz | tar xfz -
+$ cd mbedtls-polarssl-1.3.9 && cmake . && sudo make install
+```
+
+
+### Compilation
+In order to build `proxenet` make sure you have [CMake](http://www.cmake.org)
+version 3.0+.
+
+You can proceed with the compilation like this:
 
 ```bash
-~$ git clone https://github.com/hugsy/proxenet.git
-~$ cd proxenet && cmake . && make
+$ git clone https://github.com/hugsy/proxenet.git
+$ cd proxenet && cmake . && make
 ```
 
 `cmake` will generate the `Makefile` accordingly to your configuration and
 libraries availableon your system.
 If you want to explicity enable/disable scripting supports, use the option `-D`
-when using `cmake`. For example, to disable C script support, simply type
+when using `cmake`. For example,
 ```bash
-~$ cmake -DUSE_C_PLUGIN=OFF . && make
+$ cmake . -DUSE_C_PLUGIN=OFF && make   # to disable C script support
+or
+$ cmake . -DUSE_PYTHON_PLUGIN=OFF && make   # to disable Python script support
 ```
 
 ### Setup the environment
