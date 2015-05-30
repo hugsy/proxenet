@@ -5,6 +5,7 @@ typedef int sock_t;
 
 #define MAX_CONN_SIZE 10
 #define MAX_READ_SIZE 4095
+#define MAX_CONNECT_ATTEMPT 5
 #define ECONNREFUSED_MSG "Server refused connection (closed port?)"
 #define EHOSTUNREACH_MSG "Server is not reachable"
 

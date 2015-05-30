@@ -192,33 +192,49 @@ static int get_hostname_from_header(request_t *req)
 
 /**
  * Modifies the HTTP request to strip out the protocol and hostname
+ * If successful, the request will be modified on output of this function as a
+ * valid HTTP request :
+ * METHOD /PATH HTTP/1.1[...]
  *
  * @return 0 if no error was encountered, -1 otherwise.
  */
 int format_http_request(char** request, size_t* request_len)
 {
 	size_t new_request_len = 0;
-	char *old_ptr, *new_ptr;
+	char *old_ptr, *new_ptr, *ptr;
 	unsigned int i;
 	int offlen;
 
         offlen = -1;
 	old_ptr = new_ptr = NULL;
-	old_ptr = strstr(*request, HTTP_PROTO_STRING);
-	if (old_ptr)
-		offlen = 7;
-	else {
-		old_ptr = strstr(*request, HTTPS_PROTO_STRING);
-		if (old_ptr)
-			offlen = 8;
-	}
 
-	if (offlen < 0) {
+        /* Move to beginning of URL */
+        for(ptr=*request; ptr && *ptr!=' ' && *ptr!='\x00'; ptr++);
+
+        if(*ptr!=' '){
+                xlog(LOG_ERROR, "%s\n", "HTTP request has incorrect format");
+                return -1;
+        }
+
+        ++ptr;
+        if(*ptr=='/'){
+                /* this indicates that the request is well formed already */
+                /* this case would happen only when using in transparent mode */
+                return 0;
+        }
+
+	if( strncmp(ptr, HTTP_PROTO_STRING, sizeof(HTTP_PROTO_STRING)-1)==0 ){
+		offlen = sizeof(HTTP_PROTO_STRING)-1;    // -1 because of \x00 added by sizeof
+        } else if( strncmp(ptr, HTTPS_PROTO_STRING, sizeof(HTTP_PROTO_STRING)-1)==0 ){
+                offlen = sizeof(HTTPS_PROTO_STRING)-1;
+	} else {
 		xlog(LOG_ERROR, "Cannot find protocol (%s|%s) in request:\n%s\n",
                      HTTP_STRING, HTTPS_STRING, *request);
 		return -1;
 	}
 
+        /* here offlen > 0 */
+        old_ptr = ptr;
 	new_ptr = strchr(old_ptr + offlen, '/');
 	if (!new_ptr) {
 		xlog(LOG_ERROR, "%s\n", "Cannot find path (must not be implicit)");
@@ -475,7 +491,7 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
 	}
 
 #ifdef DEBUG
-        xlog(LOG_DEBUG, "Socket to %s '%s:%s' : %d\n",
+        xlog(LOG_DEBUG, "Socket to %s '%s:%s': fd=%d\n",
              use_proxy?"proxy":"server",
              host, port,
              retcode);

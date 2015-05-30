@@ -695,9 +695,10 @@ void proxenet_process_http_request(sock_t server_socket)
                                                 retcode = update_http_infos(&req);
                                         } else {
                                                 /*
-                                                 * Some browsers send plain HTTP requests like this
+                                                 * Format requests
                                                  * GET http://foo/bar.blah HTTP/1.1 ...
-                                                 * Format those kinds of requests stripping out proto & hostname
+                                                 * into
+                                                 * GET /bar.blah HTTP/1.1 ...
                                                  */
                                                 retcode = format_http_request(&req.data, &req.size);
                                         }
