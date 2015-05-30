@@ -12,6 +12,7 @@
 #include "errno.h"
 #include "main.h"
 #include "control-server.h"
+#include "config.h"
 
 
 /**
@@ -31,7 +32,7 @@ sock_t create_control_socket()
 	}
 
 	sun_local.sun_family = AF_UNIX;
-	strcpy(sun_local.sun_path, CONTROL_SOCK_PATH);
+	strcpy(sun_local.sun_path, CFG_CONTROL_SOCK_PATH);
 	unlink(sun_local.sun_path);
 
 	/* and bind+listen */

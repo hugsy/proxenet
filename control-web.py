@@ -224,16 +224,43 @@ def config():
     js = json.loads( res )
     title = js.keys()[0]
     values = js[title]
+
+    # view config
     html  = """<div class="panel panel-default">"""
     html += """<div class="panel-heading"><h3 class="panel-title">{}</h3></div>""".format( title )
     html += """<div class="panel-body">"""
     html += """<table class="table table-hover table-condensed">"""
-    html += """<tr><th>Setting</th><th>Value</th></tr>"""
-    for k,v in values.iteritems():  html += "<tr><td><code>{}</code></td><td>{}</td></tr>".format(k,v)
+    html += """<tr><th>Setting</th><th>Value</th><th>Type</th></tr>"""
+    for k,v in values.iteritems():
+        _val, _type = v["value"], v["type"]
+        html += "<tr><td><code>{}</code></td><td>{}</td><td>{}</td></tr>".format(k,_val,_type)
     html += "</table></div></div>"""
+
+    # edit config
+    html += """<div class="panel panel-default">"""
+    html += """<div class="panel-heading"><h3 class="panel-title">Change Value</h3></div>"""
+    html += """<div class="panel-body"><form class="form-inline" action="/config/set" method="get">"""
+    html += """<div class="form-group"><select class="form-control" name="setting">"""
+    for k,v in values.iteritems():
+        html += """<option>{}</option>""".format( k )
+    html += """</select></div><div class="form-group"><label class="sr-only">Value</label><input class="form-control" name="value" placeholder="Value"></div><button type="submit" class="btn btn-default">Change Value</button>"""
+    html += """</form></div></div>"""
 
     return build_html(body=html, title="proxenet Configuration", page="config")
 
+@route('/config/set')
+def config_set():
+    if not is_proxenet_running(): return build_html(body=not_running_html())
+    param = request.params.get("setting")
+    value = request.params.get("value")
+    print param, value
+    res = sr("config set {} {}".format(param, value))
+    js = json.loads( res )
+    retcode = js.keys()[0]
+    if retcode == "error":
+        return """<div class="alert alert-danger" role="alert">{}</div>""".format(res[retcode])
+    redirect("/config")
+    return
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(usage = __usage__, description = __desc__)

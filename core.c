@@ -1479,6 +1479,6 @@ int proxenet_start()
         close_socket(listening_socket);
         close_socket(control_socket);
 
-        unlink(CONTROL_SOCK_PATH);
+        unlink(CFG_CONTROL_SOCK_PATH);
         return 0;
 }

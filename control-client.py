@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # -*- mode: python -*-
 
-import argparse, socket, datetime, os, json, rlcompleter, readline
+import argparse, socket, datetime, os, json, rlcompleter, readline, pprint
 
 
 __author__    =   "hugsy"
@@ -15,7 +15,7 @@ by {2}
 syntax: {3} [options] args
 """.format(__version__, __licence__, __author__, __file__)
 
-# the socket path can be modified in control-server.h
+# the socket path can be modified in config.h.in
 PROXENET_SOCKET_PATH = "/tmp/proxenet-control-socket"
 
 def now():
@@ -81,7 +81,16 @@ if __name__ == "__main__":
 
             res = recv_until(cli)
             data, prompt = res[:-4], res[-4:]
-            print data
+            try:
+                js = json.loads( data )
+                for k,v in js.iteritems():
+                    if v.__class__.__name__ == "dict":
+                        print("{}".format(k))
+                        for a,b in v.iteritems(): print("\t{} -> {}".format(a,b))
+                    else:
+                        print("{} -> {}".format(k,v))
+            except:
+                print(data)
             cmd = raw_input( prompt )
             cli.send(cmd.strip()+"\n")
             if cmd.strip() == "quit":

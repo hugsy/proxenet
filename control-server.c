@@ -151,18 +151,20 @@ static void help_cmd(sock_t fd, char *options, unsigned int nb_options)
         struct command_t *cmd;
         char msg[BUFSIZE];
         int n;
+        bool first_iter = true;
 
         (void) options;
         (void) nb_options;
 
         proxenet_write(fd, "{\"Command list\":{", 17);
         for (cmd=known_commands; cmd && cmd->name; cmd++) {
+                if(first_iter) first_iter=false;
+                else proxenet_write(fd, ",", 1);
                 proxenet_xzero(msg, sizeof(msg));
-                n = snprintf(msg, sizeof(msg), "\"%s\": \"%s\",", cmd->name, cmd->desc);
+                n = snprintf(msg, sizeof(msg), "\"%s\": \"%s\"", cmd->name, cmd->desc);
                 proxenet_write(fd, msg, n);
         }
-        proxenet_write(fd, "\"\":\"\"}", 6);
-
+        proxenet_write(fd, "}}", 2);
         return;
 }
 
@@ -579,11 +581,11 @@ static void plugin_config_cmd_list(sock_t fd)
         n = snprintf(msg, BUFSIZE,
                      "{\"Configuration parameters\":"
                      "{"
-                     " \"verbose\": %d,"
-                     " \"state\": \"%s\","
-                     " \"logfile\": \"%s\","
-                     " \"intercept_pattern\": \"%s\","
-                     " \"ssl_intercept\": \"%s\""
+                     " \"verbose\":             {\"value\":  %d, \"type\": \"int\" },"
+                     " \"state\":               {\"value\": \"%s\", \"type\": \"int\" },"
+                     " \"logfile\":             {\"value\": \"%s\", \"type\": \"None\" },"
+                     " \"intercept_pattern\":   {\"value\": \"%s\", \"type\": \"str\" },"
+                     " \"ssl_intercept\":       {\"value\": \"%s\", \"type\": \"bool\" }"
                      "}"
                      "}"
                      ,
@@ -631,14 +633,11 @@ static void config_cmd(sock_t fd, char *options, unsigned int nb_options)
                 return;
         }
 
-        ptr = strtok(options, " \n");
-        if (!ptr){
-                ERR_MISSING_ARGUMENT_JSON(fd);
-                return;
-        }
+        ptr = strtok(NULL, " \n");
+        if (!ptr){ ERR_MISSING_ARGUMENT_JSON(fd); return; }
 
         if (!strcmp(ptr, "intercept_pattern")){
-                ptr = strtok(options, " \n");
+                ptr = strtok(NULL, " \n");
                 if (!ptr){ ERR_MISSING_ARGUMENT_JSON(fd); return; }
                 proxenet_xfree( cfg->intercept_pattern );
                 cfg->intercept_pattern = proxenet_xstrdup2(ptr);
@@ -648,7 +647,7 @@ static void config_cmd(sock_t fd, char *options, unsigned int nb_options)
         }
 
         if (!strcmp(ptr, "verbose")){
-                ptr = strtok(options, " \n");
+                ptr = strtok(NULL, " \n");
                 if (!ptr){ ERR_MISSING_ARGUMENT_JSON(fd); return; }
                 cfg->verbose = atoi(ptr);
                 n = snprintf(msg, sizeof(msg), "{\"success\": \"Verbose is now '%d'\" }", cfg->verbose);
@@ -657,7 +656,7 @@ static void config_cmd(sock_t fd, char *options, unsigned int nb_options)
         }
 
         if (!strcmp(ptr, "ssl_intercept")){
-                ptr = strtok(options, " \n");
+                ptr = strtok(NULL, " \n");
                 if (!ptr){ ERR_MISSING_ARGUMENT_JSON(fd); return; }
                 cfg->ssl_intercept = strcasecmp(ptr,"true")==0?true:false;
                 n = snprintf(msg, sizeof(msg), "{\"success\": \"SSL Intercept is set to %d\" }", cfg->ssl_intercept);
@@ -665,19 +664,27 @@ static void config_cmd(sock_t fd, char *options, unsigned int nb_options)
                 return;
         }
 
-        if (!strcmp(ptr, "pause")){
-                proxy_state = SLEEPING;
-                n = snprintf(msg, sizeof(msg), "{\"success\": \""PROGNAME" is paused\" }");
-                proxenet_write(fd, msg, n);
-                return;
+        if (!strcmp(ptr, "state")){
+                ptr = strtok(NULL, " \n");
+                if (!ptr){ ERR_MISSING_ARGUMENT_JSON(fd); return; }
+                if (strcasecmp(ptr, "sleeping")==0 && proxy_state==ACTIVE){
+                        proxy_state = SLEEPING;
+                        n = snprintf(msg, sizeof(msg), "{\"success\": \""PROGNAME" is paused\" }");
+                        proxenet_write(fd, msg, n);
+                        return;
+                } else if (strcasecmp(ptr, "active")==0 && proxy_state==SLEEPING){
+                        proxy_state = ACTIVE;
+                        n = snprintf(msg, sizeof(msg), "{\"success\": \""PROGNAME" is unpaused\" }");
+                        proxenet_write(fd, msg, n);
+                        return;
+                } else {
+                        n = snprintf(msg, sizeof(msg), "{\"success\": \"nothing to do\" }");
+                        proxenet_write(fd, msg, n);
+                        return;
+                }
+
         }
 
-        if (!strcmp(ptr, "unpause")){
-                proxy_state = ACTIVE;
-                n = snprintf(msg, sizeof(msg), "{\"success\": \""PROGNAME" is unpaused\" }");
-                proxenet_write(fd, msg, n);
-                return;
-        }
 
 }
 
