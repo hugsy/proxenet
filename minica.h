@@ -7,8 +7,9 @@
 #define PROXENET_CERT_MAX_PATHLEN      -1
 #define PROXENET_CERT_SUBJECT          "CN=%s,OU=BlackHats,O=World Domination Corp.,C=US"
 
+int     serial_base;
 
 int     proxenet_get_cert_serial(ssl_atom_t* ssl, proxenet_ssl_buf_t* dst);
-int     proxenet_lookup_crt(char* hostname, proxenet_ssl_buf_t serial, char** crtpath);
+int     proxenet_lookup_crt(char* hostname, char** crtpath);
 
 #endif /* _MINICA_H */

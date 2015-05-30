@@ -60,8 +60,8 @@ commonName_max                = 64
 
 0.organizationName_default      = World Domination Corp.
 organizationalUnitName_default  = BlackHats
-localityName_default            = bleh
-stateOrProvinceName_default     = blah
+localityName_default            = proxenet
+stateOrProvinceName_default     = proxenet
 countryName_default             = FR
 emailAddress_default            = proxenet@worldomination.corp
 commonName_default              = proxenet
@@ -74,5 +74,5 @@ subjectKeyIdentifier            = hash
 authorityKeyIdentifier          = keyid:always,issuer:always
 
 [ v3_req ]
-basicConstraints                = CA:FALSE
+basicConstraints                = CA:TRUE
 subjectKeyIdentifier            = hash

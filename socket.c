@@ -12,6 +12,7 @@
 #include "errno.h"
 #include "main.h"
 #include "control-server.h"
+#include "config.h"
 
 
 /**
@@ -31,7 +32,7 @@ sock_t create_control_socket()
 	}
 
 	sun_local.sun_family = AF_UNIX;
-	strcpy(sun_local.sun_path, CONTROL_SOCK_PATH);
+	strcpy(sun_local.sun_path, CFG_CONTROL_SOCK_PATH);
 	unlink(sun_local.sun_path);
 
 	/* and bind+listen */
@@ -121,6 +122,7 @@ sock_t create_connect_socket(char *host, char* port)
 	sock_t sock;
 	struct addrinfo hostinfo, *res, *ll;
 	int retcode, keepalive_val;
+        unsigned short num_attempt = 0;
 
         sock = -1;
 	memset(&hostinfo, 0, sizeof(struct addrinfo));
@@ -147,9 +149,8 @@ sock_t create_connect_socket(char *host, char* port)
 		if (sock == -1) continue;
 
                 /* setting socket as keep-alive */
-		keepalive_val = 1;
-		retcode = setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE,
-				     &keepalive_val, sizeof(keepalive_val));
+		keepalive_val = true;
+		retcode = setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE, &keepalive_val, sizeof(keepalive_val));
                 if (retcode < 0){
                         xlog(LOG_ERROR, "setsockopt(SO_KEEPALIVE) failed: %s\n",
                              strerror(retcode));
@@ -157,8 +158,7 @@ sock_t create_connect_socket(char *host, char* port)
                 }
 
                 /* setting receive timeout */
-		retcode = setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO,
-				     &timeout, sizeof(timeout));
+		retcode = setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
                 if (retcode < 0){
                         xlog(LOG_ERROR, "setsockopt(SO_RCVTIMEO) failed: %s\n",
                              strerror(retcode));
@@ -166,8 +166,7 @@ sock_t create_connect_socket(char *host, char* port)
                 }
 
                 /* setting sending timeout */
-		retcode = setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO,
-				     &timeout, sizeof(timeout));
+		retcode = setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));
                 if (retcode < 0){
                         xlog(LOG_ERROR, "setsockopt(SO_SNDTIMEO) failed: %s\n",
                              strerror(retcode));
@@ -181,8 +180,13 @@ sock_t create_connect_socket(char *host, char* port)
                                      host, port, sock);
 			break;
 		} else {
-                        xlog(LOG_ERROR, "connect to '%s:%s' failed: %s\n",
-                             host, port, strerror(errno));
+                        num_attempt++;
+                        xlog(LOG_ERROR, "connect to '%s:%s' failed (%d/%d): %s\n",
+                             host, port, num_attempt, MAX_CONNECT_ATTEMPT, strerror(errno));
+                        if(num_attempt==MAX_CONNECT_ATTEMPT){
+                                sock = -1;
+                                break;
+                        }
                 }
 
 		close(sock);
