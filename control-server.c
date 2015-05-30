@@ -27,8 +27,15 @@
 #include "utils.h"
 #include "plugin.h"
 
-#define BUFSIZE 2048
+#define BUFSIZE 4096
 
+static void quit_cmd(sock_t  fd, char *options, unsigned int nb_options);
+static void help_cmd(sock_t fd, char *options, unsigned int nb_options);
+static void info_cmd(sock_t fd, char *options, unsigned int nb_options);
+static void reload_cmd(sock_t fd, char *options, unsigned int nb_options);
+static void threads_cmd(sock_t fd, char *options, unsigned int nb_options);
+static void plugin_cmd(sock_t fd, char *options, unsigned int nb_options);
+static void config_cmd(sock_t fd, char *options, unsigned int nb_options);
 
 static struct command_t known_commands[] = {
 	{ "quit", 	 0, &quit_cmd,     "Make "PROGNAME" leave kindly" },
@@ -37,7 +44,7 @@ static struct command_t known_commands[] = {
 	{ "reload", 	 0, &reload_cmd,   "Reload the plugins" },
 	{ "threads", 	 0, &threads_cmd,  "Show info about threads" },
 	{ "plugin", 	 1, &plugin_cmd,   "Get/Set info about plugin"},
-    { "config", 	 1, &config_cmd,   "Edit configuration at runtime"},
+        { "config", 	 1, &config_cmd,   "Edit configuration at runtime"},
 
 	{ NULL, 0, NULL, NULL}
 };
@@ -119,7 +126,7 @@ static int send_plugin_list_as_json(sock_t fd, bool only_loaded)
 /**
  * This command will try to kill gracefully the running process of proxenet
  */
-void quit_cmd(sock_t fd, char *options, unsigned int nb_options)
+static void quit_cmd(sock_t fd, char *options, unsigned int nb_options)
 {
         char *msg = "Leaving gracefully\n";
 
@@ -136,7 +143,7 @@ void quit_cmd(sock_t fd, char *options, unsigned int nb_options)
 /**
  * The famous help menu
  */
-void help_cmd(sock_t fd, char *options, unsigned int nb_options)
+static void help_cmd(sock_t fd, char *options, unsigned int nb_options)
 {
         struct command_t *cmd;
         char msg[BUFSIZE];
@@ -160,7 +167,7 @@ void help_cmd(sock_t fd, char *options, unsigned int nb_options)
 /**
  * Get information about proxenet state.
  */
-void info_cmd(sock_t fd, char *options, unsigned int nb_options)
+static void info_cmd(sock_t fd, char *options, unsigned int nb_options)
 {
         char msg[BUFSIZE] = {0, };
         int n;
@@ -208,11 +215,10 @@ void info_cmd(sock_t fd, char *options, unsigned int nb_options)
 }
 
 
-
 /**
  * Reload proxenet
  */
-void reload_cmd(sock_t fd, char *options, unsigned int nb_options)
+static void reload_cmd(sock_t fd, char *options, unsigned int nb_options)
 {
         char *msg;
 
@@ -220,7 +226,7 @@ void reload_cmd(sock_t fd, char *options, unsigned int nb_options)
         (void) nb_options;
 
         if (get_active_threads_size() > 0) {
-                msg = "Threads still active, cannot reload\n";
+                msg = "{\"error\": \"Threads still active, cannot reload\"}";
                 proxenet_write(fd, (void*)msg, strlen(msg));
                 return;
         }
@@ -231,7 +237,7 @@ void reload_cmd(sock_t fd, char *options, unsigned int nb_options)
         proxenet_free_all_plugins();
 
         if( proxenet_initialize_plugins_list() < 0) {
-                msg = "Failed to reinitilize plugins\n";
+                msg = "{\"error\": \"Failed to reinitilize plugins\"}";
                 proxenet_write(fd, (void*)msg, strlen(msg));
                 proxy_state = INACTIVE;
                 return;
@@ -241,7 +247,7 @@ void reload_cmd(sock_t fd, char *options, unsigned int nb_options)
 
         proxy_state = ACTIVE;
 
-        msg = "Plugins list successfully reloaded\n";
+        msg = "{\"success\": \"Plugins list successfully reloaded\"}";
         proxenet_write(fd, (void*)msg, strlen(msg));
 
         return;
@@ -251,7 +257,7 @@ void reload_cmd(sock_t fd, char *options, unsigned int nb_options)
 /**
  * Get information about the threads
  */
-void threads_cmd(sock_t fd, char *options, unsigned int nb_options)
+static void threads_cmd(sock_t fd, char *options, unsigned int nb_options)
 {
         char msg[BUFSIZE] = {0, };
         char *ptr;
@@ -302,18 +308,15 @@ static int plugin_cmd_list_available(sock_t fd)
                 return -1;
         }
 
-        n = snprintf(msg, sizeof(msg),"{\"Plugins available in %s\": {",
-                     cfg->plugins_path);
+        n = snprintf(msg, sizeof(msg),"{\"Plugins available in '%s'\": {", cfg->plugins_path);
         proxenet_write(fd, msg, n);
         while ((dir_ptr=readdir(dir))) {
                 type = -1;
                 name = dir_ptr->d_name;
-		if (!strcmp(name,".") || !strcmp(name,".."))
-                        continue;
+		if (!strcmp(name,".") || !strcmp(name,"..")) continue;
 
                 type = proxenet_get_plugin_type(name);
-		if (type < 0)
-                        continue;
+		if (type < 0) continue;
 
                 /* this is only to avoid breaking json syntax */
                 if (!first_iter)
@@ -354,15 +357,14 @@ static int plugin_cmd_set(sock_t fd, char *options)
         unsigned int plugin_id;
 
         plugin_id = (unsigned int)atoi(options);
-        if (plugin_id > proxenet_plugin_list_size()) {
-                n = sprintf(msg, "Invalid plugin id\n");
-                proxenet_write(fd, (void*)msg, n);
+        if ( proxenet_get_plugin_by_id( plugin_id )==NULL ) {
+                proxenet_write(fd, "{\"error\": \"Invalid plugin id\"}", 30);
                 return -1;
         }
 
         ptr = strtok(NULL, " \n");
         if(!ptr){
-                n = snprintf(msg, BUFSIZE, "Invalid set command syntax: plugin set %d <command>\n", plugin_id);
+                n = snprintf(msg, BUFSIZE, "{\"error\": \"Invalid syntax: plugin set %d <command>\"}", plugin_id);
                 proxenet_write(fd, (void*)msg, n);
                 return -1;
         }
@@ -370,12 +372,12 @@ static int plugin_cmd_set(sock_t fd, char *options)
         if (!strcmp(ptr, "toggle")){
                 ret = proxenet_toggle_plugin(plugin_id);
                 if (ret < 0){
-                        n = snprintf(msg, BUFSIZE, "Failed to toggle plugin %d\n", plugin_id);
+                        n = snprintf(msg, BUFSIZE, "{\"error\": \"Failed to toggle plugin %d\"}", plugin_id);
                         proxenet_write(fd, (void*)msg, n);
                         return -1;
                 }
 
-                n = snprintf(msg, BUFSIZE, "Plugin %d is now %sACTIVE\n", plugin_id, ret?"":"IN");
+                n = snprintf(msg, BUFSIZE, "{\"success\": \"Plugin %d is now %sACTIVE\"}", plugin_id, ret?"":"IN");
                 proxenet_write(fd, (void*)msg, n);
                 return 0;
         }
@@ -384,7 +386,7 @@ static int plugin_cmd_set(sock_t fd, char *options)
                 ptr = strtok(NULL, " \n");
                 if(!ptr){
                         n = snprintf(msg, BUFSIZE,
-                                     "Missing priority argument: plugin set %d prority <prio>\n",
+                                     "{\"error\": \"Invalid syntax: plugin set %d prority <prio>\"}",
                                      plugin_id);
                         proxenet_write(fd, (void*)msg, n);
                         return -1;
@@ -392,24 +394,24 @@ static int plugin_cmd_set(sock_t fd, char *options)
 
                 n = atoi(ptr);
                 if (n==0){
-                        proxenet_write(fd, (void*)"Invalid priority\n", 17);
+                        proxenet_write(fd, "{\"error\": \"Invalid priority\"}", 29);
                         return -1;
                 }
 
                 if (proxenet_plugin_set_prority(plugin_id, n) < 0){
                         n = snprintf(msg, BUFSIZE,
-                                     "An error occured during priority update for plugin %d\n",
+                                     "{\"error\": \"An error occured during priority update for plugin %d\"}",
                                      plugin_id);
                         proxenet_write(fd, (void*)msg, n);
                         return -1;
                 }
 
-                n = snprintf(msg, BUFSIZE, "Plugin %d priority is now %d\n", plugin_id, n);
+                n = snprintf(msg, BUFSIZE, "{\"success\": \"Plugin %d priority is now %d\"}", plugin_id, n);
                 proxenet_write(fd, (void*)msg, n);
                 return 0;
         }
 
-        n = snprintf(msg, BUFSIZE, "Unknown action '%s' for plugin %d\n", ptr, plugin_id);
+        n = snprintf(msg, BUFSIZE, "{\"error\": \"Unknown action '%s' for plugin %d\"}", ptr, plugin_id);
         proxenet_write(fd, (void*)msg, n);
 
         return -1;
@@ -429,7 +431,7 @@ static int plugin_cmd_load(sock_t fd, char *options)
 
         ptr = strtok(options, " \n");
         if (!ptr){
-                proxenet_write(fd, (void*)"Missing plugin name\n", 20);
+                proxenet_write(fd, "{\"error\": \"Missing plugin name\"}", 32);
                 return -1;
         }
 
@@ -438,27 +440,22 @@ static int plugin_cmd_load(sock_t fd, char *options)
         proxenet_xzero(plugin_name, l+1);
         memcpy(plugin_name, ptr, l);
 
-        if ( plugin_name==NULL ){
-                n = sprintf(msg, "proxenet_xstrdup2() failed: %s\n", strerror(errno));
-                proxenet_write(fd, (void*)msg, n);
-                return -1;
-        }
-
         ret = proxenet_add_new_plugins(cfg->plugins_path, plugin_name);
         if(ret<0){
-                n = snprintf(msg, sizeof(msg)-1, "Error while loading plugin '%s'\n", plugin_name);
+                n = snprintf(msg, sizeof(msg)-1, "{\"error\": \"Error while loading plugin '%s'\"}", plugin_name);
                 proxenet_write(fd, (void*)msg, n);
                 return -1;
         }
 
         if(ret)
-                n = snprintf(msg, sizeof(msg)-1, "Plugin '%s' added successfully\n", plugin_name);
+                n = snprintf(msg, sizeof(msg)-1, "{\"success\": \"Plugin '%s' added successfully\"}", plugin_name);
         else
-                n = snprintf(msg, sizeof(msg)-1, "File '%s' has not been added\n", plugin_name);
+                n = snprintf(msg, sizeof(msg)-1, "{\"error\": \"File '%s' has not been added\"}", plugin_name);
         proxenet_write(fd, (void*)msg, n);
 
         /* plugin list must be reinitialized since we dynamically load VMs only if plugins are found */
-        proxenet_initialize_plugins();
+        if(ret)
+                proxenet_initialize_plugins();
 
         return 0;
 }
@@ -504,11 +501,10 @@ static int plugin_cmd_change_all_status(proxenet_state new_state)
 /**
  * Handle plugins (list/activate/deactivate/load)
  */
-void plugin_cmd(sock_t fd, char *options, unsigned int nb_options)
+static void plugin_cmd(sock_t fd, char *options, unsigned int nb_options)
 {
-        char msg[BUFSIZE] = {0, };
         char *ptr;
-        int n, res;
+        int res;
 
         (void) options;
         (void) nb_options;
@@ -564,10 +560,7 @@ void plugin_cmd(sock_t fd, char *options, unsigned int nb_options)
 
 
 invalid_plugin_action:
-        n = snprintf(msg, BUFSIZE,
-                     "Invalid action.\nSyntax\n"
-                     "plugin [list][list-all][enable-all][disable-all][set <id> toggle][load <0PluginName.ext>]\n");
-        proxenet_write(fd, (void*)msg, n);
+        proxenet_write(fd, "{\"error\": \"Invalid action\"}", 27);
         return;
 }
 
@@ -665,7 +658,7 @@ static void config_ssl_intercept_cmd(sock_t fd, char* options)
 /**
  * Edit configuration
  */
-void config_cmd(sock_t fd, char *options, unsigned int nb_options)
+static void config_cmd(sock_t fd, char *options, unsigned int nb_options)
 {
         char *ptr;
 
