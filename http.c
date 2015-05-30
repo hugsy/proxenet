@@ -27,23 +27,27 @@
  */
 void generic_http_error_page(sock_t sock, char* msg)
 {
-	char* html_header = "<html><body><h1>proxenet error page</h1><br/>";
-	char* html_footer = "</body></html>";
+        const char* html_header = "<html>"
+                "<head><title>"PROGNAME": ERROR!</title></head>"
+                "<body><h1>Error</h1>"
+                PROGNAME" encountered an error when loading your page<br><br>"
+                "The following message was returned:<br><div style=\"border: solid black 1px;font-family: monospace;\"><br>";
+        const char* html_footer = "</div></body></html>";
 
-	if (write(sock, html_header, strlen(html_header)) < 0) {
-		xlog(LOG_ERROR, "Failed to write error HTML header: %s\n", strerror(errno));
+        if (write(sock, html_header, strlen(html_header)) < 0) {
+                xlog(LOG_ERROR, "Failed to write error HTML header: %s\n", strerror(errno));
                 return;
-	}
+        }
 
-	if(write(sock, msg, strlen(msg)) < 0){
-		xlog(LOG_ERROR, "Failed to write error HTML page: %s\n", strerror(errno));
+        if(write(sock, msg, strlen(msg)) < 0){
+                xlog(LOG_ERROR, "Failed to write error HTML page: %s\n", strerror(errno));
                 return;
-	}
+        }
 
-	if(write(sock, html_footer, strlen(html_footer)) < 0){
-		xlog(LOG_ERROR, "Failed to write error HTML footer: %s\n", strerror(errno));
+        if(write(sock, html_footer, strlen(html_footer)) < 0){
+                xlog(LOG_ERROR, "Failed to write error HTML footer: %s\n", strerror(errno));
                 return;
-	}
+        }
 
         return;
 }
@@ -54,24 +58,24 @@ void generic_http_error_page(sock_t sock, char* msg)
  */
 static char* get_request_full_uri(request_t* req)
 {
-	char* uri;
-	http_request_t* http_infos = &req->http_infos;
-	size_t len;
+        char* uri;
+        http_request_t* http_infos = &req->http_infos;
+        size_t len;
 
-	if (!req || !http_infos)
+        if (!req || !http_infos)
                 return NULL;
 
-	len = sizeof(HTTPS_PROTO_STRING) + strlen(http_infos->hostname) + sizeof(":") + sizeof("65535");
-	len+= strlen(http_infos->path);
-	uri = (char*)proxenet_xmalloc(len+1);
+        len = sizeof(HTTPS_PROTO_STRING) + strlen(http_infos->hostname) + sizeof(":") + sizeof("65535");
+        len+= strlen(http_infos->path);
+        uri = (char*)proxenet_xmalloc(len+1);
 
-	snprintf(uri, len, "%s%s:%d%s",
-		 req->is_ssl?HTTPS_PROTO_STRING:HTTP_PROTO_STRING,
-		 http_infos->hostname,
-		 http_infos->port,
-		 http_infos->path);
+        snprintf(uri, len, "%s%s:%d%s",
+                 req->is_ssl?HTTPS_PROTO_STRING:HTTP_PROTO_STRING,
+                 http_infos->hostname,
+                 http_infos->port,
+                 http_infos->path);
 
-	return uri;
+        return uri;
 }
 
 
@@ -94,20 +98,20 @@ static int get_hostname_from_uri(request_t* req, int offset)
         buf = req->data + offset;
 
         /* isolate the whole block 'IP:PORT' */
-	ptr = strchr(buf, ' ');
-	if (!ptr){
+        ptr = strchr(buf, ' ');
+        if (!ptr){
                 xlog(LOG_ERROR, "%s\n", "Invalid URI block");
                 return -1;
         }
 
         c = *ptr;
-	*ptr = '\0';
+        *ptr = '\0';
 
         buf = proxenet_xstrdup2(buf);
 
         /* host and port */
         ptr = strchr(buf, ':');
-	if (ptr){
+        if (ptr){
                 /* explicit port */
                 req->http_infos.port = (unsigned short)atoi(ptr+1);
                 *ptr = '\0';
@@ -115,7 +119,7 @@ static int get_hostname_from_uri(request_t* req, int offset)
 
         req->http_infos.hostname = proxenet_xstrdup2(buf);
 
-	*ptr = c;
+        *ptr = c;
         proxenet_xfree(buf);
 
         return 0;
@@ -151,7 +155,7 @@ static char* get_header_by_name(char* request, const char* header_name)
         *ptr2 = '\0';
 
         /* copy the value  */
-	header_value = proxenet_xstrdup2(ptr);
+        header_value = proxenet_xstrdup2(ptr);
         if (!header_value){
                 xlog(LOG_ERROR, "strdup(header '%s') failed.\n", header_name);
                 return NULL;
@@ -169,7 +173,7 @@ static int get_hostname_from_header(request_t *req)
 {
         char *ptr, *header;
 
-	header = get_header_by_name(req->data, "Host: ");
+        header = get_header_by_name(req->data, "Host: ");
         if (!header){
                 return -1;
         }
@@ -200,13 +204,13 @@ static int get_hostname_from_header(request_t *req)
  */
 int format_http_request(char** request, size_t* request_len)
 {
-	size_t new_request_len = 0;
-	char *old_ptr, *new_ptr, *ptr;
-	unsigned int i;
-	int offlen;
+        size_t new_request_len = 0;
+        char *old_ptr, *new_ptr, *ptr;
+        unsigned int i;
+        int offlen;
 
         offlen = -1;
-	old_ptr = new_ptr = NULL;
+        old_ptr = new_ptr = NULL;
 
         /* Move to beginning of URL */
         for(ptr=*request; ptr && *ptr!=' ' && *ptr!='\x00'; ptr++);
@@ -223,38 +227,38 @@ int format_http_request(char** request, size_t* request_len)
                 return 0;
         }
 
-	if( strncmp(ptr, HTTP_PROTO_STRING, sizeof(HTTP_PROTO_STRING)-1)==0 ){
-		offlen = sizeof(HTTP_PROTO_STRING)-1;    // -1 because of \x00 added by sizeof
+        if( strncmp(ptr, HTTP_PROTO_STRING, sizeof(HTTP_PROTO_STRING)-1)==0 ){
+                offlen = sizeof(HTTP_PROTO_STRING)-1;    // -1 because of \x00 added by sizeof
         } else if( strncmp(ptr, HTTPS_PROTO_STRING, sizeof(HTTP_PROTO_STRING)-1)==0 ){
                 offlen = sizeof(HTTPS_PROTO_STRING)-1;
-	} else {
-		xlog(LOG_ERROR, "Cannot find protocol (%s|%s) in request:\n%s\n",
+        } else {
+                xlog(LOG_ERROR, "Cannot find protocol (%s|%s) in request:\n%s\n",
                      HTTP_STRING, HTTPS_STRING, *request);
-		return -1;
-	}
+                return -1;
+        }
 
         /* here offlen > 0 */
         old_ptr = ptr;
-	new_ptr = strchr(old_ptr + offlen, '/');
-	if (!new_ptr) {
-		xlog(LOG_ERROR, "%s\n", "Cannot find path (must not be implicit)");
-		return -1;
-	}
-
-	new_request_len = *request_len - (new_ptr-old_ptr);
-
-#ifdef DEBUG
-	xlog(LOG_DEBUG, "Formatting HTTP request (%dB->%dB)\n", *request_len, new_request_len);
-#endif
-
-	for (i=0; i<new_request_len - (old_ptr-*request);i++) {
-		*(old_ptr+i) = *(new_ptr+i);
+        new_ptr = strchr(old_ptr + offlen, '/');
+        if (!new_ptr) {
+                xlog(LOG_ERROR, "%s\n", "Cannot find path (must not be implicit)");
+                return -1;
         }
 
-	*request = proxenet_xrealloc(*request, new_request_len);
-	*request_len = new_request_len;
+        new_request_len = *request_len - (new_ptr-old_ptr);
 
-	return 0;
+#ifdef DEBUG
+        xlog(LOG_DEBUG, "Formatting HTTP request (%dB->%dB)\n", *request_len, new_request_len);
+#endif
+
+        for (i=0; i<new_request_len - (old_ptr-*request);i++) {
+                *(old_ptr+i) = *(new_ptr+i);
+        }
+
+        *request = proxenet_xrealloc(*request, new_request_len);
+        *request_len = new_request_len;
+
+        return 0;
 }
 
 
@@ -267,28 +271,28 @@ int format_http_request(char** request, size_t* request_len)
  */
 int update_http_infos(request_t *req)
 {
-	char *ptr, *buf, c;
+        char *ptr, *buf, c;
 
-	buf = req->data;
+        buf = req->data;
 
-	/* method */
-	ptr = strchr(buf, ' ');
-	if (!ptr){
+        /* method */
+        ptr = strchr(buf, ' ');
+        if (!ptr){
                 xlog(LOG_ERROR, "%s\n", "Cannot find HTTP method in request");
                 if (cfg->verbose)
                         xlog(LOG_ERROR, "Buffer sent:\n%s\n", buf);
                 return -1;
         }
 
-	c = *ptr;
-	*ptr = '\0';
-	req->http_infos.method = proxenet_xstrdup2(buf);
+        c = *ptr;
+        *ptr = '\0';
+        req->http_infos.method = proxenet_xstrdup2(buf);
         if (!req->http_infos.method){
                 xlog(LOG_ERROR, "%s\n", "strdup(method) failed, cannot pursue...");
                 return -1;
         }
 
-	*ptr = c;
+        *ptr = c;
         if (!strcmp(req->http_infos.method, "CONNECT")){
                 int offset;
 
@@ -330,46 +334,46 @@ int update_http_infos(request_t *req)
         }
 
 
-	/* path */
+        /* path */
         buf = ptr+1;
 
         if (!strncmp(buf, HTTP_PROTO_STRING, strlen(HTTP_PROTO_STRING))){
                 buf = strchr(buf + 8, '/');
         }
 
-	ptr = strchr(buf, ' ');
-	if (!ptr){
+        ptr = strchr(buf, ' ');
+        if (!ptr){
                 xlog(LOG_ERROR, "%s\n", "Cannot find HTTP path in request");
                 goto failed_path;
         }
 
-	c = *ptr;
-	*ptr = '\0';
-	req->http_infos.path = proxenet_xstrdup2(buf);
+        c = *ptr;
+        *ptr = '\0';
+        req->http_infos.path = proxenet_xstrdup2(buf);
         if (!req->http_infos.path){
                 xlog(LOG_ERROR, "%s\n", "strdup(path) failed, cannot pursue...");
                 goto failed_path;
         }
-	*ptr = c;
+        *ptr = c;
 
-	buf = ptr+1;
+        buf = ptr+1;
 
 
-	/* version */
-	ptr = strchr(req->data, '\r');
-	if (!ptr){
+        /* version */
+        ptr = strchr(req->data, '\r');
+        if (!ptr){
                 xlog(LOG_ERROR, "%s\n", "Cannot find HTTP version");
                 goto failed_version;
         }
 
-	c = *ptr;
-	*ptr = '\0';
-	req->http_infos.version = proxenet_xstrdup2(buf);
+        c = *ptr;
+        *ptr = '\0';
+        req->http_infos.version = proxenet_xstrdup2(buf);
         if (!req->http_infos.version){
                 xlog(LOG_ERROR, "%s\n", "strdup(version) failed, cannot pursue...");
                 goto failed_version;
         }
-	*ptr = c;
+        *ptr = c;
 
 
         /* refresh uri */
@@ -448,28 +452,28 @@ void free_http_infos(http_request_t *hi)
  */
 int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock, ssl_context_t* ssl_ctx)
 {
-	int retcode;
-	char *host, *port;
-	char sport[6] = {0, };
-	http_request_t* http_infos = &req->http_infos;
-	bool use_proxy = (cfg->proxy.host != NULL) ;
+        int retcode;
+        char *host, *port;
+        char sport[6] = {0, };
+        http_request_t* http_infos = &req->http_infos;
+        bool use_proxy = (cfg->proxy.host != NULL) ;
 
         if (update_http_infos(req) < 0){
                 xlog(LOG_ERROR, "%s\n", "Failed to extract valid parameters from URL.");
-		return -1;
-	}
+                return -1;
+        }
 
-	ssl_ctx->use_ssl = req->is_ssl;
-	snprintf(sport, 5, "%u", http_infos->port);
+        ssl_ctx->use_ssl = req->is_ssl;
+        snprintf(sport, 5, "%u", http_infos->port);
 
-	/* do we forward to another proxy ? */
-	if (use_proxy) {
-		host = cfg->proxy.host;
-		port = cfg->proxy.port;
-	} else {
-		host = http_infos->hostname;
-		port = sport;
-	}
+        /* do we forward to another proxy ? */
+        if (use_proxy) {
+                host = cfg->proxy.host;
+                port = cfg->proxy.port;
+        } else {
+                host = http_infos->hostname;
+                port = sport;
+        }
 
 
 #ifdef DEBUG
@@ -478,8 +482,8 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
              host, port);
 #endif
 
-	retcode = create_connect_socket(host, port);
-	if (retcode < 0) {
+        retcode = create_connect_socket(host, port);
+        if (retcode < 0) {
                 char msg[512]={0,};
 
                 snprintf(msg, sizeof(msg), "Cannot connect to %s:%s<br><br>Reason: %s",
@@ -487,8 +491,8 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
                          errno?strerror(errno):"Unknown error in <i>create_connect_socket</i>");
 
                 generic_http_error_page(*server_sock, msg);
-		return -1;
-	}
+                return -1;
+        }
 
 #ifdef DEBUG
         xlog(LOG_DEBUG, "Socket to %s '%s:%s': fd=%d\n",
@@ -596,23 +600,23 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
         }
 
 
-	return retcode;
+        return retcode;
 }
 
 
 /**
- *****************************************************************************************
- *          EXPERIMENTAL
- *          PARTIALLY TESTED
- *****************************************************************************************
- *
- *
- * Add old IE support (Compatibility View) for POST requests by forcing a 2nd read on the
- * server socket, to make IE send the POST body.
- * DO NOT use this mode if you are using anything but IE < 10
- *
- * @return 0 if successful, -1 otherwise
- */
+*****************************************************************************************
+*          EXPERIMENTAL
+*          PARTIALLY TESTED
+*****************************************************************************************
+*
+*
+* Add old IE support (Compatibility View) for POST requests by forcing a 2nd read on the
+* server socket, to make IE send the POST body.
+* DO NOT use this mode if you are using anything but IE < 10
+*
+* @return 0 if successful, -1 otherwise
+*/
 int ie_compat_read_post_body(sock_t sock, request_t* req, proxenet_ssl_context_t* sslctx)
 {
         int nb;
