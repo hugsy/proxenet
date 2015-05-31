@@ -1255,7 +1255,7 @@ void xloop(sock_t sock, sock_t ctl_sock)
                         } else {
                                 if(new_conn > 0) {
                                         xlog(LOG_ERROR, "%s\n", "Denied control connection: already established");
-                                        if(close_socket(new_conn) < 0) {
+                                        if(proxenet_close_socket(new_conn, NULL) < 0) {
                                                 xlog(LOG_ERROR, "Failed to close socket: %s\n", strerror(errno));
                                         }
                                 }
@@ -1268,7 +1268,7 @@ void xloop(sock_t sock, sock_t ctl_sock)
                 if( ctl_cli_sock > 0 && FD_ISSET(ctl_cli_sock, &sock_set) ) {
 
                         if (proxenet_handle_control_event(&ctl_cli_sock) < 0) {
-                                close_socket(ctl_cli_sock);
+                                proxenet_close_socket(ctl_cli_sock, NULL);
                                 ctl_cli_sock = -1;
                         }
 
@@ -1421,7 +1421,7 @@ int proxenet_start()
         struct sigaction saction;
 
         /* create control socket */
-        control_socket = create_control_socket();
+        control_socket = proxenet_bind_control_socket();
         if (control_socket < 0) {
                 xlog(LOG_CRITICAL, "Cannot create control socket: %s\n", strerror(errno));
                 return -1;
@@ -1431,7 +1431,7 @@ int proxenet_start()
                 xlog(LOG_INFO, "Control socket: %d\n", control_socket);
 
         /* create listening socket */
-        listening_socket = create_bind_socket(cfg->iface, cfg->port);
+        listening_socket = proxenet_bind_socket(cfg->iface, cfg->port);
         if (listening_socket < 0) {
                 xlog(LOG_CRITICAL, "Cannot create bind socket: %s\n", strerror(errno));
                 return -1;
@@ -1476,8 +1476,8 @@ int proxenet_start()
         proxenet_destroy_plugins_vm();
         proxenet_free_all_plugins();
 
-        close_socket(listening_socket);
-        close_socket(control_socket);
+        proxenet_close_socket(listening_socket, NULL);
+        proxenet_close_socket(control_socket, NULL);
 
         unlink(CFG_CONTROL_SOCK_PATH);
         return 0;

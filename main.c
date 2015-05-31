@@ -89,6 +89,7 @@ static void usage(int retcode)
                 "\t-p, --port=N\t\t\t\tBind local port file (default: '%s')\n"
                 "\t-X, --proxy-host=proxyhost\t\tForward to proxy\n"
                 "\t-P  --proxy-port=proxyport\t\tSpecify port for proxy (default: '%s')\n"
+                "\t-D, --use-socks\t\t\t\tThe proxy to connect to is supports SOCKS4 (default: 'HTTP')\n"
                 ,
 
                 CFG_DEFAULT_NB_THREAD,
@@ -210,8 +211,10 @@ static int parse_options (int argc, char** argv)
         char *sslcli_keyfile, *sslcli_keyfile_pwd, *sslcli_certfile, *sslcli_domain;
         char *proxy_host, *proxy_port;
         char *intercept_pattern;
+        bool use_socks_proxy;
 
         proxy_host = proxy_port = NULL;
+        use_socks_proxy = false;
 
         const struct option long_opts[]  = {
                 { "version",                           0, 0, 'V' },
@@ -231,6 +234,7 @@ static int parse_options (int argc, char** argv)
                 { "port",                              1, 0, 'p' },
                 { "proxy-host",                        1, 0, 'X' },
                 { "proxy-port",                        1, 0, 'P' },
+                { "use-socks",                         0, 0, 'D' },
 
                 { "certfile",                          1, 0, 'c' },
                 { "keyfile",                           1, 0, 'k' },
@@ -284,7 +288,7 @@ static int parse_options (int argc, char** argv)
         while (1) {
                 curopt_idx = 0;
                 curopt = getopt_long (argc,argv,
-                                      "dn46Vhvb:p:l:t:c:k:K:x:X:P:z:y:Y:IEm:Ni",
+                                      "dn46Vhvb:p:l:t:c:k:K:x:X:P:z:y:Y:IEm:NiD",
                                       long_opts, &curopt_idx);
                 if (curopt == -1) break;
 
@@ -299,6 +303,7 @@ static int parse_options (int argc, char** argv)
                                 proxy_port = CFG_DEFAULT_PROXY_PORT;
                                 break;
                         case 'P': proxy_port = optarg; break;
+                        case 'D': use_socks_proxy = true; break;
                         case 'c': certfile = optarg; break;
                         case 'k': keyfile = optarg; break;
                         case 'K': keyfile_pwd = optarg; break;
@@ -426,6 +431,9 @@ static int parse_options (int argc, char** argv)
                         xlog(LOG_CRITICAL, "proxy_port %s\n", strerror(errno));
                         return -1;
                 }
+
+                if (use_socks_proxy)
+                        cfg->is_socks_proxy = true;
         }
 
         /* become a daemon */

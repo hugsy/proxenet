@@ -22,6 +22,7 @@ typedef struct __proxenet_config {
 		FILE* logfile_fd;
 		char* port;
 		char* iface;
+		int ip_version;
 
                 /* interception parameters */
                 intercept_t intercept_mode;
@@ -45,11 +46,11 @@ typedef struct __proxenet_config {
                 char* sslcli_keyfile_pwd;            // password to unlock the client private key
                 char* sslcli_domain;                 // domain to use the client the certificate
 
-		int ip_version;
 		struct _proxy_t {
 				char* host;
 				char* port;
 		} proxy;
+                bool is_socks_proxy;
 
 		unsigned short try_exit;
 		unsigned short try_exit_max;

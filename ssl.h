@@ -38,8 +38,9 @@ void proxenet_ssl_wrap_socket(proxenet_ssl_context_t* s, sock_t* sock);
 int proxenet_ssl_handshake(proxenet_ssl_context_t* s);
 
 void proxenet_ssl_finish(ssl_atom_t* ssl);
-int close_socket_ssl(sock_t sock, ssl_atom_t *s);
+void proxenet_ssl_free_structs(ssl_atom_t* ssl);
 
 ssize_t proxenet_ssl_read(proxenet_ssl_context_t *s, void *n, size_t l);
-ssize_t proxenet_ssl_write(proxenet_ssl_context_t *s, void *n, size_t l) ;
+ssize_t proxenet_ssl_write(proxenet_ssl_context_t *s, void *n, size_t l);
+
 #endif /* _SSL_H */

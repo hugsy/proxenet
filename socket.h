@@ -11,13 +11,13 @@ typedef int sock_t;
 
 #include "ssl.h"
 
-sock_t       create_control_socket();
-sock_t       create_bind_socket(char *host, char* port);
-sock_t       create_connect_socket(char *host, char* port);
+char*        proxenet_resolve_hostname(char* hostname, int type);
+sock_t       proxenet_bind_control_socket();
+sock_t       proxenet_bind_socket(char *host, char* port);
+sock_t       proxenet_open_socket(char *host, char* port);
+int          proxenet_close_socket(sock_t sock, ssl_atom_t* ssl_atom);
 ssize_t      proxenet_write(sock_t sock, void *buf, size_t count);
 ssize_t      proxenet_read(sock_t sock, void *buf, size_t count);
 int          proxenet_read_all(sock_t sock, char** ptr, proxenet_ssl_context_t* ssl_sess);
-int          proxenet_close_socket(sock_t sock, ssl_atom_t* ssl_atom);
-int          close_socket(sock_t);
 
 #endif /* _SOCKET_H */

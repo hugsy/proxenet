@@ -1,9 +1,14 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <netdb.h>
 #include <unistd.h>
 #include <polarssl/error.h>
+#include <netdb.h>
 
 #include "core.h"
 #include "socket.h"
@@ -11,14 +16,41 @@
 #include "string.h"
 #include "errno.h"
 #include "main.h"
+#include "ssl.h"
 #include "control-server.h"
-#include "config.h"
 
+
+/**
+ * DNS solve a host name to its IP address. If `type` argument is -1, IP address
+ * return can be of any type (AF_INET or AF_INET6). If type is specified and solved
+ * type do not match, return an error.
+ *
+ * @param host name to solve
+ * @param IP address type to enforce, -1 for any type
+ * @return a pointer to the IP address, or NULL if an error occured
+ */
+char* proxenet_resolve_hostname(char* hostname, int type)
+{
+        struct hostent *hostent;
+
+        hostent = gethostbyname(hostname);
+        if(!hostent){
+                xlog(LOG_ERROR, "Failed to solve '%s': %s\n", hostname, strerror(h_errno));
+                return NULL;
+        }
+
+        if( (type != -1) && (type != hostent->h_addrtype) ){
+                xlog(LOG_ERROR, "IP address type wanted (%d) does not match the received (%d)\n", type, hostent->h_addrtype);
+                return NULL;
+        }
+
+        return hostent->h_addr_list[0];
+}
 
 /**
  *
  */
-sock_t create_control_socket()
+sock_t proxenet_bind_control_socket()
 {
 	sock_t control_sock = -1;
 	struct sockaddr_un sun_local;
@@ -52,7 +84,7 @@ sock_t create_control_socket()
  * @param host
  * @param srv
  */
-sock_t create_bind_socket(char *host, char* port)
+sock_t proxenet_bind_socket(char *host, char* port)
 {
 	sock_t sock;
 	struct addrinfo hostinfo, *res, *ll;
@@ -117,7 +149,7 @@ sock_t create_bind_socket(char *host, char* port)
  * @param host
  * @param port
  */
-sock_t create_connect_socket(char *host, char* port)
+sock_t proxenet_open_socket(char *host, char* port)
 {
 	sock_t sock;
 	struct addrinfo hostinfo, *res, *ll;
@@ -210,26 +242,10 @@ sock_t create_connect_socket(char *host, char* port)
 
 
 /**
- * Wrapper to close socket.
  *
  * @param sock
  */
-int proxenet_close_socket(sock_t sock, ssl_atom_t* ssl)
-{
-        if (ssl->is_valid) {
-                proxenet_ssl_finish(ssl);
-                return close_socket_ssl(sock, ssl);
-        }
-
-        return close_socket(sock);
-}
-
-
-/**
- *
- * @param sock
- */
-int close_socket(sock_t sock)
+static int close_socket(sock_t sock)
 {
 	int ret;
 
@@ -241,6 +257,26 @@ int close_socket(sock_t sock)
 }
 
 
+/**
+ * Wrapper to close socket.
+ *
+ * @param sock
+ */
+int proxenet_close_socket(sock_t sock, ssl_atom_t* ssl)
+{
+        int rc = close_socket(sock);
+
+        if (ssl){
+                if(ssl->is_valid) {
+                        proxenet_ssl_finish(ssl);
+                        proxenet_ssl_free_structs(ssl);
+                }
+        }
+
+        return rc;
+}
+
+
 /*
  * proxenet I/O operations on socket
  */
@@ -248,7 +284,7 @@ int close_socket(sock_t sock)
 /**
  *
  */
-ssize_t proxenet_ioctl(ssize_t (*func)(), sock_t sock, void *buf, size_t count) {
+static ssize_t proxenet_ioctl(ssize_t (*func)(), sock_t sock, void *buf, size_t count) {
 	int retcode = (*func)(sock, buf, count);
 	if (retcode < 0) {
 		xlog(LOG_ERROR, "Error while I/O plaintext data: %s\n", strerror(errno));
@@ -260,7 +296,7 @@ ssize_t proxenet_ioctl(ssize_t (*func)(), sock_t sock, void *buf, size_t count) 
 
 
 /**
- *
+ * proxenet plain-text read() primitive
  */
 ssize_t proxenet_read(sock_t sock, void *buf, size_t count)
 {
@@ -270,7 +306,7 @@ ssize_t proxenet_read(sock_t sock, void *buf, size_t count)
 
 
 /**
- *
+ * proxenet plain-text write() primitive
  */
 ssize_t proxenet_write(sock_t sock, void *buf, size_t count)
 {
