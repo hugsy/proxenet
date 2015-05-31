@@ -377,20 +377,6 @@ void proxenet_ssl_finish(ssl_atom_t* ssl)
 }
 
 
-/**
- *
- */
-int close_socket_ssl(sock_t sock, ssl_atom_t* ssl)
-{
-        int ret;
-
-        ret = close_socket(sock);
-        proxenet_ssl_free_structs(ssl);
-
-        return ret;
-}
-
-
 /*
  * SSL I/O
  */

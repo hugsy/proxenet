@@ -13,6 +13,7 @@
 #include "socket.h"
 #include "http.h"
 #include "ssl.h"
+#include "socks.h"
 #include "main.h"
 #include "minica.h"
 
@@ -456,7 +457,10 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
         char *host, *port;
         char sport[6] = {0, };
         http_request_t* http_infos = &req->http_infos;
-        bool use_proxy = (cfg->proxy.host != NULL) ;
+        bool use_proxy = (cfg->proxy.host != NULL);
+        bool use_http_proxy = use_proxy && (cfg->is_socks_proxy == false);
+        bool use_socks_proxy = use_proxy && cfg->is_socks_proxy;
+        char errmsg[512]={0,};
 
         if (update_http_infos(req) < 0){
                 xlog(LOG_ERROR, "%s\n", "Failed to extract valid parameters from URL.");
@@ -478,27 +482,23 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
 
 #ifdef DEBUG
         xlog(LOG_DEBUG, "Relay request %s to '%s:%s'\n",
-             use_proxy ? "via proxy":"direct",
+             use_http_proxy ? "via HTTP proxy" : "direct",
              host, port);
 #endif
 
-        retcode = create_connect_socket(host, port);
+        retcode = proxenet_open_socket(host, port);
         if (retcode < 0) {
-                char msg[512]={0,};
+                snprintf(errmsg, sizeof(errmsg), "Cannot connect to %s:%s<br><br>Reason: %s",
+                         host, port, errno?strerror(errno):"<i>proxenet_open_socket()</i> failed");
 
-                snprintf(msg, sizeof(msg), "Cannot connect to %s:%s<br><br>Reason: %s",
-                         host, port,
-                         errno?strerror(errno):"Unknown error in <i>create_connect_socket</i>");
-
-                generic_http_error_page(*server_sock, msg);
+                generic_http_error_page(*server_sock, errmsg);
                 return -1;
         }
 
 #ifdef DEBUG
         xlog(LOG_DEBUG, "Socket to %s '%s:%s': fd=%d\n",
-             use_proxy?"proxy":"server",
-             host, port,
-             retcode);
+             use_http_proxy?"HTTP proxy":(use_socks_proxy?"SOCKS4 proxy":"server"),
+             host, port, retcode);
 #endif
 
         *client_sock = retcode;
@@ -516,13 +516,26 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
              cfg->intercept_pattern);
 #endif
 
+        if(use_socks_proxy){
+                char*rhost = http_infos->hostname;
+                int  rport = http_infos->port;
+                retcode = proxenet_socks_connect(*client_sock, rhost, rport, true);
+                if( retcode<0 ){
+                        snprintf(errmsg, sizeof(errmsg), "Failed to open SOCKS4 tunnel to %s:%s.\n",
+                                 host, port);
+                        generic_http_error_page(*server_sock, errmsg);
+                        xlog(LOG_ERROR, "%s", errmsg);
+                        return -1;
+                }
+        }
+
         /* set up ssl layer */
         if (req->is_ssl) {
 
                 /* adjust do_intercept if we do not SSL intercept was explicitely disabled */
                 req->do_intercept = cfg->ssl_intercept;
 
-                if (use_proxy) {
+                if (use_http_proxy) {
                         char *connect_buf = NULL;
 
                         /* 0. set up proxy->proxy ssl session (i.e. forward CONNECT request) */
@@ -572,7 +585,7 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
 
 #ifdef DEBUG
                         xlog(LOG_DEBUG, "SSL handshake with %s done, cli_sock=%d\n",
-                             use_proxy?"proxy":"server", *client_sock);
+                             use_http_proxy?"proxy":"server", *client_sock);
 #endif
                 }
 
@@ -613,7 +626,7 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
 *
 * Add old IE support (Compatibility View) for POST requests by forcing a 2nd read on the
 * server socket, to make IE send the POST body.
-* DO NOT use this mode if you are using anything but IE < 10
+* Do not use this mode if you are using anything but IE < 9
 *
 * @return 0 if successful, -1 otherwise
 */
