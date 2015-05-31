@@ -119,6 +119,11 @@ static int parse_sock4_reponse(sock_t socks_fd)
                 return -1;
         }
 
+        if (retcode < 2 || !socks_response){
+                /* an error occurs on server-side, just return */
+                return -1;
+        }
+
         retcode = socks_response[1];
         proxenet_xfree(socks_response);
 
