@@ -456,10 +456,24 @@ static int proxenet_apply_plugins(request_t *request)
                      request->id,
                      supported_plugins_str[p->type]
                      );
+
 #endif
 
                 old_data = request->data;
+
+#ifdef DEBUG
+                struct timeval tstart, tend;
+                gettimeofday(&tstart, NULL);
+#endif
                 request->data = (*plugin_function)(p, request);
+#ifdef DEBUG
+                gettimeofday(&tend, NULL);
+                xlog(LOG_DEBUG, "[%s] '%s:%s' executed in %lusec, %lums\n",
+                     supported_plugins_str[p->type], p->name,
+                     request->type==REQUEST?CFG_REQUEST_PLUGIN_FUNCTION:CFG_RESPONSE_PLUGIN_FUNCTION,
+                     tend.tv_sec-tstart.tv_sec,
+                     tend.tv_usec-tstart.tv_usec);
+#endif
 
                 if (request->data) {
                         /*
