@@ -608,7 +608,6 @@ static void config_cmd(sock_t fd, char *options, unsigned int nb_options)
 {
         char *ptr;
         char msg[BUFSIZE]={0,};
-        bool edit;
         int n;
 
         (void) options;
@@ -624,11 +623,7 @@ static void config_cmd(sock_t fd, char *options, unsigned int nb_options)
         if (strcmp(ptr, "list")==0)
                 return plugin_config_cmd_list(fd);
 
-        if (strcmp(ptr, "set")==0)
-                edit = true;
-        else if (strcmp(ptr, "get")==0)
-                edit = false;
-        else {
+        if (strcmp(ptr, "set")!=0 && strcmp(ptr, "get")!=0)
                 ERR_INVALID_SYNTAX_JSON(fd);
                 return;
         }
