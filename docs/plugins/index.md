@@ -3,6 +3,7 @@
 This section will detail examples and skeletons for writing `proxenet` plugins
 in your favorite languages.
 
+## API and languages
 
 Each page will provide:
 
@@ -25,3 +26,16 @@ or jump directly to your favorite language page.
    - [C](c.md)
    - [Tcl](tcl.md)
    - [Lua](lua.md)
+
+## Autoload
+
+To be loaded properly, plugins should be located in the plugins directory. The
+`autoload` directory should **only** contain symbolic links to files in the
+regular plugins directory.
+
+To auto-load a plugin,
+
+```bash
+$ cp MyPlugin.ext /path/to/proxenet/proxenet-plugins/
+$ ln -sf /path/to/proxenet/proxenet-plugins/MyPlugin.ext /path/to/proxenet/proxenet-plugins/autoload/MyPlugin.ext
+```
