@@ -8,6 +8,7 @@ List of some nice references found on about interacting high levels VM with C
 
 ## Perl ##
 
+* http://www.perlmonks.org/?node_id=830663
 * http://www.fourtheye.org/xs_tutorial.html
 * http://perldoc.perl.org/perlembed.html
 * http://perldoc.perl.org/perlcall.html#NAME
