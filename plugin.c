@@ -46,7 +46,7 @@ void proxenet_add_plugin(char* name, supported_plugins_t type, short priority)
 	plugin->type		= type;
 	plugin->priority	= priority;
 	plugin->next 		= NULL;
-	plugin->state		= ACTIVE;
+	plugin->state		= INACTIVE;
 
 	plugin->interpreter 	= &vms[type];
 	plugin->pre_function	= NULL;
