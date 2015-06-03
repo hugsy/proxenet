@@ -35,7 +35,7 @@ static char* plugin_basename(char* dst, char* src, supported_plugins_t type){
 /**
  *
  */
-void proxenet_add_plugin(char* name, supported_plugins_t type, short priority)
+static void insert_new_plugin_in_list(char* name, supported_plugins_t type, short priority)
 {
 	plugin_t *cur_ptr, *old_ptr;
 	plugin_t *plugin;
@@ -342,9 +342,6 @@ int proxenet_add_new_plugins(char* plugin_path, char* plugin_name)
 
 		if (strcmp(dir_ptr->d_name,"..")==0)
                         continue;
-#ifdef DEBUG
-                xlog(LOG_DEBUG, "File '%s/%s'\n", plugin_path, dir_ptr->d_name);
-#endif
 
                 /* if add one plugin, loop until the right name */
                 if (!add_all && strcmp(dir_ptr->d_name, plugin_name)!=0)
@@ -392,7 +389,9 @@ int proxenet_add_new_plugins(char* plugin_path, char* plugin_name)
 
 		/* plugin name  */
 		d_name_len = strlen(dir_ptr->d_name);
-		if (d_name_len > 510) continue;
+		if (d_name_len > 510)
+                        continue;
+
 		name = dir_ptr->d_name;
 
 		/* plugin type */
@@ -400,8 +399,13 @@ int proxenet_add_new_plugins(char* plugin_path, char* plugin_name)
 		if (type < 0)
                         continue;
 
+                if ( proxenet_is_plugin_loaded(name) ){
+                        xlog(LOG_WARNING, "A plugin named '%s' is already loaded\n", name);
+                        continue;
+                }
+
 		/* add plugin in correct place (1: high priority, 9: low priority) */
-		proxenet_add_plugin(name, type, priority);
+		insert_new_plugin_in_list(name, type, priority);
 
 		nb_plugin_added++;
 
