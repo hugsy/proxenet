@@ -22,6 +22,7 @@
 #include <pthread.h>
 #include <fnmatch.h>
 #include <time.h>
+#include <sys/time.h>
 
 #if defined( __DARWIN__ ) || defined( __FREESBD__ )
 #include <signal.h>
@@ -145,6 +146,8 @@ void proxenet_initialize_plugins()
                                         xlog(LOG_ERROR, "Failed to init %s in %s\n", CFG_RESPONSE_PLUGIN_FUNCTION, plugin->name);
                                         goto delete_plugin;
                                 }
+
+                                plugin->state = ACTIVE;
                                 break;
 #endif
 
@@ -167,6 +170,8 @@ void proxenet_initialize_plugins()
                                         xlog(LOG_ERROR, "Failed to init %s in %s\n", CFG_RESPONSE_PLUGIN_FUNCTION, plugin->name);
                                         goto delete_plugin;
                                 }
+
+                                plugin->state = ACTIVE;
                                 break;
 #endif
 
@@ -177,6 +182,7 @@ void proxenet_initialize_plugins()
                                         xlog(LOG_ERROR, "%s\n", "Failed to init Ruby VM");
                                         goto delete_plugin;
                                 }
+
                                 if (proxenet_ruby_initialize_function(plugin, REQUEST) < 0) {
                                         plugin->state = INACTIVE;
                                         xlog(LOG_ERROR, "Failed to init %s in %s\n", CFG_REQUEST_PLUGIN_FUNCTION, plugin->name);
@@ -189,6 +195,7 @@ void proxenet_initialize_plugins()
                                         goto delete_plugin;
                                 }
 
+                                plugin->state = ACTIVE;
                                 break;
 #endif
 
@@ -196,10 +203,17 @@ void proxenet_initialize_plugins()
                         case _PERL_:
                                 if (proxenet_perl_initialize_vm(plugin) < 0) {
                                         plugin->state = INACTIVE;
-                                        plugin->type = -1;
                                         xlog(LOG_ERROR, "%s\n", "Failed to init Perl VM");
                                         goto delete_plugin;
                                 }
+
+                                if (proxenet_perl_load_file(plugin) < 0) {
+                                        plugin->state = INACTIVE;
+                                        xlog(LOG_ERROR, "Failed to load Perl script '%s'\n", plugin->filename);
+                                        goto delete_plugin;
+                                }
+
+                                plugin->state = ACTIVE;
                                 break;
 #endif
 
@@ -217,6 +231,7 @@ void proxenet_initialize_plugins()
                                         goto delete_plugin;
                                 }
 
+                                plugin->state = ACTIVE;
                                 break;
 #endif
 
@@ -234,6 +249,7 @@ void proxenet_initialize_plugins()
                                         goto delete_plugin;
                                 }
 
+                                plugin->state = ACTIVE;
                                 break;
 #endif
 
@@ -251,6 +267,7 @@ void proxenet_initialize_plugins()
                                         goto delete_plugin;
                                 }
 
+                                plugin->state = ACTIVE;
                                 break;
 #endif
                         default:

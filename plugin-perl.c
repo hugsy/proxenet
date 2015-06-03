@@ -28,12 +28,14 @@
 
 
 static PerlInterpreter *my_perl;
+static char *perl_args[] = { "", "-e", "0", "-w", NULL };
+static int   perl_args_count = 4;
 
 
 /**
  *
  */
-static int proxenet_perl_load_file(plugin_t* plugin)
+int proxenet_perl_load_file(plugin_t* plugin)
 {
 	char *pathname = NULL;
 	SV* sv = NULL;
@@ -91,21 +93,24 @@ static int proxenet_perl_load_file(plugin_t* plugin)
 			package_len = strlen(required);
 			package_name = (char*) alloca(package_len+1);
 			proxenet_xzero(package_name, package_len+1);
-
 			memcpy(package_name, required, package_len);
 
+			/* Save the request function path */
+			len = package_len + 2 + strlen(CFG_REQUEST_PLUGIN_FUNCTION) + 1;
+			plugin->pre_function = proxenet_xmalloc(len);
+			snprintf(plugin->pre_function, len, "%s::%s",
+                                 package_name, CFG_REQUEST_PLUGIN_FUNCTION);
+
+                        /* Save the reponse function path */
+			len = package_len + 2 + strlen(CFG_RESPONSE_PLUGIN_FUNCTION) + 1;
+			plugin->post_function = proxenet_xmalloc(len);
+			snprintf(plugin->post_function, len, "%s::%s",
+                                 package_name, CFG_RESPONSE_PLUGIN_FUNCTION);
+
 #ifdef DEBUG
-			xlog(LOG_DEBUG, "[Perl] Package of name '%s' loaded\n", package_name);
+                        if (cfg->verbose > 2)
+                                xlog(LOG_DEBUG, "[Perl] Package '%s' loaded\n", package_name);
 #endif
-
-			/* Save the functions' full name to call them later */
-			len = package_len + 2 + strlen(CFG_REQUEST_PLUGIN_FUNCTION);
-			plugin->pre_function = proxenet_xmalloc(len + 1);
-			snprintf(plugin->pre_function, len+1, "%s::%s", package_name, CFG_REQUEST_PLUGIN_FUNCTION);
-
-			len = package_len + 2 + strlen(CFG_RESPONSE_PLUGIN_FUNCTION);
-			plugin->post_function = proxenet_xmalloc(len + 1);
-			snprintf(plugin->post_function, len+1, "%s::%s", package_name, CFG_RESPONSE_PLUGIN_FUNCTION);
 
 			ret = 0;
 		}
@@ -121,12 +126,25 @@ static int proxenet_perl_load_file(plugin_t* plugin)
 }
 
 
+
+
 /**
  *
  */
 int proxenet_perl_initialize_vm(plugin_t* plugin)
 {
 	interpreter_t *interpreter;
+
+#ifdef PERL_SYS_INIT3
+        int a;
+        char **perl_args_local;
+        char *perl_env[] = {};
+        a = perl_args_count;
+        perl_args_local = perl_args;
+        (void) perl_env;
+        PERL_SYS_INIT3 (&a, (char ***)&perl_args_local, (char ***)&perl_env);
+#endif
+
 	interpreter = plugin->interpreter;
 
 	/* In order to perl_parse nothing */
@@ -136,29 +154,29 @@ int proxenet_perl_initialize_vm(plugin_t* plugin)
 	};
 
 	/* checks */
-	if (!interpreter->ready){
+	if (interpreter->ready)
+                return 0;
 
 #ifdef DEBUG
-		xlog(LOG_DEBUG, "[Perl] %s\n", "Initializing VM");
+        xlog(LOG_DEBUG, "[Perl] %s\n", "Initializing VM");
 #endif
 
-		/* vm init */
-		my_perl = perl_alloc();
-		perl_construct(my_perl);
-		PL_exit_flags |= PERL_EXIT_DESTRUCT_END;
+        /* vm init */
+        my_perl = perl_alloc();
+        perl_construct(my_perl);
+        PL_exit_flags |= PERL_EXIT_DESTRUCT_END;
 
-		if (!my_perl) {
-			xlog(LOG_ERROR, "[Perl] %s\n", "failed init-ing vm");
-			return -1;
-		}
+        if (!my_perl) {
+                xlog(LOG_ERROR, "[Perl] %s\n", "failed init-ing vm");
+                return -1;
+        }
 
-		interpreter->vm = (void*) my_perl;
-		interpreter->ready = true;
+        perl_parse(my_perl, NULL, 2, args, (char **)NULL);
 
-		perl_parse(my_perl, NULL, 2, args, (char **)NULL);
-	}
+        interpreter->vm = (void*) PERL_GET_CONTEXT;
+        interpreter->ready = true;
 
-	return proxenet_perl_load_file(plugin);
+	return 0;
 }
 
 
@@ -182,6 +200,11 @@ int proxenet_perl_destroy_vm(interpreter_t* interpreter)
 {
 	perl_destruct(my_perl);
 	perl_free(my_perl);
+        my_perl = NULL;
+
+#if defined(PERL_SYS_TERM) && !defined(__FreeBSD__)
+        PERL_SYS_TERM ();
+#endif
 
 	interpreter->vm = NULL;
 	interpreter->ready = false;
@@ -192,9 +215,8 @@ int proxenet_perl_destroy_vm(interpreter_t* interpreter)
 /**
  *
  */
-static char* proxenet_perl_execute_function(const char* fname, long rid, char* request_str, size_t* request_size)
+static char* proxenet_perl_execute_function(char* fname, long rid, char* request_str, size_t* request_size, char* uri)
 {
-	dSP;
 	char *res, *data;
 	int nb_res;
 	size_t len;
@@ -202,23 +224,25 @@ static char* proxenet_perl_execute_function(const char* fname, long rid, char* r
 
 	res = data = NULL;
 
+	dSP;
 	ENTER;
 	SAVETMPS;
 
 	PUSHMARK(SP);
 	XPUSHs(sv_2mortal(newSVuv(rid)));
 	XPUSHs(sv_2mortal(newSVpvn(request_str, *request_size)));
+        XPUSHs(sv_2mortal(newSVpvn(uri, strlen(uri))));
 	PUTBACK;
 
-	nb_res = call_pv(fname, G_SCALAR);
+	nb_res = call_pv(fname, G_EVAL | G_SCALAR);
 
 	SPAGAIN;
 
 	if (nb_res != 1) {
 		xlog(LOG_ERROR, "[Perl] Invalid number of response returned (got %d, expected 1)\n", nb_res);
-		data = NULL;
-
-	} else {
+	} else if (SvTRUE(ERRSV)) {
+		xlog(LOG_ERROR, "[Perl] call_pv error for '%s': %s\n", fname, SvPV_nolen(ERRSV));
+        } else {
 		sv = POPs;
 		res = SvPV(sv, len);
 		data = (char*) proxenet_xmalloc(len+1);
@@ -258,12 +282,14 @@ static void proxenet_perl_unlock_vm(interpreter_t *interpreter)
 char* proxenet_perl_plugin(plugin_t* plugin, request_t* request)
 {
 	interpreter_t *interpreter;
-	const char *function_name;
-	char *buf;
+        char *function_name;
+	char *buf, *uri;
 
 	interpreter = plugin->interpreter;
 	if (!interpreter->ready)
 		return NULL;
+
+        uri = request->http_infos.uri;
 
 	if (request->type == REQUEST)
 		function_name = plugin->pre_function;
@@ -271,7 +297,11 @@ char* proxenet_perl_plugin(plugin_t* plugin, request_t* request)
 		function_name = plugin->post_function;
 
 	proxenet_perl_lock_vm(interpreter);
-	buf = proxenet_perl_execute_function(function_name, request->id, request->data, &request->size);
+	buf = proxenet_perl_execute_function(function_name,
+                                             request->id,
+                                             request->data,
+                                             &request->size,
+                                             uri);
 	proxenet_perl_unlock_vm(interpreter);
 
 	return buf;
