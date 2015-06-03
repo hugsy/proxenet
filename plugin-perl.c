@@ -93,23 +93,24 @@ int proxenet_perl_load_file(plugin_t* plugin)
 			package_len = strlen(required);
 			package_name = (char*) alloca(package_len+1);
 			proxenet_xzero(package_name, package_len+1);
-
 			memcpy(package_name, required, package_len);
 
-#ifdef DEBUG
-			xlog(LOG_DEBUG, "[Perl] Package of name '%s' loaded\n", package_name);
-#endif
-
-			/* Save the functions' full name to call them later */
-			len = package_len + 2 + strlen(CFG_REQUEST_PLUGIN_FUNCTION);
-			plugin->pre_function = proxenet_xmalloc(len + 1);
+			/* Save the request function path */
+			len = package_len + 2 + strlen(CFG_REQUEST_PLUGIN_FUNCTION) + 1;
+			plugin->pre_function = proxenet_xmalloc(len);
 			snprintf(plugin->pre_function, len, "%s::%s",
                                  package_name, CFG_REQUEST_PLUGIN_FUNCTION);
 
-			len = package_len + 2 + strlen(CFG_RESPONSE_PLUGIN_FUNCTION);
-			plugin->post_function = proxenet_xmalloc(len + 1);
+                        /* Save the reponse function path */
+			len = package_len + 2 + strlen(CFG_RESPONSE_PLUGIN_FUNCTION) + 1;
+			plugin->post_function = proxenet_xmalloc(len);
 			snprintf(plugin->post_function, len, "%s::%s",
                                  package_name, CFG_RESPONSE_PLUGIN_FUNCTION);
+
+#ifdef DEBUG
+                        if (cfg->verbose > 2)
+                                xlog(LOG_DEBUG, "[Perl] Package '%s' loaded\n", package_name);
+#endif
 
 			ret = 0;
 		}
@@ -214,18 +215,14 @@ int proxenet_perl_destroy_vm(interpreter_t* interpreter)
 /**
  *
  */
-static char* proxenet_perl_execute_function(interpreter_t* interpreter, char* fname, long rid, char* request_str, size_t* request_size, char* uri)
+static char* proxenet_perl_execute_function(char* fname, long rid, char* request_str, size_t* request_size, char* uri)
 {
 	char *res, *data;
 	int nb_res;
 	size_t len;
 	SV* sv = NULL;
-        void *old_context;
 
 	res = data = NULL;
-
-        old_context = PERL_GET_CONTEXT;
-        PERL_SET_CONTEXT( interpreter->vm );
 
 	dSP;
 	ENTER;
@@ -234,7 +231,7 @@ static char* proxenet_perl_execute_function(interpreter_t* interpreter, char* fn
 	PUSHMARK(SP);
 	XPUSHs(sv_2mortal(newSVuv(rid)));
 	XPUSHs(sv_2mortal(newSVpvn(request_str, *request_size)));
-        XPUSHs(sv_2mortal(newSVpv(uri, 0)));
+        XPUSHs(sv_2mortal(newSVpvn(uri, strlen(uri))));
 	PUTBACK;
 
 	nb_res = call_pv(fname, G_EVAL | G_SCALAR);
@@ -243,8 +240,9 @@ static char* proxenet_perl_execute_function(interpreter_t* interpreter, char* fn
 
 	if (nb_res != 1) {
 		xlog(LOG_ERROR, "[Perl] Invalid number of response returned (got %d, expected 1)\n", nb_res);
-		data = NULL;
-	} else {
+	} else if (SvTRUE(ERRSV)) {
+		xlog(LOG_ERROR, "[Perl] call_pv error for '%s': %s\n", fname, SvPV_nolen(ERRSV));
+        } else {
 		sv = POPs;
 		res = SvPV(sv, len);
 		data = (char*) proxenet_xmalloc(len+1);
@@ -255,8 +253,6 @@ static char* proxenet_perl_execute_function(interpreter_t* interpreter, char* fn
 	PUTBACK;
 	FREETMPS;
 	LEAVE;
-
-        PERL_SET_CONTEXT( old_context );
 
 	return data;
 }
@@ -301,8 +297,7 @@ char* proxenet_perl_plugin(plugin_t* plugin, request_t* request)
 		function_name = plugin->post_function;
 
 	proxenet_perl_lock_vm(interpreter);
-	buf = proxenet_perl_execute_function(plugin->interpreter,
-                                             function_name,
+	buf = proxenet_perl_execute_function(function_name,
                                              request->id,
                                              request->data,
                                              &request->size,
