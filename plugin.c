@@ -302,6 +302,33 @@ bool proxenet_is_plugin_loaded(char* name)
 
 
 /**
+ *
+ */
+static char* get_full_path(char* path, char* name)
+{
+        ssize_t l = -1;
+        char *realpath_buf;
+        char fullpath[PATH_MAX] = {0, };
+
+        l = snprintf(fullpath, PATH_MAX, "%s/%s", path, name);
+        if(l == -1){
+                xlog(LOG_ERROR, "snprintf() failed on %d: %s\n",
+                     errno, strerror(errno));
+                return NULL;
+        }
+
+        realpath_buf = realpath(fullpath, NULL);
+        if(!realpath_buf){
+                xlog(LOG_ERROR, "realpath() failed on '%s': %d - %s\n",
+                     fullpath, errno, strerror(errno));
+                return NULL;
+        }
+
+        return realpath_buf;
+}
+
+
+/**
  * Plugin name structure *MUST* be  `PLUGIN_DIR/[<priority>]<name>.<ext>`
  * <priority> is an int in [1, 9]. If <priority> is found as the first char of the
  * file name, it will be applied to the plugin. If no priority is specify, a default
@@ -323,6 +350,8 @@ int proxenet_add_new_plugins(char* plugin_path, char* plugin_name)
 	int d_name_len;
         bool add_all = (plugin_name==NULL)?true:false;
         unsigned int nb_plugin_added = 0;
+        char *realpath_buf;
+        ssize_t len = -1;
 
 #ifdef DEBUG
         if (add_all)
@@ -337,6 +366,8 @@ int proxenet_add_new_plugins(char* plugin_path, char* plugin_name)
 	}
 
 	while ((dir_ptr=readdir(dir))) {
+                realpath_buf = NULL;
+
 		if (strcmp(dir_ptr->d_name,".")==0)
                         continue;
 
@@ -349,37 +380,46 @@ int proxenet_add_new_plugins(char* plugin_path, char* plugin_name)
 
                 if (dir_ptr->d_type == DT_LNK){
                         /* if entry is a symlink, ensure it's pointing to a file in plugins_path */
-                        ssize_t l = -1;
-                        char fullpath[PATH_MAX] = {0, };
-                        char realpath_buf[PATH_MAX] = {0, };
+                        realpath_buf = get_full_path(plugin_path, dir_ptr->d_name);
+                        if (!realpath_buf)
+                                continue;
 
-                        l = snprintf(fullpath, PATH_MAX, "%s/%s", plugin_path, dir_ptr->d_name);
-                        if(l == -1){
-			        xlog(LOG_ERROR, "snprintf() failed on '%s'\n",
-				     dir_ptr->d_name ,
-				     errno,
-				     strerror(errno));
-				continue;
-			}
+                        len = strlen(cfg->plugins_path);
 
-                        if(!realpath(fullpath, realpath_buf)){
-                                xlog(LOG_ERROR, "realpath failed on '%s': %d - %s\n",
-                                     fullpath,
-                                     errno,
-                                     strerror(errno));
+                        if( strncmp(realpath_buf, cfg->plugins_path, len) != 0 ){
+                                xlog(LOG_WARNING, "'%s' is not in plugin directory '%s'\n",
+                                     realpath_buf, cfg->plugins_path);
+                                proxenet_xfree( realpath_buf );
                                 continue;
                         }
-
-                        l = strlen(cfg->plugins_path);
-
-                        if( strncmp(realpath_buf, cfg->plugins_path, l) != 0 )
-                                continue;
 
                 } else {
                         /* if not a symlink nor regular file, continue */
                         if (dir_ptr->d_type != DT_REG)
                                 continue;
+
+                        /* if file is a regular file, check it is *NOT* in autoload */
+                        realpath_buf = proxenet_xmalloc(PATH_MAX);
+
+                        len = snprintf(realpath_buf, PATH_MAX, "%s/%s", plugin_path, dir_ptr->d_name);
+                        if(len == -1){
+                                xlog(LOG_ERROR, "snprintf() failed on %d: %s\n",
+                                     errno, strerror(errno));
+                                continue;
+                        }
+
+                        len = strlen(cfg->autoload_path);
+
+                        if( strncmp(realpath_buf, cfg->autoload_path, len) == 0 ){
+                                xlog(LOG_WARNING, "Refusing to load non-symlink '%s' in autoload '%s'\n",
+                                     realpath_buf,
+                                     cfg->autoload_path);
+                                proxenet_xfree( realpath_buf );
+                                continue;
+                        }
                 }
+
+                proxenet_xfree( realpath_buf );
 
                 /* if first char is valid integer, this will be the plugin priority */
 		if (atoi(&(dir_ptr->d_name[0])) > 0)
