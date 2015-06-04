@@ -277,7 +277,7 @@ int proxenet_ssl_handshake(proxenet_ssl_context_t* ctx)
                         xlog(LOG_ERROR, "%s\n", ssl_strerror);
 
                         if (cfg->verbose > 1){
-                                proxenet_xzero(ssl_strerror, sizeof(ssl_strerror)-1);
+                                proxenet_xzero(ssl_strerror, sizeof(ssl_strerror));
                                 polarssl_strerror(retcode, ssl_strerror, sizeof(ssl_strerror));
                                 xlog(LOG_ERROR, "Details: %s\n", ssl_strerror);
                         }

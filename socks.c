@@ -2,7 +2,9 @@
 #include "config.h"
 #endif
 
+#include <stdio.h>
 #include <errno.h>
+#include <string.h>
 #include <sys/socket.h>
 
 #include "socket.h"
@@ -143,8 +145,11 @@ int proxenet_socks_connect(sock_t socks_fd, char *hostname, int port, bool is_so
 
         if(! is_socks4a){
                 ip_str = proxenet_resolve_hostname(hostname, AF_INET);
-                if(!ip_str) return -1;
+                if(!ip_str)
+                        return -1;
+
                 retcode = send_socks4_connect(socks_fd, ip_str, port);
+
         } else {
                 retcode = send_socks4a_connect(socks_fd, hostname, port);
         }
