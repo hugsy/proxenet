@@ -26,6 +26,7 @@
 #include "utils.h"
 #include "main.h"
 
+#define xlog_perl(t, ...) xlog(t, "["_PERL_VERSION_"] " __VA_ARGS__)
 
 static PerlInterpreter *my_perl;
 static char *perl_args[] = { "", "-e", "0", "-w", NULL };
@@ -49,7 +50,7 @@ int proxenet_perl_load_file(plugin_t* plugin)
         if(plugin->state != INACTIVE){
 #ifdef DEBUG
                 if(cfg->verbose > 2)
-                        xlog(LOG_DEBUG, "Plugin '%s' is already loaded. Skipping...\n", plugin->name);
+                        xlog_perl(LOG_DEBUG, "Plugin '%s' is already loaded. Skipping...\n", plugin->name);
 #endif
                 return 0;
         }
@@ -57,7 +58,7 @@ int proxenet_perl_load_file(plugin_t* plugin)
         pathname = plugin->fullpath;
 
 #ifdef DEBUG
-	xlog(LOG_DEBUG, "[Perl] Loading '%s'\n", pathname);
+	xlog_perl(LOG_DEBUG, "Loading '%s'\n", pathname);
 #endif
 
 	/* Load the file through perl's require mechanism */
@@ -72,13 +73,13 @@ int proxenet_perl_load_file(plugin_t* plugin)
 	nb_res = eval_sv(sv_2mortal(sv), G_EVAL);
 
 	if (nb_res != 1) {
-		xlog(LOG_ERROR,
-		     "[Perl] Invalid number of response returned while loading '%s' (got %d, expected 1)\n",
+		xlog_perl(LOG_ERROR,
+		     "Invalid number of response returned while loading '%s' (got %d, expected 1)\n",
 		     pathname,
 		     nb_res);
 
 	} else if (SvTRUE(ERRSV)) {
-		xlog(LOG_ERROR, "[Perl] Eval error for '%s': %s\n", pathname, SvPV_nolen(ERRSV));
+		xlog_perl(LOG_ERROR, "Eval error for '%s': %s\n", pathname, SvPV_nolen(ERRSV));
 
 	} else {
 		/* Get the package name from the package (which should follow the convention...) */
@@ -86,7 +87,7 @@ int proxenet_perl_load_file(plugin_t* plugin)
 
 		/* Check if the SV* stores a string */
 		if (!SvPOK(package_sv)) {
-			xlog(LOG_ERROR, "[Perl] Invalid convention for '%s': the package should return a string\n", pathname);
+			xlog_perl(LOG_ERROR, "Invalid convention for '%s': the package should return a string\n", pathname);
 		} else {
 
 			required = (char*) SvPV_nolen(package_sv);
@@ -109,7 +110,7 @@ int proxenet_perl_load_file(plugin_t* plugin)
 
 #ifdef DEBUG
                         if (cfg->verbose > 2)
-                                xlog(LOG_DEBUG, "[Perl] Package '%s' loaded\n", package_name);
+                                xlog_perl(LOG_DEBUG, "Package '%s' loaded\n", package_name);
 #endif
 
 			ret = 0;
@@ -158,7 +159,7 @@ int proxenet_perl_initialize_vm(plugin_t* plugin)
                 return 0;
 
 #ifdef DEBUG
-        xlog(LOG_DEBUG, "[Perl] %s\n", "Initializing VM");
+        xlog_perl(LOG_DEBUG, "%s\n", "Initializing VM");
 #endif
 
         /* vm init */
@@ -167,7 +168,7 @@ int proxenet_perl_initialize_vm(plugin_t* plugin)
         PL_exit_flags |= PERL_EXIT_DESTRUCT_END;
 
         if (!my_perl) {
-                xlog(LOG_ERROR, "[Perl] %s\n", "failed init-ing vm");
+                xlog_perl(LOG_ERROR, "%s\n", "failed init-ing vm");
                 return -1;
         }
 
@@ -239,9 +240,9 @@ static char* proxenet_perl_execute_function(char* fname, long rid, char* request
 	SPAGAIN;
 
 	if (nb_res != 1) {
-		xlog(LOG_ERROR, "[Perl] Invalid number of response returned (got %d, expected 1)\n", nb_res);
+		xlog_perl(LOG_ERROR, "[Perl] Invalid number of response returned (got %d, expected 1)\n", nb_res);
 	} else if (SvTRUE(ERRSV)) {
-		xlog(LOG_ERROR, "[Perl] call_pv error for '%s': %s\n", fname, SvPV_nolen(ERRSV));
+		xlog_perl(LOG_ERROR, "[Perl] call_pv error for '%s': %s\n", fname, SvPV_nolen(ERRSV));
         } else {
 		sv = POPs;
 		res = SvPV(sv, len);

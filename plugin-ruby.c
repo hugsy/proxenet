@@ -29,6 +29,8 @@ struct proxenet_ruby_args {
 };
 
 
+#define xlog_ruby(t, ...) xlog(t, "["_RUBY_VERSION_"] " __VA_ARGS__)
+
 /**
  * Ruby require callback
  *
@@ -49,42 +51,8 @@ static void proxenet_ruby_print_last_exception()
 	rException = rb_errinfo();         /* get last exception */
         rb_set_errinfo(Qnil);              /* clear last exception */
         rExceptStr = rb_funcall(rException, rb_intern("to_s"), 0, Qnil);
-        xlog(LOG_ERROR, "[Ruby] Exception: %s\n", StringValuePtr(rExceptStr));
+        xlog_ruby(LOG_ERROR, "[Ruby] Exception: %s\n", StringValuePtr(rExceptStr));
 	return;
-}
-
-
-/**
- * Safely load a Ruby script in the VM
- *
- * @return 0 upon success, -1 otherwise
- */
-int proxenet_ruby_load_file(plugin_t* plugin)
-{
-	char* pathname = plugin->fullpath;
-	int res = 0;
-
-        if(plugin->state != INACTIVE){
-#ifdef DEBUG
-                if(cfg->verbose > 2)
-                        xlog(LOG_DEBUG, "Plugin '%s' is already loaded. Skipping...\n", plugin->name);
-#endif
-                return 0;
-        }
-
-        pathname = plugin->fullpath;
-
-	rb_load_protect(rb_str_new2(pathname), false, &res);
-	if (res != 0) {
-	        xlog(LOG_ERROR, "[Ruby] Error %d when load file '%s'\n", res, pathname);
-		proxenet_ruby_print_last_exception();
-		return -1;
-	}
-
-	if (cfg->verbose)
-		xlog(LOG_INFO, "[Ruby] '%s' is loaded\n", pathname);
-
-	return 0;
 }
 
 
@@ -104,7 +72,7 @@ int proxenet_ruby_initialize_vm(plugin_t* plugin)
 		return 0;
 
 #ifdef DEBUG
-	xlog(LOG_DEBUG, "Initializing Ruby VM version %s\n", _RUBY_VERSION_);
+	xlog_ruby(LOG_DEBUG, "Initializing Ruby VM version %s\n", _RUBY_VERSION_);
 #endif
 
 	/* init vm */
@@ -118,7 +86,7 @@ int proxenet_ruby_initialize_vm(plugin_t* plugin)
         rRet = (VALUE)ruby_process_options(2, rArgs);
 
         if (rRet == Qnil) {
-                xlog(LOG_ERROR, "Error on ruby_process_options(): %#x\n", rRet);
+                xlog_ruby(LOG_ERROR, "Error on ruby_process_options(): %#x\n", rRet);
                 proxenet_ruby_print_last_exception();
                 return -1;
         }
@@ -160,16 +128,16 @@ int proxenet_ruby_destroy_vm(interpreter_t* interpreter)
 /**
  * Initialize Ruby plugin
  */
-int proxenet_ruby_initialize_function(plugin_t* plugin, req_t type)
+static int proxenet_ruby_initialize_function(plugin_t* plugin, req_t type)
 {
 	/* checks */
 	if (!plugin->name) {
-		xlog(LOG_ERROR, "%s\n", "null plugin name");
+		xlog_ruby(LOG_ERROR, "%s\n", "null plugin name");
 		return -1;
 	}
 
 	if (proxenet_ruby_load_file(plugin) < 0) {
-		xlog(LOG_ERROR, "Failed to load %s\n", plugin->filename);
+		xlog_ruby(LOG_ERROR, "Failed to load %s\n", plugin->filename);
 		return -1;
 	}
 
@@ -183,7 +151,7 @@ int proxenet_ruby_initialize_function(plugin_t* plugin, req_t type)
 			plugin->pre_function  = (void*) rb_intern(CFG_REQUEST_PLUGIN_FUNCTION);
 			if (plugin->pre_function) {
 #ifdef DEBUG
-				xlog(LOG_DEBUG, "Loaded %s:%s\n", plugin->filename, CFG_REQUEST_PLUGIN_FUNCTION);
+				xlog_ruby(LOG_DEBUG, "Loaded %s:%s\n", plugin->filename, CFG_REQUEST_PLUGIN_FUNCTION);
 #endif
 				return 0;
 			}
@@ -197,21 +165,73 @@ int proxenet_ruby_initialize_function(plugin_t* plugin, req_t type)
 			plugin->post_function = (void*) rb_intern(CFG_RESPONSE_PLUGIN_FUNCTION);
 			if (plugin->post_function) {
 #ifdef DEBUG
-				xlog(LOG_DEBUG, "Loaded %s:%s\n", plugin->filename, CFG_RESPONSE_PLUGIN_FUNCTION);
+				xlog_ruby(LOG_DEBUG, "Loaded %s:%s\n", plugin->filename, CFG_RESPONSE_PLUGIN_FUNCTION);
 #endif
 				return 0;
 			}
 			break;
 
 		default:
-			xlog(LOG_CRITICAL, "%s\n", "Should never be here, autokill !");
+			xlog_ruby(LOG_CRITICAL, "%s\n", "Should never be here, autokill !");
 			abort();
 			break;
 	}
 
-	xlog(LOG_ERROR, "%s\n", "Failed to find function");
+	xlog_ruby(LOG_ERROR, "%s\n", "Failed to find function");
 
 	return -1;
+}
+
+
+/**
+ * Safely load a Ruby script in the VM
+ *
+ * @return 0 upon success, -1 otherwise
+ */
+int proxenet_ruby_load_file(plugin_t* plugin)
+{
+	char* pathname = plugin->fullpath;
+	int res = 0;
+
+        if (!plugin->interpreter || !plugin->interpreter->ready){
+                xlog_ruby(LOG_ERROR, "Interpreter '%s' is not ready\n", _RUBY_VERSION_);
+                return -1;
+        }
+
+        if(plugin->state != INACTIVE){
+#ifdef DEBUG
+                if(cfg->verbose > 2)
+                        xlog_ruby(LOG_DEBUG, "Plugin '%s' is already loaded. Skipping...\n", plugin->name);
+#endif
+                return 0;
+        }
+
+        pathname = plugin->fullpath;
+
+	rb_load_protect(rb_str_new2(pathname), false, &res);
+	if (res != 0) {
+	        xlog_ruby(LOG_ERROR, "[Ruby] Error %d when load file '%s'\n", res, pathname);
+		proxenet_ruby_print_last_exception();
+		return -1;
+	}
+
+	if (cfg->verbose)
+		xlog_ruby(LOG_INFO, "[Ruby] File '%s' is loaded\n", pathname);
+
+
+        if (proxenet_ruby_initialize_function(plugin, REQUEST) < 0) {
+                plugin->state = INACTIVE;
+                xlog_ruby(LOG_ERROR, "Failed to init %s in %s\n", CFG_REQUEST_PLUGIN_FUNCTION, plugin->name);
+                return -1;
+        }
+
+        if (proxenet_ruby_initialize_function(plugin, RESPONSE) < 0) {
+                plugin->state = INACTIVE;
+                xlog_ruby(LOG_ERROR, "Failed to init %s in %s\n", CFG_RESPONSE_PLUGIN_FUNCTION, plugin->name);
+                return -1;
+        }
+
+	return 0;
 }
 
 
@@ -267,7 +287,7 @@ static char* proxenet_ruby_execute_function(VALUE module, ID rFunc, request_t* r
 	}
 
 	if (!rRet) {
-		xlog(LOG_ERROR, "%s\n", "[ruby] funcall2() failed");
+		xlog_ruby(LOG_ERROR, "%s\n", "[ruby] funcall2() failed");
 		data = NULL;
 		goto call_end;
 	}

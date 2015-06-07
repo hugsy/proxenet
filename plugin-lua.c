@@ -20,6 +20,8 @@
 #include "main.h"
 #include "plugin.h"
 
+#define xlog_lua(t, ...) xlog(t, "["_LUA_VERSION_"] " __VA_ARGS__)
+
 
 /**
  *
@@ -32,7 +34,7 @@ int proxenet_lua_load_file(plugin_t* plugin)
         if(plugin->state != INACTIVE){
 #ifdef DEBUG
                 if(cfg->verbose > 2)
-                        xlog(LOG_DEBUG, "Plugin '%s' is already loaded. Skipping...\n", plugin->name);
+                        xlog_lua(LOG_DEBUG, "Plugin '%s' is already loaded. Skipping...\n", plugin->name);
 #endif
                 return 0;
         }
@@ -43,7 +45,7 @@ int proxenet_lua_load_file(plugin_t* plugin)
 	lua_interpreter = (lua_State*) plugin->interpreter->vm;
 
 	if (luaL_dofile(lua_interpreter, pathname)) {
-		xlog(LOG_ERROR, "Failed to load '%s'\n", pathname);
+		xlog_lua(LOG_ERROR, "Failed to load '%s'\n", pathname);
 		return -1;
 	}
 

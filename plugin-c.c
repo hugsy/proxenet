@@ -23,6 +23,8 @@
 #include "plugin.h"
 
 
+#define xlog_c(t, ...) xlog(t, "["_C_VERSION_"] " __VA_ARGS__)
+
 /**
  *
  */
@@ -32,7 +34,7 @@ int proxenet_c_initialize_vm(plugin_t* plugin)
 
 	interpreter = dlopen(plugin->fullpath, RTLD_NOW);
 	if (!interpreter) {
-		xlog(LOG_ERROR, "Failed to dlopen('%s'): %s\n", plugin->fullpath, dlerror());
+		xlog_c(LOG_ERROR, "Failed to dlopen('%s'): %s\n", plugin->fullpath, dlerror());
 		return -1;
 	}
 
@@ -53,7 +55,7 @@ int proxenet_c_destroy_plugin(plugin_t* plugin)
         plugin->post_function = NULL;
 
         if (dlclose((void*)plugin->interpreter->vm) < 0) {
-                xlog(LOG_ERROR, "Failed to dlclose() for '%s': %s\n", plugin->name, dlerror());
+                xlog_c(LOG_ERROR, "Failed to dlclose() for '%s': %s\n", plugin->name, dlerror());
                 return -1;
         }
 
@@ -75,12 +77,12 @@ int proxenet_c_destroy_vm(interpreter_t* interpreter)
 /**
  *
  */
-int proxenet_c_initialize_function(plugin_t* plugin, req_t type)
+static int proxenet_c_initialize_function(plugin_t* plugin, req_t type)
 {
 	void *interpreter;
 
         if (plugin->interpreter==NULL || plugin->interpreter->ready==false){
-                xlog(LOG_ERROR, "%s\n", "[c] not ready (dlopen() failed?)");
+                xlog_c(LOG_ERROR, "%s\n", "not ready (dlopen() failed?)");
                 return -1;
         }
 
@@ -98,9 +100,9 @@ int proxenet_c_initialize_function(plugin_t* plugin, req_t type)
 		plugin->pre_function = dlsym(interpreter, CFG_REQUEST_PLUGIN_FUNCTION);
 		if (plugin->pre_function) {
 #ifdef DEBUG
-			xlog(LOG_DEBUG, "[C] '%s' request_hook function is at %p\n",
-                             plugin->name,
-                             plugin->pre_function);
+			xlog_c(LOG_DEBUG, "'%s' request_hook function is at %p\n",
+                               plugin->name,
+                               plugin->pre_function);
 #endif
 			return 0;
 		}
@@ -109,21 +111,42 @@ int proxenet_c_initialize_function(plugin_t* plugin, req_t type)
 		plugin->post_function = dlsym(interpreter, CFG_RESPONSE_PLUGIN_FUNCTION);
 		if (plugin->post_function) {
 #ifdef DEBUG
-			xlog(LOG_DEBUG, "[C] '%s' response_hook function is at %p\n",
-                             plugin->name,
-                             plugin->post_function);
+			xlog_c(LOG_DEBUG, "'%s' response_hook function is at %p\n",
+                               plugin->name,
+                               plugin->post_function);
 #endif
 			return 0;
 		}
 
 	}
 
-        xlog(LOG_ERROR, "[C] dlsym(%s) failed for '%s': %s\n",
-             (type==REQUEST)?"REQUEST":"RESPONSE",
-             plugin->name,
-             dlerror());
+        xlog_c(LOG_ERROR, "dlsym(%s) failed for '%s': %s\n",
+               (type==REQUEST)?"REQUEST":"RESPONSE",
+               plugin->name,
+               dlerror());
 
 	return -1;
+}
+
+
+/**
+ *
+ */
+int proxenet_c_load_file(plugin_t* plugin)
+{
+        if (proxenet_c_initialize_function(plugin, REQUEST) < 0) {
+                plugin->state = INACTIVE;
+                xlog(LOG_ERROR, "Failed to init %s in %s\n", CFG_REQUEST_PLUGIN_FUNCTION, plugin->name);
+                return -1;
+        }
+
+        if (proxenet_c_initialize_function(plugin, RESPONSE) < 0) {
+                plugin->state = INACTIVE;
+                xlog(LOG_ERROR, "Failed to init %s in %s\n", CFG_RESPONSE_PLUGIN_FUNCTION, plugin->name);
+                return -1;
+        }
+
+        return 0;
 }
 
 

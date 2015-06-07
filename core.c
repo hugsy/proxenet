@@ -124,170 +124,75 @@ void proxenet_initialize_plugins()
 
 
         while(plugin) {
+                plugin->state = INACTIVE;
 
                 switch (plugin->type) {
 
 #ifdef _PYTHON_PLUGIN
                         case _PYTHON_:
-                                if (proxenet_python_initialize_vm(plugin) < 0) {
-                                        plugin->state = INACTIVE;
-                                        xlog(LOG_ERROR, "%s\n", "Failed to init Python VM");
-                                        goto delete_plugin;
-                                }
-
-                                if (proxenet_python_initialize_function(plugin, REQUEST) < 0) {
-                                        plugin->state = INACTIVE;
-                                        xlog(LOG_ERROR, "Failed to init %s in %s\n", CFG_REQUEST_PLUGIN_FUNCTION, plugin->name);
-                                        goto delete_plugin;
-                                }
-
-                                if (proxenet_python_initialize_function(plugin, RESPONSE) < 0) {
-                                        plugin->state = INACTIVE;
-                                        xlog(LOG_ERROR, "Failed to init %s in %s\n", CFG_RESPONSE_PLUGIN_FUNCTION, plugin->name);
-                                        goto delete_plugin;
-                                }
-
-                                plugin->state = ACTIVE;
+                                if (!proxenet_python_initialize_vm(plugin) && !proxenet_python_load_file(plugin))
+                                        plugin->state = ACTIVE;
                                 break;
 #endif
 
 #ifdef _C_PLUGIN
                         case _C_:
-                                if (proxenet_c_initialize_vm(plugin) < 0) {
-                                        plugin->state = INACTIVE;
-                                        xlog(LOG_ERROR, "%s\n", "Failed to init C VM");
-                                        goto delete_plugin;
-                                }
-
-                                if (proxenet_c_initialize_function(plugin, REQUEST) < 0) {
-                                        plugin->state = INACTIVE;
-                                        xlog(LOG_ERROR, "Failed to init %s in %s\n", CFG_REQUEST_PLUGIN_FUNCTION, plugin->name);
-                                        goto delete_plugin;
-                                }
-
-                                if (proxenet_c_initialize_function(plugin, RESPONSE) < 0) {
-                                        plugin->state = INACTIVE;
-                                        xlog(LOG_ERROR, "Failed to init %s in %s\n", CFG_RESPONSE_PLUGIN_FUNCTION, plugin->name);
-                                        goto delete_plugin;
-                                }
-
-                                plugin->state = ACTIVE;
+                                if (!proxenet_c_initialize_vm(plugin) && !proxenet_c_load_file(plugin))
+                                        plugin->state = ACTIVE;
                                 break;
 #endif
 
 #ifdef _RUBY_PLUGIN
                         case _RUBY_:
-                                if (proxenet_ruby_initialize_vm(plugin) < 0) {
-                                        plugin->state = INACTIVE;
-                                        xlog(LOG_ERROR, "%s\n", "Failed to init Ruby VM");
-                                        goto delete_plugin;
-                                }
-
-                                if (proxenet_ruby_initialize_function(plugin, REQUEST) < 0) {
-                                        plugin->state = INACTIVE;
-                                        xlog(LOG_ERROR, "Failed to init %s in %s\n", CFG_REQUEST_PLUGIN_FUNCTION, plugin->name);
-                                        goto delete_plugin;
-                                }
-
-                                if (proxenet_ruby_initialize_function(plugin, RESPONSE) < 0) {
-                                        plugin->state = INACTIVE;
-                                        xlog(LOG_ERROR, "Failed to init %s in %s\n", CFG_RESPONSE_PLUGIN_FUNCTION, plugin->name);
-                                        goto delete_plugin;
-                                }
-
-                                plugin->state = ACTIVE;
+                                if (!proxenet_ruby_initialize_vm(plugin) && !proxenet_ruby_load_file(plugin))
+                                        plugin->state = ACTIVE;
                                 break;
 #endif
 
 #ifdef _PERL_PLUGIN
                         case _PERL_:
-                                if (proxenet_perl_initialize_vm(plugin) < 0) {
-                                        plugin->state = INACTIVE;
-                                        xlog(LOG_ERROR, "%s\n", "Failed to init Perl VM");
-                                        goto delete_plugin;
-                                }
-
-                                if (proxenet_perl_load_file(plugin) < 0) {
-                                        plugin->state = INACTIVE;
-                                        xlog(LOG_ERROR, "Failed to load Perl script '%s'\n", plugin->filename);
-                                        goto delete_plugin;
-                                }
-
-                                plugin->state = ACTIVE;
+                                if (!proxenet_perl_initialize_vm(plugin) && !proxenet_perl_load_file(plugin))
+                                        plugin->state = ACTIVE;
                                 break;
 #endif
 
 #ifdef _LUA_PLUGIN
                         case _LUA_:
-                                if (proxenet_lua_initialize_vm(plugin) < 0) {
-                                        plugin->state = INACTIVE;
-                                        xlog(LOG_ERROR, "%s\n", "Failed to init Lua VM");
-                                        goto delete_plugin;
-                                }
-
-                                if (proxenet_lua_load_file(plugin) < 0) {
-                                        plugin->state = INACTIVE;
-                                        xlog(LOG_ERROR, "Failed to load %s\n", plugin->filename);
-                                        goto delete_plugin;
-                                }
-
-                                plugin->state = ACTIVE;
+                                if (!proxenet_lua_initialize_vm(plugin) && !proxenet_lua_load_file(plugin))
+                                        plugin->state = ACTIVE;
                                 break;
 #endif
 
 #ifdef _TCL_PLUGIN
                         case _TCL_:
-                                if (proxenet_tcl_initialize_vm(plugin) < 0) {
-                                        plugin->state = INACTIVE;
-                                        xlog(LOG_ERROR, "%s\n", "Failed to init Lua VM");
-                                        goto delete_plugin;
-                                }
-
-                                if (proxenet_tcl_load_file(plugin) < 0) {
-                                        plugin->state = INACTIVE;
-                                        xlog(LOG_ERROR, "Failed to load %s\n", plugin->filename);
-                                        goto delete_plugin;
-                                }
-
-                                plugin->state = ACTIVE;
+                                if (!proxenet_tcl_initialize_vm(plugin) && !proxenet_tcl_load_file(plugin))
+                                        plugin->state = ACTIVE;
                                 break;
 #endif
 
 #ifdef _JAVA_PLUGIN
                         case _JAVA_:
-                                if (proxenet_java_initialize_vm(plugin) < 0) {
-                                        plugin->state = INACTIVE;
-                                        xlog(LOG_ERROR, "%s\n", "Failed to init Java VM");
-                                        goto delete_plugin;
-                                }
-
-                                if (proxenet_java_load_file(plugin) < 0) {
-                                        plugin->state = INACTIVE;
-                                        xlog(LOG_ERROR, "Failed to load %s\n", plugin->filename);
-                                        goto delete_plugin;
-                                }
-
-                                plugin->state = ACTIVE;
+                                if (!proxenet_java_initialize_vm(plugin) && !proxenet_java_load_file(plugin))
+                                        plugin->state = ACTIVE;
                                 break;
 #endif
                         default:
                                 break;
                 }
 
-                if (cfg->verbose > 1)
-                        xlog(LOG_INFO, "Successfully initialized '%s'\n", plugin->filename);
+                if (plugin->state == ACTIVE){
+                        if (cfg->verbose > 1)
+                                xlog(LOG_INFO, "Successfully initialized '%s'\n", plugin->filename);
 
-                prec_plugin = plugin;
-                plugin = plugin->next;
-                continue;
-
-
-        delete_plugin:
-                if(prec_plugin) {
-                        prec_plugin->next = plugin->next;
-                } else {
-                        plugins_list = plugin->next;
+                        prec_plugin = plugin;
+                        plugin = plugin->next;
+                        continue;
                 }
+
+
+                plugin->state = INACTIVE;
+                if(prec_plugin)  prec_plugin->next = plugin->next;
+                else             plugins_list = plugin->next;
 
                 if (cfg->verbose > 1)
                         xlog(LOG_ERROR, "Removing '%s' from plugin list\n", plugin->filename);

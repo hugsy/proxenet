@@ -19,6 +19,8 @@
 #include "main.h"
 #include "plugin.h"
 
+#define xlog_tcl(t, ...) xlog(t, "["_TCL_VERSION_"] " __VA_ARGS__)
+
 
 /**
  *
@@ -32,7 +34,7 @@ int proxenet_tcl_load_file(plugin_t* plugin)
         if(plugin->state != INACTIVE){
 #ifdef DEBUG
                 if(cfg->verbose > 2)
-                        xlog(LOG_DEBUG, "Plugin '%s' is already loaded. Skipping...\n", plugin->name);
+                        xlog_tcl(LOG_DEBUG, "Plugin '%s' is already loaded. Skipping...\n", plugin->name);
 #endif
                 return 0;
         }
@@ -42,7 +44,7 @@ int proxenet_tcl_load_file(plugin_t* plugin)
 	tcl_interpreter = (Tcl_Interp*) plugin->interpreter->vm;
 
         if (Tcl_EvalFile (tcl_interpreter, pathname) != TCL_OK){
-		xlog(LOG_ERROR, "Failed to load '%s'\n", pathname);
+		xlog_tcl(LOG_ERROR, "Failed to load '%s'\n", pathname);
 		return -1;
 	}
 
@@ -99,7 +101,7 @@ int proxenet_tcl_destroy_vm(interpreter_t* interpreter)
 
         Tcl_DeleteInterp(tcl_interpreter);
         if(Tcl_InterpDeleted(tcl_interpreter)){
-                xlog(LOG_CRITICAL, "An error occured when deleting TCL interpreter: %s", strerror(errno));
+                xlog_tcl(LOG_CRITICAL, "An error occured when deleting TCL interpreter: %s", strerror(errno));
                 return -1;
         }
 

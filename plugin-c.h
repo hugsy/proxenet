@@ -9,7 +9,7 @@
 int 	proxenet_c_initialize_vm(plugin_t*);
 int 	proxenet_c_destroy_plugin(plugin_t*);
 int 	proxenet_c_destroy_vm(interpreter_t*);
-int 	proxenet_c_initialize_function(plugin_t*, req_t);
+int 	proxenet_c_load_file(plugin_t*);
 char* 	proxenet_c_plugin(plugin_t*, request_t*);
 
 #endif

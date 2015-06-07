@@ -20,6 +20,8 @@
 #include "plugin.h"
 #include "plugin-java.h"
 
+#define xlog_java(t, ...) xlog(t, "["_JAVA_VERSION_"] " __VA_ARGS__)
+
 
 /**
  *
@@ -35,7 +37,7 @@ int proxenet_java_load_file(plugin_t* plugin)
         if(plugin->state != INACTIVE){
 #ifdef DEBUG
                 if(cfg->verbose > 2)
-                        xlog(LOG_DEBUG, "Plugin '%s' is already loaded. Skipping...\n", plugin->name);
+                        xlog_java(LOG_DEBUG, "Plugin '%s' is already loaded. Skipping...\n", plugin->name);
 #endif
                 return 0;
         }
@@ -45,42 +47,42 @@ int proxenet_java_load_file(plugin_t* plugin)
         env = (JNIEnv*) pxnt_jvm->env;
 
 #ifdef DEBUG
-        xlog(LOG_DEBUG, "Trying to load Java class '%s'\n", plugin->name);
+        xlog_java(LOG_DEBUG, "Trying to load Java class '%s'\n", plugin->name);
 #endif
 
         /* check that Class can be found */
         jcls = (*env)->FindClass(env, plugin->name);
         if(!jcls){
-                xlog(LOG_ERROR, "Java class '%s' not found\n", plugin->name);
+                xlog_java(LOG_ERROR, "Java class '%s' not found\n", plugin->name);
                 return -1;
         }
 
         plugin->class = (void*)jcls;
 
 #ifdef DEBUG
-        xlog(LOG_DEBUG, "Class '%s' jcls=%#lx\n", plugin->name, jcls);
+        xlog_java(LOG_DEBUG, "Class '%s' jcls=%#lx\n", plugin->name, jcls);
 #endif
 
         /* check that Methods can be found in Class */
         /* check request hook */
         jmid = (*env)->GetStaticMethodID(env, jcls, CFG_REQUEST_PLUGIN_FUNCTION, JAVA_METHOD_PROTOTYPE);
         if(!jmid){
-                xlog(LOG_ERROR, "Method '%s.%s()' not found\n", plugin->name, CFG_REQUEST_PLUGIN_FUNCTION);
+                xlog_java(LOG_ERROR, "Method '%s.%s()' not found\n", plugin->name, CFG_REQUEST_PLUGIN_FUNCTION);
                 return -1;
         }
 #ifdef DEBUG
-        xlog(LOG_DEBUG, "'%s.%s()' jmid=%#lx\n", plugin->name, CFG_REQUEST_PLUGIN_FUNCTION, jmid);
+        xlog_java(LOG_DEBUG, "'%s.%s()' jmid=%#lx\n", plugin->name, CFG_REQUEST_PLUGIN_FUNCTION, jmid);
 #endif
         plugin->pre_function = (void*)jmid;
 
         /* check response hook */
         jmid = (*env)->GetStaticMethodID(env, jcls, CFG_RESPONSE_PLUGIN_FUNCTION, JAVA_METHOD_PROTOTYPE);
         if(!jmid){
-                xlog(LOG_ERROR, "Method '%s.%s()' not found\n", plugin->name, CFG_RESPONSE_PLUGIN_FUNCTION);
+                xlog_java(LOG_ERROR, "Method '%s.%s()' not found\n", plugin->name, CFG_RESPONSE_PLUGIN_FUNCTION);
                 return -1;
         }
 #ifdef DEBUG
-        xlog(LOG_DEBUG, "'%s.%s()' jmid=%#lx\n", plugin->name, CFG_RESPONSE_PLUGIN_FUNCTION, jmid);
+        xlog_java(LOG_DEBUG, "'%s.%s()' jmid=%#lx\n", plugin->name, CFG_RESPONSE_PLUGIN_FUNCTION, jmid);
 #endif
         plugin->post_function = (void*)jmid;
 
@@ -119,13 +121,13 @@ int proxenet_java_initialize_vm(plugin_t* plugin)
 
         ret = JNI_CreateJavaVM(&pxnt_jvm->jvm, (void**)&pxnt_jvm->env, &vm_args);
         if (ret != JNI_OK) {
-                xlog(LOG_ERROR, "Failed to initialize JVM (%d)\n", ret);
+                xlog_java(LOG_ERROR, "Failed to initialize JVM (%d)\n", ret);
                 plugin->interpreter->ready = false;
                 return -1;
         }
 
 #ifdef DEBUG
-        xlog(LOG_DEBUG, "JVM created jvm=%#lx env=%#lx\n", pxnt_jvm->jvm, pxnt_jvm->env);
+        xlog_java(LOG_DEBUG, "JVM created jvm=%#lx env=%#lx\n", pxnt_jvm->jvm, pxnt_jvm->env);
 #endif
 
 	plugin->interpreter->vm = (void*)pxnt_jvm;
@@ -214,8 +216,8 @@ static char* proxenet_java_execute_function(plugin_t* plugin, request_t *request
         }
 
 #ifdef DEBUG
-        xlog(LOG_DEBUG, "'%s:%s' -> jvm=%#lx env=%#lx jcls=%#lx jmid=%#lx\n",
-             plugin->name, meth, jvm, env, jcls, jmid);
+        xlog_java(LOG_DEBUG, "'%s:%s' -> jvm=%#lx env=%#lx jcls=%#lx jmid=%#lx\n",
+                  plugin->name, meth, jvm, env, jcls, jmid);
 #endif
 
         /* prepare the arguments */
@@ -225,14 +227,14 @@ static char* proxenet_java_execute_function(plugin_t* plugin, request_t *request
         juri = (*env)->NewStringUTF(env, uri);
 
 #ifdef DEBUG
-        xlog(LOG_DEBUG, "'%s:%s' -> jrid=%#lx jreq=%#lx juri=%#lx\n",
-             plugin->name, meth, jrid, jreq, juri);
+        xlog_java(LOG_DEBUG, "'%s:%s' -> jrid=%#lx jreq=%#lx juri=%#lx\n",
+                  plugin->name, meth, jrid, jreq, juri);
 #endif
 
         /* call the method id */
         jret = (*env)->CallStaticObjectMethod(env, jcls, jmid, jrid, jreq, juri);
         if(!jret){
-                xlog(LOG_ERROR, "An error occured when invoking '%s.%s()'\n", plugin->name, meth);
+                xlog_java(LOG_ERROR, "An error occured when invoking '%s.%s()'\n", plugin->name, meth);
                 goto end;
         }
 

@@ -36,6 +36,8 @@
 
 #endif
 
+#define xlog_python(t, ...) xlog(t, "["_PYTHON_VERSION_"] " __VA_ARGS__)
+
 
 /**
  *
@@ -47,7 +49,7 @@ static int proxenet_python_append_path()
 
 	pPath = PySys_GetObject("path");
 	if (!pPath) {
-		xlog(LOG_ERROR, "%s\n", "Failed to find `sys.path'");
+		xlog_python(LOG_ERROR, "%s\n", "Failed to find `sys.path'");
 		return -1;
 	}
 
@@ -81,20 +83,20 @@ int proxenet_python_initialize_vm(plugin_t* plugin)
 		return 0;
 
 #ifdef DEBUG
-	xlog(LOG_DEBUG, "Initializing Python VM version %s\n", _PYTHON_VERSION_);
+	xlog_python(LOG_DEBUG, "Initializing VM version %s\n", _PYTHON_VERSION_);
 #endif
 
 	Py_Initialize();
 
 	if (Py_IsInitialized() == false) {
-		xlog(LOG_CRITICAL, "%s\n", "Failed to initialize Python engine");
+		xlog_python(LOG_CRITICAL, "%s\n", "An error occured during initialization");
 		interpreter->vm = NULL;
 		interpreter->ready = false;
 		return -1;
 	}
 
 	if (proxenet_python_append_path() < 0) {
-		xlog(LOG_CRITICAL, "%s\n", "Failed to append plugins directory to sys.path");
+		xlog_python(LOG_CRITICAL, "%s\n", "Failed to append plugins directory to sys.path");
 		Py_Finalize();
 		interpreter->vm = NULL;
 		interpreter->ready = false;
@@ -124,7 +126,7 @@ int proxenet_python_destroy_plugin(plugin_t* plugin)
 int proxenet_python_destroy_vm(interpreter_t* interpreter)
 {
 	if (!Py_IsInitialized()) {
-		xlog(LOG_CRITICAL, "%s\n", "Python VM should not be uninitialized here");
+		xlog_python(LOG_CRITICAL, "%s\n", "Python VM should not be uninitialized here");
 		return -1;
 	}
 
@@ -143,7 +145,7 @@ int proxenet_python_destroy_vm(interpreter_t* interpreter)
 /**
  *
  */
-int proxenet_python_initialize_function(plugin_t* plugin, req_t type)
+static int proxenet_python_initialize_function(plugin_t* plugin, req_t type)
 {
 	char*	module_name;
 	PyObject *pModStr, *pMod, *pFunc;
@@ -153,19 +155,19 @@ int proxenet_python_initialize_function(plugin_t* plugin, req_t type)
 
 	/* checks */
 	if (!plugin->name) {
-		xlog(LOG_ERROR, "%s\n", "null plugin name");
+		xlog_python(LOG_ERROR, "%s\n", "null plugin name");
 		return -1;
 	}
 
 	if (plugin->pre_function && type == REQUEST) {
                 if(cfg->verbose)
-                        xlog(LOG_WARNING, "Pre-hook function already defined for '%s'\n", plugin->name);
+                        xlog_python(LOG_WARNING, "Pre-hook function already defined for '%s'\n", plugin->name);
 		return 0;
 	}
 
 	if (plugin->post_function && type == RESPONSE) {
                 if(cfg->verbose)
-                        xlog(LOG_WARNING, "Post-hook function already defined for '%s'\n", plugin->name);
+                        xlog_python(LOG_WARNING, "Post-hook function already defined for '%s'\n", plugin->name);
 		return 0;
 	}
 
@@ -180,7 +182,7 @@ int proxenet_python_initialize_function(plugin_t* plugin, req_t type)
 
 	pMod = PyImport_Import(pModStr);
 	if(!pMod) {
-		xlog(LOG_ERROR, "Failed to import '%s'\n", module_name);
+		xlog_python(LOG_ERROR, "Failed to import '%s'\n", module_name);
 		PyErr_Print();
 		Py_DECREF(pModStr);
 		return -1;
@@ -189,7 +191,7 @@ int proxenet_python_initialize_function(plugin_t* plugin, req_t type)
 	Py_DECREF(pModStr);
 
 #ifdef DEBUG
-	xlog(LOG_DEBUG, "Importing '%s.%s'\n", module_name, function_name);
+	xlog_python(LOG_DEBUG, "Importing '%s.%s'\n", module_name, function_name);
 #endif
 
 	/* find reference to function in module */
@@ -200,7 +202,7 @@ int proxenet_python_initialize_function(plugin_t* plugin, req_t type)
 	}
 
 	if (!PyCallable_Check(pFunc)) {
-		xlog(LOG_ERROR, "Object in %s is not callable\n", module_name);
+		xlog_python(LOG_ERROR, "Object in %s is not callable\n", module_name);
 		return -1;
 	}
 
@@ -210,6 +212,27 @@ int proxenet_python_initialize_function(plugin_t* plugin, req_t type)
 		plugin->post_function = pFunc;
 
 	return 0;
+}
+
+
+/**
+ *
+ */
+int proxenet_python_load_file(plugin_t* plugin)
+{
+
+        if (proxenet_python_initialize_function(plugin, REQUEST) < 0) {
+                plugin->state = INACTIVE;
+                xlog_python(LOG_ERROR, "Failed to init %s in %s\n", CFG_REQUEST_PLUGIN_FUNCTION, plugin->name);
+                return -1;
+        }
+
+        if (proxenet_python_initialize_function(plugin, RESPONSE) < 0) {
+                xlog_python(LOG_ERROR, "Failed to init %s in %s\n", CFG_RESPONSE_PLUGIN_FUNCTION, plugin->name);
+                return -1;
+        }
+
+        return 0;
 }
 
 
@@ -229,14 +252,14 @@ static char* proxenet_python_execute_function(PyObject* pFuncRef, request_t *req
 
 	pArgs = Py_BuildValue(PYTHON_VALUE_FORMAT, request->id, request->data, request->size, uri);
 	if (!pArgs) {
-		xlog(LOG_ERROR, "%s\n", "Failed to build args");
+		xlog_python(LOG_ERROR, "%s\n", "Failed to build args");
 		PyErr_Print();
 		return result;
 	}
 
 	pResult = PyObject_CallObject(pFuncRef, pArgs);
 	if (!pResult) {
-		xlog(LOG_ERROR, "%s\n", "Failed during func call");
+		xlog_python(LOG_ERROR, "%s\n", "Failed during func call");
 		PyErr_Print();
 		return result;
 	}
@@ -255,9 +278,9 @@ static char* proxenet_python_execute_function(PyObject* pFuncRef, request_t *req
 
 	} else {
 #if _PYTHON_MAJOR_ == 3
-		xlog(LOG_ERROR, "Incorrect return type (expected: %s)\n", "ByteArray");
+		xlog_python(LOG_ERROR, "Incorrect return type (expected: %s)\n", "ByteArray");
 #else
-		xlog(LOG_ERROR, "Incorrect return type (expected: %s)\n", "String");
+		xlog_python(LOG_ERROR, "Incorrect return type (expected: %s)\n", "String");
 #endif
 		result = NULL;
 	}
@@ -307,8 +330,8 @@ char* proxenet_python_plugin(plugin_t* plugin, request_t* request)
 
 	buf = proxenet_python_execute_function(pFunc, request);
 	if (!buf) {
-		xlog(LOG_ERROR, "[%s] Error while executing plugin on %s\n",
-                     plugin->name, is_request ? "request" : "response");
+		xlog_python(LOG_ERROR, "%s: Error while executing plugin on %s\n",
+                            plugin->name, is_request ? "request" : "response");
 	}
 
 	proxenet_python_unlock_vm(interpreter);
