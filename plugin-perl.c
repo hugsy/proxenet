@@ -28,9 +28,8 @@
 
 #define xlog_perl(t, ...) xlog(t, "["_PERL_VERSION_"] " __VA_ARGS__)
 
+
 static PerlInterpreter *my_perl;
-static char *perl_args[] = { "", "-e", "0", "-w", NULL };
-static int   perl_args_count = 4;
 
 
 /**
@@ -101,17 +100,21 @@ int proxenet_perl_load_file(plugin_t* plugin)
 			plugin->pre_function = proxenet_xmalloc(len);
 			snprintf(plugin->pre_function, len, "%s::%s",
                                  package_name, CFG_REQUEST_PLUGIN_FUNCTION);
+#ifdef DEBUG
+                        xlog_perl(LOG_DEBUG, "Loaded '%s'\n", plugin->pre_function);
+#endif
 
                         /* Save the reponse function path */
 			len = package_len + 2 + strlen(CFG_RESPONSE_PLUGIN_FUNCTION) + 1;
 			plugin->post_function = proxenet_xmalloc(len);
 			snprintf(plugin->post_function, len, "%s::%s",
                                  package_name, CFG_RESPONSE_PLUGIN_FUNCTION);
-
 #ifdef DEBUG
-                        if (cfg->verbose > 2)
-                                xlog_perl(LOG_DEBUG, "Package '%s' loaded\n", package_name);
+                        xlog_perl(LOG_DEBUG, "Loaded '%s'\n", plugin->post_function);
 #endif
+
+                        if (cfg->verbose > 2)
+                                xlog_perl(LOG_INFO, "Package '%s' loaded\n", package_name);
 
 			ret = 0;
 		}
@@ -135,6 +138,8 @@ int proxenet_perl_load_file(plugin_t* plugin)
 int proxenet_perl_initialize_vm(plugin_t* plugin)
 {
 	interpreter_t *interpreter;
+        char *perl_args[] = { "", "/dev/null", NULL };
+        int   perl_args_count = 2;
 
 #ifdef PERL_SYS_INIT3
         int a;
@@ -147,12 +152,6 @@ int proxenet_perl_initialize_vm(plugin_t* plugin)
 #endif
 
 	interpreter = plugin->interpreter;
-
-	/* In order to perl_parse nothing */
-	char *args[2] = {
-		"",
-		"/dev/null"
-	};
 
 	/* checks */
 	if (interpreter->ready)
@@ -172,9 +171,9 @@ int proxenet_perl_initialize_vm(plugin_t* plugin)
                 return -1;
         }
 
-        perl_parse(my_perl, NULL, 2, args, (char **)NULL);
+        perl_parse(my_perl, NULL, perl_args_count, perl_args, (char **)NULL);
 
-        interpreter->vm = (void*) PERL_GET_CONTEXT;
+        interpreter->vm = (void*) my_perl;
         interpreter->ready = true;
 
 	return 0;
@@ -240,9 +239,9 @@ static char* proxenet_perl_execute_function(char* fname, long rid, char* request
 	SPAGAIN;
 
 	if (nb_res != 1) {
-		xlog_perl(LOG_ERROR, "[Perl] Invalid number of response returned (got %d, expected 1)\n", nb_res);
+		xlog_perl(LOG_ERROR, "Unexpected number of response (got %d, expected 1)\n", nb_res);
 	} else if (SvTRUE(ERRSV)) {
-		xlog_perl(LOG_ERROR, "[Perl] call_pv error for '%s': %s\n", fname, SvPV_nolen(ERRSV));
+		xlog_perl(LOG_ERROR, "call_pv() error for '%s': %s\n", fname, SvPV_nolen(ERRSV));
         } else {
 		sv = POPs;
 		res = SvPV(sv, len);
