@@ -89,30 +89,6 @@ static unsigned long get_new_request_id()
 }
 
 
-#ifdef _PERL_PLUGIN
-/**
- * Specific initialisation done only once in proxenet whole process.
- *
- * @note Only useful for Perl's plugins right now.
- */
-void proxenet_init_once_plugins(int argc, char** argv, char** envp)
-{
-        proxenet_perl_preinitialisation(argc, argv, envp);
-}
-
-
-/**
- * Specific delete/cleanup done only once in proxenet whole process.
- *
- * @note Only useful for Perl's plugins right now.
- */
-void proxenet_delete_once_plugins()
-{
-        proxenet_perl_postdeletion();
-}
-#endif
-
-
 /**
  *
  */
@@ -124,7 +100,12 @@ void proxenet_initialize_plugins()
 
 
         while(plugin) {
-                plugin->state = INACTIVE;
+
+                /* plugin already loaded, move on */
+                if(plugin->state == ACTIVE){
+                        plugin = plugin->next;
+                        continue;
+                }
 
                 switch (plugin->type) {
 
@@ -371,20 +352,20 @@ static int proxenet_apply_plugins(request_t *request)
                 }
 
 #ifdef DEBUG
-                xlog(LOG_DEBUG,
-                     "Calling '%s:%s' with rid=%d (%s)\n",
+                xlog(LOG_DEBUG, "Calling '%s:%s' with rid=%d (%s)\n",
                      p->name,
                      request->type==REQUEST?CFG_REQUEST_PLUGIN_FUNCTION:CFG_RESPONSE_PLUGIN_FUNCTION,
                      request->id,
                      supported_plugins_str[p->type]
                      );
-
 #endif
 
                 old_data = request->data;
 
 #ifdef DEBUG
                 struct timeval tstart, tend;
+                proxenet_xzero(&tstart, sizeof(struct timeval));
+                proxenet_xzero(&tend, sizeof(struct timeval));
                 gettimeofday(&tstart, NULL);
 #endif
                 request->data = (*plugin_function)(p, request);

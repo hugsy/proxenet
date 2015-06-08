@@ -252,16 +252,16 @@ static char* proxenet_python_execute_function(PyObject* pFuncRef, request_t *req
 
 	pArgs = Py_BuildValue(PYTHON_VALUE_FORMAT, request->id, request->data, request->size, uri);
 	if (!pArgs) {
-		xlog_python(LOG_ERROR, "%s\n", "Failed to build args");
+		xlog_python(LOG_ERROR, "%s\n", "Py_BuildValue() failed.");
 		PyErr_Print();
-		return result;
+		return NULL;
 	}
 
 	pResult = PyObject_CallObject(pFuncRef, pArgs);
 	if (!pResult) {
-		xlog_python(LOG_ERROR, "%s\n", "Failed during func call");
+		xlog_python(LOG_ERROR, "%s\n", "PyObject_CallObject() failed.");
 		PyErr_Print();
-		return result;
+		return NULL;
 	}
 
 	if (PyBytes_Check(pResult)) {

@@ -46,8 +46,7 @@ unsigned long     active_threads_bitmask;
 plugin_t*         plugins_list;  /* points to first plugin */
 pthread_t         threads[MAX_THREADS];
 
-void             proxenet_delete_once_plugins();
-void             proxenet_init_once_plugins(int, char**, char**);
+
 int              proxenet_start();
 unsigned int     get_active_threads_size();
 bool             is_thread_active(int);

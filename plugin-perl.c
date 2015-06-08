@@ -202,7 +202,8 @@ int proxenet_perl_destroy_vm(interpreter_t* interpreter)
 	perl_free(my_perl);
         my_perl = NULL;
 
-#if defined(PERL_SYS_TERM) && !defined(__FreeBSD__)
+        /* Looks like this macro segfaults on FreeBSD and OSX.... */
+#if defined(PERL_SYS_TERM) && !defined(__FreeBSD__) && !defined(__DARWIN__)
         PERL_SYS_TERM ();
 #endif
 
@@ -307,23 +308,6 @@ char* proxenet_perl_plugin(plugin_t* plugin, request_t* request)
 	return buf;
 }
 
-
-/**
- *
- */
-void proxenet_perl_preinitialisation(int argc, char** argv, char** envp)
-{
-	PERL_SYS_INIT3(&argc, &argv, &envp);
-}
-
-
-/**
- *
- */
-void proxenet_perl_postdeletion()
-{
-	PERL_SYS_TERM();
-}
 
 
 #endif /* _PERL_PLUGIN */

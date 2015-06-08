@@ -530,19 +530,8 @@ int main (int argc, char **argv, char **envp)
         srand(time(0));
         serial_base = rand();
 
-#ifdef _PERL_PLUGIN
-        /* perform plugin pre-initialisation -- currently done only for Perl */
-        proxenet_init_once_plugins(argc, argv, envp);
-#endif
-
         /* proxenet starts here  */
         retcode = proxenet_start();
-
-
-#ifdef _PERL_PLUGIN
-        /* perform plugin post-deletion */
-        proxenet_delete_once_plugins();
-#endif
 
         /* proxenet ends here */
         proxenet_free_config();

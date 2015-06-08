@@ -446,7 +446,7 @@ static int plugin_cmd_load(sock_t fd, char *options)
         memcpy(plugin_name, ptr, l);
 
         ret = proxenet_add_new_plugins(cfg->plugins_path, plugin_name);
-        if(ret<0){
+        if(ret < 0){
                 n = snprintf(msg, sizeof(msg)-1, "{\"error\": \"Error while loading plugin '%s'\"}", plugin_name);
                 proxenet_write(fd, (void*)msg, n);
                 return -1;
@@ -456,13 +456,19 @@ static int plugin_cmd_load(sock_t fd, char *options)
                 n = snprintf(msg, sizeof(msg)-1, "{\"success\": \"Plugin '%s' added successfully\"}", plugin_name);
         else
                 n = snprintf(msg, sizeof(msg)-1, "{\"error\": \"File '%s' has not been added\"}", plugin_name);
-        proxenet_write(fd, (void*)msg, n);
 
-        /* plugin list must be reinitialized since we dynamically load VMs only if plugins are found */
-        if(ret)
+        if (n>0)
+                proxenet_write(fd, (void*)msg, n);
+        else
+                return -1;
+
+        /* proxenet_initialize_plugins() is called to try to activate INACTIVE status  */
+        if(ret) {
                 proxenet_initialize_plugins();
+                return 0;
+        }
 
-        return 0;
+        return -1;
 }
 
 

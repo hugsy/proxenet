@@ -52,6 +52,9 @@ static void insert_new_plugin_in_list(char* name, supported_plugins_t type, shor
 	plugin->pre_function	= NULL;
 	plugin->post_function	= NULL;
 
+#ifdef DEBUG
+        xlog(LOG_DEBUG, "Trying to add '%s' [type=%d,prio=%d] to plugin_list\n", name, type, priority);
+#endif
 
         if (!strcpy(plugin->filename, name)){
                 xlog(LOG_CRITICAL, "strcpy() failed for '%s': %s", name, strerror(errno));
@@ -105,7 +108,9 @@ static void insert_new_plugin_in_list(char* name, supported_plugins_t type, shor
 	}
 
 	if (cfg->verbose > 1)
-		xlog(LOG_INFO, "Adding %s plugin '%s'\n", supported_plugins_str[type], plugin->name);
+		xlog(LOG_INFO, "[%s] Plugin '%s' added to list\n", supported_plugins_str[type], plugin->name);
+
+        return;
 }
 
 
