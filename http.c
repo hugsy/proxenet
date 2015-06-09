@@ -455,7 +455,7 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
 {
         int retcode;
         char *host, *port;
-        char sport[6] = {0, };
+        char sport[7] = {0, };
         http_request_t* http_infos = &req->http_infos;
         bool use_proxy = (cfg->proxy.host != NULL);
         bool use_http_proxy = use_proxy && (cfg->is_socks_proxy == false);
@@ -468,7 +468,7 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
         }
 
         ssl_ctx->use_ssl = req->is_ssl;
-        snprintf(sport, 5, "%u", http_infos->port);
+        snprintf(sport, sizeof(sport), "%hu", http_infos->port);
 
         /* do we forward to another proxy ? */
         if (use_proxy) {
