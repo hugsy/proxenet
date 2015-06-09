@@ -61,15 +61,14 @@ def build_html(**kwargs):
     <ul class="nav nav-tabs nav-justified">"""
 
     for path in ["info", "plugin", "threads", "config", ]:
-        body += """<li {2}><a href="/{0}">{1}</a></li>""".format(path,
-                                                                 path.capitalize(),
+        body += """<li {2}><a href="/{0}">{1}</a></li>""".format(path, path.capitalize(),
                                                                  "class='active'" if path==kwargs.get("page") else "")
 
     body += """<li><a href="#" onclick="var c=confirm('Are you sure to quit?');if(c){window.location='/quit';}">Quit</a></li>"""
     body += """</ul></div></div>
     <div class="row"><div class="col-md-12"><br></div></div>
     <div class="row">
-    <div class="col-md-2"></div><div class="col-md-8">{}</div><div class="col-md-2"></div>
+    </div><div class="col-md-12">{}</div>
     </div></body>""".format( kwargs.get("body", "") )
     footer = """</html>"""
     return header + body + footer
