@@ -77,7 +77,7 @@ if (DEBUG)
 
 else()
   set(CMAKE_BUILD_TYPE None)
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -fstack-protector-all -fPIE -fPIC")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -fstack-protector-all -fPIE -fPIC -D_FORTIFY_SOURCE")
   set(CMAKE_VERBOSE_MAKEFILE OFF)
 
   if( ${CMAKE_SYSTEM_NAME} MATCHES "Linux" )
