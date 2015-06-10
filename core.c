@@ -797,7 +797,7 @@ void proxenet_process_http_request(sock_t server_socket)
         /* close client socket */
         if (client_socket > 0) {
                 if (cfg->verbose >= 2)
-                        xlog(LOG_INFO, "Closing %s->server socket #%d\n", PROGNAME, client_socket);
+                        xlog(LOG_INFO, "Closing %s->server (fd=#%d)\n", PROGNAME, client_socket);
 
                 proxenet_close_socket(client_socket, &(ssl_context.client));
         }
@@ -806,7 +806,7 @@ void proxenet_process_http_request(sock_t server_socket)
         /* close local socket */
         if (server_socket > 0) {
                 if (cfg->verbose >= 2)
-                        xlog(LOG_INFO, "Closing browser->%s socket #%d\n", PROGNAME, server_socket);
+                        xlog(LOG_INFO, "Closing browser->%s (fd=#%d)\n", PROGNAME, server_socket);
 
                 proxenet_close_socket(server_socket, &(ssl_context.server));
         }

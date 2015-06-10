@@ -146,9 +146,9 @@ def plugin():
         p = js[name]
         html += "<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td>".format(p['id'], name, p['priority'], p['state'])
         if p['state']=="INACTIVE":
-            html += """<td><button type="button" class="btn btn-default btn-xs" data-toggle="button" aria-pressed="false" onclick="window.location='/plugin/1/enable'">Enable</button></td>"""
+            html += """<td><button type="button" class="btn btn-default btn-xs" data-toggle="button" aria-pressed="false" onclick="window.location='/plugin/{}/enable'">Enable</button></td>""".format(p["id"])
         else:
-            html += """<td><button type="button" class="btn btn-default btn-xs" data-toggle="button" aria-pressed="false" onclick="window.location='/plugin/1/disable'">Disable</button></td>"""
+            html += """<td><button type="button" class="btn btn-default btn-xs" data-toggle="button" aria-pressed="false" onclick="window.location='/plugin/{}/disable'">Disable</button></td>""".format(p["id"])
         html += "</tr>"
 
     html += "</div>"""
