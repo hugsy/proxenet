@@ -260,7 +260,15 @@ int proxenet_ssl_handshake(proxenet_ssl_context_t* ctx)
 
                 if(retcode!=POLARSSL_ERR_NET_WANT_READ && \
                    retcode!=POLARSSL_ERR_NET_WANT_WRITE) {
-                        xlog(LOG_ERROR, "SSL handshake failed (returns %#x)\n", -retcode);
+
+                        if (retcode == POLARSSL_ERR_NET_CONN_RESET)
+                                xlog(LOG_WARNING,
+                                     "Peer has reset the SSL connection during handshake (error "
+                                     "%#x).To remove this warning, make sure to add proxenet "
+                                     "CA certificate as a Trusted CA for websites.\n",
+                                     -retcode);
+                        else
+                                xlog(LOG_ERROR, "SSL handshake failed (returns %#x)\n", -retcode);
                         break;
                 }
 
