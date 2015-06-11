@@ -51,7 +51,7 @@ static void proxenet_ruby_print_last_exception()
 	rException = rb_errinfo();         /* get last exception */
         rb_set_errinfo(Qnil);              /* clear last exception */
         rExceptStr = rb_funcall(rException, rb_intern("to_s"), 0, Qnil);
-        xlog_ruby(LOG_ERROR, "[Ruby] Exception: %s\n", StringValuePtr(rExceptStr));
+        xlog_ruby(LOG_ERROR, "Exception: %s\n", StringValuePtr(rExceptStr));
 	return;
 }
 
@@ -205,13 +205,13 @@ int proxenet_ruby_load_file(plugin_t* plugin)
 
 	rb_load_protect(rb_str_new2(pathname), false, &res);
 	if (res != 0) {
-	        xlog_ruby(LOG_ERROR, "[Ruby] Error %d when load file '%s'\n", res, pathname);
+	        xlog_ruby(LOG_ERROR, "Error %d when load file '%s'\n", res, pathname);
 		proxenet_ruby_print_last_exception();
 		return -1;
 	}
 
 	if (cfg->verbose)
-		xlog_ruby(LOG_INFO, "[Ruby] File '%s' is loaded\n", pathname);
+		xlog_ruby(LOG_INFO, "File '%s' is loaded\n", pathname);
 
 
         if (proxenet_ruby_initialize_function(plugin, REQUEST) < 0) {
@@ -282,7 +282,7 @@ static char* proxenet_ruby_execute_function(VALUE module, ID rFunc, request_t* r
 	}
 
 	if (!rRet) {
-		xlog_ruby(LOG_ERROR, "%s\n", "[ruby] funcall2() failed");
+		xlog_ruby(LOG_ERROR, "%s\n", "funcall2() failed");
 		data = NULL;
 		goto call_end;
 	}
