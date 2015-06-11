@@ -371,11 +371,15 @@ static int proxenet_apply_plugins(request_t *request)
                 request->data = (*plugin_function)(p, request);
 #ifdef DEBUG
                 gettimeofday(&tend, NULL);
-                xlog(LOG_DEBUG, "[%s] '%s:%s' executed in %lusec, %lums\n",
+
+                unsigned long sec = tend.tv_sec-tstart.tv_sec;
+                unsigned long msec = (tend.tv_usec-tstart.tv_usec)/1000;
+                unsigned long usec = (tend.tv_usec-tstart.tv_usec)%1000;
+
+                xlog(LOG_DEBUG, "[%s] '%s:%s' executed in %lusec, %lums, %luus\n",
                      supported_plugins_str[p->type], p->name,
                      request->type==REQUEST?CFG_REQUEST_PLUGIN_FUNCTION:CFG_RESPONSE_PLUGIN_FUNCTION,
-                     tend.tv_sec-tstart.tv_sec,
-                     tend.tv_usec-tstart.tv_usec);
+                     sec, msec, usec);
 #endif
 
                 if (request->data) {
