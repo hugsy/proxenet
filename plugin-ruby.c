@@ -136,11 +136,6 @@ static int proxenet_ruby_initialize_function(plugin_t* plugin, req_t type)
 		return -1;
 	}
 
-	if (proxenet_ruby_load_file(plugin) < 0) {
-		xlog_ruby(LOG_ERROR, "Failed to load %s\n", plugin->filename);
-		return -1;
-	}
-
 	/* get function ID */
 	switch(type) {
 		case REQUEST:
