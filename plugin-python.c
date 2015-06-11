@@ -202,14 +202,10 @@ static int proxenet_python_initialize_function(plugin_t* plugin, req_t type)
         }
 
         if (plugin->pre_function && type == REQUEST) {
-                if(cfg->verbose)
-                        xlog_python(LOG_WARNING, "Pre-hook function already defined for '%s'\n", plugin->name);
                 return 0;
         }
 
         if (plugin->post_function && type == RESPONSE) {
-                if(cfg->verbose)
-                        xlog_python(LOG_WARNING, "Post-hook function already defined for '%s'\n", plugin->name);
                 return 0;
         }
 
@@ -308,7 +304,7 @@ static char* proxenet_python_execute_function(PyObject* pFuncRef, request_t *req
         }
 
         pResult = PyObject_CallObject(pFuncRef, pArgs);
-        if (!pResult) {
+        if (!pResult || PyErr_Occurred()){
                 xlog_python(LOG_ERROR, "%s\n", "PyObject_CallObject() failed.");
                 PyErr_Print();
                 return NULL;
