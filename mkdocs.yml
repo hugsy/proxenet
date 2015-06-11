@@ -6,6 +6,7 @@ pages:
 - ['config.md',  'proxenet', 'Configuration']
 - ['plugin.md',  'proxenet', 'HowTo write plugins']
 - ['runtime.md', 'proxenet', 'Runtime']
+- ['clients.md', 'proxenet', 'Control proxenet']
 - ['plugins/index.md',  'Plugins', 'Index']
 - ['plugins/python.md', 'Plugins', 'Python']
 - ['plugins/perl.md',   'Plugins', 'Perl']
