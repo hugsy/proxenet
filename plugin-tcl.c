@@ -27,7 +27,6 @@
  */
 int proxenet_tcl_load_file(plugin_t* plugin)
 {
-	char* filename;
 	char* pathname;
 	Tcl_Interp* tcl_interpreter;
 
@@ -39,7 +38,6 @@ int proxenet_tcl_load_file(plugin_t* plugin)
                 return 0;
         }
 
-	filename = plugin->filename;
         pathname = plugin->fullpath;
 	tcl_interpreter = (Tcl_Interp*) plugin->interpreter->vm;
 
