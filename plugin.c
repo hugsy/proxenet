@@ -51,6 +51,7 @@ static void insert_new_plugin_in_list(char* name, supported_plugins_t type, shor
 	plugin->interpreter 	= &vms[type];
 	plugin->pre_function	= NULL;
 	plugin->post_function	= NULL;
+        plugin->internal        = NULL;
 
 #ifdef DEBUG
         xlog(LOG_DEBUG, "Trying to add '%s' [type=%d,prio=%d] to plugin_list\n", name, type, priority);

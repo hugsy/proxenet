@@ -57,7 +57,7 @@ int proxenet_java_load_file(plugin_t* plugin)
                 return -1;
         }
 
-        plugin->class = (void*)jcls;
+        plugin->internal = (void*)jcls;
 
 #ifdef DEBUG
         xlog_java(LOG_DEBUG, "Class '%s' jcls=%#lx\n", plugin->name, jcls);
@@ -207,11 +207,11 @@ static char* proxenet_java_execute_function(plugin_t* plugin, request_t *request
 
         if (request->type==REQUEST){
                 meth = CFG_REQUEST_PLUGIN_FUNCTION;
-                jcls = (jclass)plugin->class;
+                jcls = (jclass)plugin->internal;
                 jmid = (jmethodID)plugin->pre_function;
         } else {
                 meth = CFG_RESPONSE_PLUGIN_FUNCTION;
-                jcls = (jclass)plugin->class;
+                jcls = (jclass)plugin->internal;
                 jmid = (jmethodID)plugin->post_function;
         }
 

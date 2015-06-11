@@ -376,7 +376,7 @@ static int proxenet_apply_plugins(request_t *request)
                 unsigned long msec = (tend.tv_usec-tstart.tv_usec)/1000;
                 unsigned long usec = (tend.tv_usec-tstart.tv_usec)%1000;
 
-                xlog(LOG_DEBUG, "[%s] '%s:%s' executed in %lusec, %lums, %luus\n",
+                xlog(LOG_DEBUG, "[%s] '%s:%s' executed in %dsec, %dms, %dus\n",
                      supported_plugins_str[p->type], p->name,
                      request->type==REQUEST?CFG_REQUEST_PLUGIN_FUNCTION:CFG_RESPONSE_PLUGIN_FUNCTION,
                      sec, msec, usec);

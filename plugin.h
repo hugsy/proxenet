@@ -155,10 +155,10 @@ typedef struct _plugin_type {
 		struct _plugin_type* next;
 		proxenet_state state;
 
-		interpreter_t *interpreter;
+		interpreter_t *interpreter;               // points to the type of interpreter
 		void *pre_function;
 		void *post_function;
-                void *class;
+                void *internal;                           // internal is a free field that can freely used by plugin
 } plugin_t;
 
 #include "http.h"
