@@ -147,10 +147,16 @@ int proxenet_python_initialize_vm(plugin_t* plugin)
  */
 int proxenet_python_destroy_plugin(plugin_t* plugin)
 {
+        PyThreadState* oldctx;
+
         plugin->state = INACTIVE;
         Py_DECREF(plugin->pre_function);
         Py_DECREF(plugin->post_function);
+
+        oldctx = PyThreadState_Get();
+        PyThreadState_Swap( plugin->internal );
         Py_EndInterpreter( plugin->internal );
+        PyThreadState_Swap( oldctx );
 
         return 0;
 }
@@ -269,7 +275,7 @@ int proxenet_python_load_file(plugin_t* plugin)
 
         if (proxenet_python_initialize_function(plugin, REQUEST) < 0 || \
             proxenet_python_initialize_function(plugin, RESPONSE) < 0) {
-                xlog_python(LOG_ERROR, "Failed to initialize '%s.%s'\n", plugin->name
+                xlog_python(LOG_ERROR, "Failed to initialize '%s.%s'\n", plugin->name,
                             REQUEST ? CFG_REQUEST_PLUGIN_FUNCTION : CFG_RESPONSE_PLUGIN_FUNCTION);
                 retcode = -1;
         }
