@@ -70,6 +70,41 @@ $ curl -fsSL https://github.com/polarssl/polarssl/archive/polarssl-1.3.9.tar.gz 
 $ cd mbedtls-polarssl-1.3.9 && cmake . && sudo make install
 ```
 
+#### VM support
+
+By default, `cmake` will try to find all the libraries already installed on the
+system to enable specific plugin. On any installation, at least `C` plugin will
+be available.
+
+If you wish to compile `proxenet` with all the VM it currently supports, try the
+following command:
+
+
+##### For Red-Hat based distributions
+
+
+```bash
+$ sudo yum install \
+  ruby-devel \                    # for compiling with Ruby plugin support
+  lua-devel \                     # for compiling with Lua plugin support
+  java-1.8.0-openjdk-devel \      # for compiling with Java/OpenJDK plugin support
+  python-devel \                  # for compiling with Python plugin support
+  perl-devel                      # for compiling with Perl plugin support
+```
+
+##### For Debian based distributions
+
+
+```bash
+$ sudo apt-get install \
+  ruby-dev \                      # for compiling with Ruby plugin support
+  liblua5.2-dev \                 # for compiling with Lua plugin support
+  java-1.8.0-openjdk-dev \        # for compiling with Java/OpenJDK plugin support
+  python-dev \                    # for compiling with Python2 plugin support
+  python3-dev \                   # for compiling with Python3 plugin support
+  libperl-dev                     # for compiling with Perl plugin support
+```
+
 
 ### Compilation
 In order to build `proxenet` make sure you have [CMake](http://www.cmake.org)
@@ -91,6 +126,20 @@ $ cmake . -DUSE_C_PLUGIN=OFF && make   # to disable C script support
 or
 $ cmake . -DUSE_PYTHON_PLUGIN=OFF && make   # to disable Python script support
 ```
+
+
+### Re-Compilation
+
+Once your environmment is setup, if you wish to compile `proxenet` to take into
+account new changes (for example, a new VM support), simply run the command:
+
+```bash
+$ make clean rebuild_cache all
+```
+
+This will force `cmake` to delete and reconstruct the cache files it created
+during the last run.
+
 
 ### Setup the environment
 
@@ -116,4 +165,4 @@ If you do not want to download the repository, you will need to create manually 
 ~/proxenet$ mkdir -p proxenet-plugins/autoload
 ```
 
-Then, you will be able to start `proxenet`.
+Congratz, your installation of `proxenet` is ready. Let the fun begin...
