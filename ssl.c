@@ -66,7 +66,7 @@ static void proxenet_ssl_debug(void *who, int level, const char *str )
 /**
  *
  */
-static inline int _proxenet_ssl_init_context(ssl_atom_t* ssl_atom, int type, char* hostname)
+static int ssl_init_context(ssl_atom_t* ssl_atom, int type, char* hostname)
 {
         int retcode = -1;
         char ssl_error_buffer[128] = {0, };
@@ -223,7 +223,7 @@ end_init:
  */
 int proxenet_ssl_init_server_context(ssl_atom_t *server, char* hostname)
 {
-        return _proxenet_ssl_init_context(server, SSL_IS_SERVER, hostname);
+        return ssl_init_context(server, SSL_IS_SERVER, hostname);
 }
 
 
@@ -232,7 +232,7 @@ int proxenet_ssl_init_server_context(ssl_atom_t *server, char* hostname)
  */
 int proxenet_ssl_init_client_context(ssl_atom_t* client, char* hostname)
 {
-        return _proxenet_ssl_init_context(client, SSL_IS_CLIENT, hostname);
+        return ssl_init_context(client, SSL_IS_CLIENT, hostname);
 }
 
 
