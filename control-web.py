@@ -53,8 +53,13 @@ def sr(msg):
 
 
 def build_html(**kwargs):
-    header = """<!DOCTYPE html><html lang="en"><head><link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css"><link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap-theme.min.css"><script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script><script src="//jquery.com/jquery-wp-content/themes/jquery/js/jquery-1.11.2.min.js"></script>
-    <title>{}</title></head>""".format( kwargs.get("title", "") )
+    header = """<!DOCTYPE html><html lang="en"><head>"""
+    header+= """<script src="//jquery.com/jquery-wp-content/themes/jquery/js/jquery-1.11.2.min.js"></script>"""
+    header+= """<script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>"""
+    header+= """<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">"""
+    header+= """<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap-theme.min.css">"""
+
+    header+= """<title>{}</title></head>""".format( kwargs.get("title", "") )
     body = """<body><div class="container">
     <div><img src="/img/logo"></div>
     <div class="row"><div class=col-md-12>
@@ -119,23 +124,9 @@ def index():
 @get('/plugin')
 def plugin():
     if not is_proxenet_running(): return build_html(body=not_running_html())
-    res = sr("plugin list-all")
-    js = json.loads( res )
-    title = js.keys()[0]
-    html = """<div class="panel panel-default">"""
-    html += """<div class="panel-heading"><h3 class="panel-title">{}</h3></div>""".format(title)
-    html += """<table class="table table-hover table-condensed">"""
-    html += "<tr><th>Name</th><th>Type</th><th>Status</th></tr>"
-    for k,v in js[title].iteritems():
-        _type, _is_loaded = v
-        html += "<tr><td>{}</td><td>{}</td>".format(k, _type)
-        if _is_loaded:
-            html += """<td><button type="button" class="btn btn-default btn-xs" data-toggle="button" aria-pressed="true" disabled='true'">Loaded</button></td></tr>"""
-        else:
-            html += """<td><button type="button" class="btn btn-default btn-xs" data-toggle="button" aria-pressed="false" onclick="window.location='/plugin/load/{}'">Load</button></td></tr>""".format(k)
-    html += "</table></div>"""
+    html = ""
 
-    time.sleep(0.5)
+    # enabled plugins
     res = sr("plugin list")
     js = json.loads( res )
     html += """<div class="panel panel-default">"""
@@ -150,8 +141,27 @@ def plugin():
         else:
             html += """<td><button type="button" class="btn btn-default btn-xs" data-toggle="button" aria-pressed="false" onclick="window.location='/plugin/{}/disable'">Disable</button></td>""".format(p["id"])
         html += "</tr>"
+    html += "</table></div>"""
 
-    html += "</div>"""
+    time.sleep(0.25)
+
+    # available plugins
+    res = sr("plugin list-all")
+    js = json.loads( res )
+    title = js.keys()[0]
+    html += """<div class="panel panel-default">"""
+    html += """<div class="panel-heading"><h3 class="panel-title">{}</h3></div>""".format(title)
+    html += """<table class="table table-hover table-condensed">"""
+    html += "<tr><th>Name</th><th>Type</th><th>Status</th></tr>"
+    for k,v in js[title].iteritems():
+        _type, _is_loaded = v
+        html += "<tr><td>{}</td><td>{}</td>".format(k, _type)
+        if _is_loaded:
+            html += """<td><button type="button" class="btn btn-default btn-xs" data-toggle="button" aria-pressed="true" disabled='true'">Loaded</button></td></tr>"""
+        else:
+            html += """<td><button type="button" class="btn btn-default btn-xs" data-toggle="button" aria-pressed="false" onclick="window.location='/plugin/load/{}'">Load</button></td></tr>""".format(k)
+    html += "</table></div>"""
+
     return build_html(body=html, title="Plugins detail", page="plugin")
 
 
