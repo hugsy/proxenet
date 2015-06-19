@@ -54,10 +54,10 @@ def sr(msg):
 
 def build_html(**kwargs):
     header = """<!DOCTYPE html><html lang="en"><head>"""
-    header+= """<script src="//jquery.com/jquery-wp-content/themes/jquery/js/jquery-1.11.2.min.js"></script>"""
-    header+= """<script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>"""
-    header+= """<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">"""
-    header+= """<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap-theme.min.css">"""
+    header+= """<script src="/js/jquery"></script>"""
+    header+= """<script src="/js/bootstrap"></script>"""
+    header+= """<link rel="stylesheet" href="/css/bootstrap">"""
+    header+= """<link rel="stylesheet" href="/css/bootstrap-theme">"""
 
     header+= """<title>{}</title></head>""".format( kwargs.get("title", "") )
     body = """<body><div class="container">
@@ -80,9 +80,17 @@ def build_html(**kwargs):
 
 
 @route('/img/logo')
-def logo():
-    return static_file("/proxenet-logo.png", root="./docs/img")
+def logo(): return static_file("/proxenet-logo.png", root="./docs/img")
 
+@route('/js/jquery')
+def js_jquery(): return static_file("/jquery-1.11.2.min.js", root="./docs/html/js")
+@route('/js/bootstrap')
+def js_bootstrap(): return static_file("/bootstrap.min.js", root="./docs/html/js")
+
+@route('/css/bootstrap')
+def css_boostrap(): return static_file("/bootstrap.min.css", root="./docs/html/css")
+@route('/css/bootstrap-theme')
+def css_boostrap_theme(): return static_file("/bootstrap-theme.min.css", root="./docs/html/css")
 
 @route('/quit')
 def quit():
