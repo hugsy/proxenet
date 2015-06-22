@@ -99,7 +99,7 @@ high-level language.
 Take a look at the [Plugins](plugin) section for a quick guide on how to start
 writing plugins now.
 
-## Language Versions
+## Plugin Binding Language Versions
 
 The current version of `proxenet` has been tested with:
 
@@ -119,7 +119,7 @@ both written in Java.
 
 ![burp-proxenet](img/fun.png)
 
-*Note*: this troll is naturally totally unbiaised of course.
+*Note*: This troll is naturally totally unbiaised of course.
 
 
 ## Contributing
