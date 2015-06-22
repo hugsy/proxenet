@@ -5,7 +5,7 @@
 `proxenet` requires:
 
 1. `cmake` as a building engine
-2. `polarssl` for the SSL library
+2. `polarssl` (now known as mbed TLS) for the SSL library
 
 
 #### CMake
