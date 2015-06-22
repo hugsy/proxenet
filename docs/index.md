@@ -33,7 +33,7 @@ looking for, here are a few links for you:
 - [Burp](http://portswigger.net/burp)
 - [ProxyStrike](http://www.edge-security.com/proxystrike.php)
 
-Or the best way, write your own GUI as a `proxenet` plugin!
+Of course, the best way is to write your own GUI as a `proxenet` plugin!
 
 
 ## Why ?
