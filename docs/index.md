@@ -25,25 +25,26 @@ for
 supports heaps of languages (see the section "Language Versions") and more can
 be easily added.
 
-`proxenet` is **not** script kiddie friendly, neither GUI friendly. If this is
-what you are looking for, here are a few links for you
+`proxenet` is **not** script kiddie friendly, and does not come with a GUI. If
+this is what you are looking for, here are a few links for you:
 
 - [ZAP](http://owasp.org/index.php/OWASP_Zed_Attack_Proxy_Project)
 - [Burp](http://portswigger.net/burp)
 - [ProxyStrike](http://www.edge-security.com/proxystrike.php)
+- [HackForums](http://hackforums.net)
 
-Or the best way, write your own GUI as a `proxenet` plugin !
+Or the best way, write your own GUI as a `proxenet` plugin!
 
 
 ## Why ?
 The idea behind `proxenet` came after a lot of frustration from attempting to write
 extensions for Burp. Moreover, only a few proxies already existing supports the
 possibility to add new extensions. And when they do, they are (one) language
-specific - despite Burp persistent attempts to make unnatural bindings (Python
-over Java or worse Ruby over Java.
+specific - despite Burp's persistent attempts to make unnatural bindings (Python
+over Java, or worse: Ruby over Java).
 
 Being written in pure C, it is **fast**, **efficient** and easily
-pluggable to anything else. It is the utimate real
+pluggable to anything else. It is the ultimate real
 [DIY](https://en.wikipedia.org/wiki/Do_it_yourself) web proxy for
 pentest(ers).
 
@@ -75,17 +76,17 @@ Here are a sample of features already supported by `proxenet`:
 - Nice TTY colors :D
 - 100% Open-Source
 
-... and more !
+... and more!
 
 
-## The best of both world ?
+## The best of both worlds ?
 
 Some people might miss the beautiful interface some other GUI-friendly proxies
-provide. So be it! Plug `proxenet` as a relay behind your favorite `Burp`,
-`Zap`, `Proxystrike`, `burst`, etc. and enjoy the show!
+provide. So be it! Chain `proxenet` along `Burp`, `Zap`, `Proxystrike`,
+`burst`, etc. and enjoy the show!
 
 
-## Write-Your-Own-Plugins
+## Write Your Own Plugins
 
 If you ever had to do, you already know that writing extension for `Burp` is a
 pain and other tools only provide plugins (when they do) in the language they
@@ -95,7 +96,8 @@ So the simple but powerful idea behind `proxenet` is to allow pentesters to
 **easily** interact with their HTTP requests/responses in their favorite
 high-level language.
 
-Jump to section [Plugin](plugin) to start writing plugins now.
+Take a look at the [Plugins](plugin) section for a quick guide on how to start
+writing plugins now.
 
 ## Language Versions
 
@@ -109,7 +111,7 @@ The current version of `proxenet` has been tested with:
 - Java 1.6+
 
 
-## Still not convinced ?
+## Still not convinced?
 
 Just to keep the troll alive, have a quick look at the comparison how to create
 a very simple plugin using `Burp` API and the very same plugin using `proxenet`,
@@ -120,7 +122,7 @@ both written in Java.
 *Note*: this troll is naturally totally unbiaised of course.
 
 
-## Want to help
+## Contributing
 
 Report crashes or improvement patches using the GitHub issues page of the
 project. This project follows the *beers4bugs* bounty policy.
