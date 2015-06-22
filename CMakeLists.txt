@@ -52,14 +52,15 @@ option(USE_PERL_PLUGIN        "Add Perl script support"                ON)
 option(USE_TCL_PLUGIN         "Add Tcl script support"                 ON)
 option(USE_JAVA_PLUGIN        "Add Java script support"                ON)
 
-option(DEBUG                  "Enable Debug"                           OFF)
-option(DEBUG_SSL              "Enable SSL debug"                       OFF)
-option(DEBUG_LEAK             "Enable memleak checks"                  OFF)
-
 # enforcing debug compil when in branch dev
 if(GIT_RELEASE_BRANCH STREQUAL "dev")
-  set(DEBUG ON)
+  option(DEBUG                  "Enable Debug"                           ON)
+else()
+  option(DEBUG                  "Enable Debug"                           OFF)
 endif()
+
+option(DEBUG_SSL              "Enable SSL debug"                       OFF)
+option(DEBUG_LEAK             "Enable memleak checks"                  OFF)
 
 if (DEBUG)
   set(CMAKE_BUILD_TYPE Debug)
