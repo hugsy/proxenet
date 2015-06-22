@@ -117,7 +117,7 @@ Just to keep the troll alive, have a quick look at the comparison how to create
 a very simple plugin using `Burp` API and the very same plugin using `proxenet`,
 both written in Java.
 
-[burp-proxenet](img/fun.png)
+![burp-proxenet](img/fun.png)
 
 *Note*: this troll is naturally totally unbiaised of course.
 
