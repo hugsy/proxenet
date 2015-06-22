@@ -1,11 +1,11 @@
-## Compile proxenet
+## Compiling proxenet
 
 ### Pre-requisites
 
 `proxenet` requires:
 
 1. `cmake` as a building engine
-2. `polarssl` for the SSL library
+2. `polarssl` (now known as mbed TLS) for the SSL library
 
 
 #### CMake
@@ -36,17 +36,17 @@ $ pkg install cmake
 ```
 
 #### PolarSSL
-`proxenet` requires a recent version of
-[PolarSSL library](https://polarssl.org/source-code), on version 1.3 and
-up. Support for version 1.2.x was definitively abandonned.
+`proxenet` requires a recent version of the PolarSSL library (now called mbed
+TLS), version 1.3 or above. Support for version 1.2.x was definitively
+abandoned.
 
-The choice for PolarSSL as main SSL development library came because of its easy
-integration in multi-threaded environment, along with a simple (but yet
+The choice for PolarSSL as main SSL development library came because of its
+easy integration in multi-threaded environment, along with a simple (but
 thoroughly documented) API.
 
 ##### Pre-compiled
 
-For most distro, a simple
+For most distributions, a simple
 ```bash
 $ apt-get install libpolarssl-dev   # for Debian-based Linux
 or
@@ -57,18 +57,21 @@ $ brew install polarssl             # for Mac OSX
 will be enough.
 
 *Note*: FreeBSD provides by default an old version of PolarSSL (1.2
- branch). This branch is not supported any more, so please install from source
- as explained below.
+branch). This branch is not supported any more, so please install from source
+as explained below.
 
 
 ##### From source
 
-Installing PolarSSL library from source is pretty straight-forward. Here with an
-example with version 1.3.9:
+Installing the PolarSSL / mbed TLS library from source is pretty straight-forward. Here
+is an example with version 1.3.9:
 ``` bash
-$ curl -fsSL https://github.com/polarssl/polarssl/archive/polarssl-1.3.9.tar.gz | tar xfz -
+$ curl -fsSL https://github.com/ARMmbed/mbedtls/archive/polarssl-1.3.9.tar.gz | tar xfz -
 $ cd mbedtls-polarssl-1.3.9 && cmake . && sudo make install
 ```
+
+Later versions of mbed TLS can be obtained from the
+[GitHub releases page](https://github.com/ARMmbed/mbedtls/releases).
 
 #### VM support
 
@@ -118,9 +121,9 @@ $ cd proxenet && cmake . && make
 ```
 
 `cmake` will generate the `Makefile` accordingly to your configuration and
-libraries availableon your system.
-If you want to explicity enable/disable scripting supports, use the option `-D`
-when using `cmake`. For example,
+libraries available on your system.
+If you want to explicitly enable/disable scripting supports, use the option
+`-D` when using `cmake`. For example:
 ```bash
 $ cmake . -DUSE_C_PLUGIN=OFF && make   # to disable C script support
 or
