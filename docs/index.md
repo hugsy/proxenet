@@ -25,13 +25,13 @@ for
 supports heaps of languages (see the section "Language Versions") and more can
 be easily added.
 
-`proxenet` is **not** script kiddie friendly, and does not come with a GUI. If
-this is what you are looking for, here are a few links for you:
+`proxenet` is **not** script kiddie friendly. While the tool can be configured
+to use a web interface, it is not packaged with a GUI. If this is what you are
+looking for, here are a few links for you:
 
 - [ZAP](http://owasp.org/index.php/OWASP_Zed_Attack_Proxy_Project)
 - [Burp](http://portswigger.net/burp)
 - [ProxyStrike](http://www.edge-security.com/proxystrike.php)
-- [HackForums](http://hackforums.net)
 
 Or the best way, write your own GUI as a `proxenet` plugin!
 
