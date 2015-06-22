@@ -121,9 +121,9 @@ $ cd proxenet && cmake . && make
 ```
 
 `cmake` will generate the `Makefile` accordingly to your configuration and
-libraries availableon your system.
-If you want to explicity enable/disable scripting supports, use the option `-D`
-when using `cmake`. For example,
+libraries available on your system.
+If you want to explicitly enable/disable scripting supports, use the option
+`-D` when using `cmake`. For example:
 ```bash
 $ cmake . -DUSE_C_PLUGIN=OFF && make   # to disable C script support
 or
