@@ -1,4 +1,4 @@
-## Compile proxenet
+## Compiling proxenet
 
 ### Pre-requisites
 
