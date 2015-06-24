@@ -15,4 +15,5 @@ pages:
 - ['plugins/c.md',      'Plugins', 'C']
 - ['plugins/lua.md',    'Plugins', 'Lua']
 - ['plugins/tcl.md',    'Plugins', 'Tcl']
+- ['plugins/rust.md',   'Plugins', 'Rust']
 - ['refs.md', 'Misc', 'References']
