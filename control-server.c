@@ -29,25 +29,30 @@
 
 #define BUFSIZE 4096
 
-#define ERR_INVALID_SYNTAX_JSON(x) { proxenet_write(x, "{\"error\": \"Invalid syntax\"}", 27); }
+#define ERR_INVALID_SYNTAX_JSON(x)   { proxenet_write(x, "{\"error\": \"Invalid syntax\"}", 27); }
 #define ERR_MISSING_ARGUMENT_JSON(x) { proxenet_write(x, "{\"error\": \"Missing argument\"}", 29); }
 
-static void quit_cmd(sock_t  fd, char *options, unsigned int nb_options);
-static void help_cmd(sock_t fd, char *options, unsigned int nb_options);
-static void info_cmd(sock_t fd, char *options, unsigned int nb_options);
-static void reload_cmd(sock_t fd, char *options, unsigned int nb_options);
-static void threads_cmd(sock_t fd, char *options, unsigned int nb_options);
-static void plugin_cmd(sock_t fd, char *options, unsigned int nb_options);
-static void config_cmd(sock_t fd, char *options, unsigned int nb_options);
+
+#define COMMAND(NAME, HAS_ARG, DESC) { #NAME, HAS_ARG, &NAME##_cmd, "Command '" #NAME "':" DESC}
+#define COMMAND_SIGNATURE(x) static void x##_cmd(sock_t, char*, unsigned int)
+
+
+COMMAND_SIGNATURE(quit);
+COMMAND_SIGNATURE(help);
+COMMAND_SIGNATURE(info);
+COMMAND_SIGNATURE(reload);
+COMMAND_SIGNATURE(threads);
+COMMAND_SIGNATURE(plugin);
+COMMAND_SIGNATURE(config);
 
 static struct command_t known_commands[] = {
-	{ "quit", 	 0, &quit_cmd,     "Make "PROGNAME" leave kindly" },
-	{ "help", 	 0, &help_cmd,     "Show this menu" },
-	{ "info", 	 0, &info_cmd,     "Display information about environment" },
-	{ "reload", 	 0, &reload_cmd,   "Reload the plugins" },
-	{ "threads", 	 0, &threads_cmd,  "Show info about threads" },
-	{ "plugin", 	 1, &plugin_cmd,   "Get/Set info about plugin"},
-        { "config", 	 1, &config_cmd,   "Edit configuration at runtime"},
+        COMMAND(quit,     0,   "Make "PROGNAME" leave kindly"),
+        COMMAND(help,     0,   "Show this menu"),
+        COMMAND(info,     0,   "Display information about environment"),
+        COMMAND(reload,   0,   "Reload the plugins"),
+        COMMAND(threads,  0,   "Show info about threads"),
+        COMMAND(plugin,   1,   "Get/Set info about plugin"),
+        COMMAND(config,   1,   "Edit configuration at runtime"),
 
 	{ NULL, 0, NULL, NULL}
 };
