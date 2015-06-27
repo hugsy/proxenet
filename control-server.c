@@ -29,9 +29,10 @@
 
 #define BUFSIZE 4096
 
-#define ERR_INVALID_SYNTAX_JSON(x)   { proxenet_write(x, "{\"error\": \"Invalid syntax\"}", 27); }
-#define ERR_MISSING_ARGUMENT_JSON(x) { proxenet_write(x, "{\"error\": \"Missing argument\"}", 29); }
-
+#define ERR_INVALID_PLUGIN_ID(x)      {proxenet_write(x, "{\"error\": \"Invalid plugin id\"}", 30);}
+#define ERR_INVALID_SYNTAX_JSON(x)    {proxenet_write(x, "{\"error\": \"Invalid syntax\"}", 27);}
+#define ERR_MISSING_ARGUMENT_JSON(x)  {proxenet_write(x, "{\"error\": \"Missing argument\"}", 29);}
+#define ERR_INVALID_ACTION(x)         {proxenet_write(x, "{\"error\": \"Invalid action\"}", 27);}
 
 #define COMMAND(NAME, HAS_ARG, DESC) { #NAME, HAS_ARG, &NAME##_cmd, "Command '" #NAME "':" DESC}
 #define COMMAND_SIGNATURE(x) static void x##_cmd(sock_t, char*, unsigned int)
@@ -54,7 +55,7 @@ static struct command_t known_commands[] = {
         COMMAND(plugin,   1,   "Get/Set info about plugin"),
         COMMAND(config,   1,   "Edit configuration at runtime"),
 
-	{ NULL, 0, NULL, NULL}
+        { NULL, 0, NULL, NULL}
 };
 
 
@@ -368,7 +369,7 @@ static int plugin_cmd_set(sock_t fd, char *options)
 
         plugin_id = (unsigned int)atoi(options);
         if ( proxenet_get_plugin_by_id( plugin_id )==NULL ) {
-                proxenet_write(fd, "{\"error\": \"Invalid plugin id\"}", 30);
+                ERR_INVALID_PLUGIN_ID(fd);
                 return -1;
         }
 
@@ -528,8 +529,10 @@ static void plugin_cmd(sock_t fd, char *options, unsigned int nb_options)
 
         /* usage */
         ptr = strtok(options, " \n");
-        if (!ptr)
-                goto invalid_plugin_action;
+        if (!ptr){
+                ERR_INVALID_ACTION(fd);
+                return;
+        }
 
         if (strcmp(ptr, "list") == 0) {
                 send_plugin_list_as_json(fd, false);
@@ -574,10 +577,6 @@ static void plugin_cmd(sock_t fd, char *options, unsigned int nb_options)
                 return;
         }
 
-
-invalid_plugin_action:
-        proxenet_write(fd, "{\"error\": \"Invalid action\"}", 27);
-        return;
 }
 
 
