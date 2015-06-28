@@ -83,7 +83,11 @@ static void send_threads_list_as_json(sock_t fd)
                 if (first_item) first_item=false;
                 else proxenet_write(fd, ",", 1);
                 memset(msg, 0, sizeof(msg));
+#if defined __LINUX__
                 n = snprintf(msg, sizeof(msg), "\"Thread-%d\": %lu", i, threads[i]);
+#elif defined __FREEBSD__ || defined __DARWIN__
+                n = snprintf(msg, sizeof(msg), "\"Thread-%d\": %p", i, threads[i]);
+#endif
                 proxenet_write(fd, (void*)msg, n);
         }
         proxenet_write(fd, "}}", 2);

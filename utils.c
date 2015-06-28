@@ -61,7 +61,11 @@ void _xlog(int type, const char* fmt, ...)
 
 
 #ifdef DEBUG
+#if defined __LINUX__
 	fprintf(cfg->logfile_fd, "tid-%lu ", pthread_self());
+#elif defined __FREEBSD__ || defined __DARWIN__
+        fprintf(cfg->logfile_fd, "tid-%p ", pthread_self());
+#endif
 #endif
 
 	va_start(ap, fmt);
