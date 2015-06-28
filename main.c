@@ -2,6 +2,15 @@
 #include "config.h"
 #endif
 
+#if __DARWIN__
+// daemon() call works perfectly on OSX but since it triggers a warning (which will
+// fail if compiled with -Werror)
+//
+// Seriously, fuck you Apple for your bullshit POSIX compatiblity
+//
+#define daemon daemon_is_deprecated_bullshit_bypass
+#endif
+
 #include <fcntl.h>
 #include <getopt.h>
 #include <stdio.h>
@@ -14,6 +23,11 @@
 #include <errno.h>
 #include <string.h>
 #include <limits.h>
+
+#if __APPLE__
+#undef daemon
+extern int daemon(int, int);
+#endif
 
 #include "core.h"
 #include "utils.h"
