@@ -30,7 +30,7 @@
 static int send_socks4_connect(sock_t socks_fd, char *ip_str, int port)
 {
         unsigned char socks_request[SOCKS_REQUEST_MAXLEN]={0,};
-        unsigned short ip[4] = {0,};
+        unsigned char ip[4] = {0,};
         char userid[64] = {0,};
         int retcode, n;
 
@@ -43,16 +43,16 @@ static int send_socks4_connect(sock_t socks_fd, char *ip_str, int port)
         socks_request[3] = port & 0xff;
 
         /* DSTIP */
-        retcode = sscanf(ip_str, "%hu.%hu.%hu.%hu", &ip[0],&ip[1],&ip[2],&ip[3]);
+        retcode = sscanf(ip_str, "%hhu.%hhu.%hhu.%hhu", &ip[0],&ip[1],&ip[2],&ip[3]);
         if(retcode!=4){
                 xlog(LOG_ERROR, "IP '%s' does not have a valid IPv4 format\n", ip_str);
                 return -1;
         }
 
-        socks_request[4] = (unsigned char)ip[0];
-        socks_request[5] = (unsigned char)ip[1];
-        socks_request[6] = (unsigned char)ip[2];
-        socks_request[7] = (unsigned char)ip[3];
+        socks_request[4] = ip[0];
+        socks_request[5] = ip[1];
+        socks_request[6] = ip[2];
+        socks_request[7] = ip[3];
 
 
         /* USERID */
