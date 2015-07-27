@@ -17,3 +17,4 @@ pages:
 - ['plugins/tcl.md',    'Plugins', 'Tcl']
 - ['plugins/rust.md',   'Plugins', 'Rust']
 - ['refs.md', 'Misc', 'References']
+- ['mitm.md', 'Misc', 'Proxenet-In-The-Middle attack']
