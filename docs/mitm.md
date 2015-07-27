@@ -82,10 +82,6 @@ sudo python2 Responder.py -v -I vboxnet0 -u 192.168.56.1:8008
 
 ## proxenet setup ##
 
-When started, `proxenet` will start initializing plugins and appending them to
-a list **only if** they are valid (filename convention and syntaxically
-valid). Then it will start looking for events.
-
 Create or edit the `proxenet` plugin configuration file, `$HOME/.proxenet.ini`
 with the following sections.
 ```
@@ -100,7 +96,7 @@ python       = /usr/bin/python2.7
 
 ; Download https://gist.github.com/hugsy/18aa43255fd4d905a379#file-xor-payload-py
 ; and copy its path to this configuration script.
-xor_payload  = %{home}/code/xor-payload/xor-payload.py
+xor_payload  = %(home)s/code/xor-payload/xor-payload.py
 
 ; This should point to the HTML page to inject every time a user fetches
 ; any HTML page
