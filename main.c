@@ -379,11 +379,17 @@ static int parse_options (int argc, char** argv)
         if(!cfg->intercept_pattern)
                 return -1;
 
-#ifdef DEBUG
-        xlog(LOG_DEBUG, "Interception configured as '%s' for pattern '%s'\n",
-             cfg->intercept_mode==INTERCEPT_ONLY?"INTERCEPT_ONLY":"INTERCEPT_EXCEPT",
-             cfg->intercept_pattern);
-#endif
+        if(cfg->verbose) {
+                switch(cfg->intercept_mode){
+                        case INTERCEPT_ONLY:
+                                xlog(LOG_INFO, "Intercepting only matching '%s'\n", cfg->intercept_pattern);
+                                break;
+                        case INTERCEPT_EXCEPT:
+                                xlog(LOG_INFO, "Intercepting everything except matching '%s'\n", cfg->intercept_pattern);
+                                break;
+                }
+        }
+
 
         /* check plugins path */
         if (!is_valid_plugin_path(plugin_path, &cfg->plugins_path, &cfg->autoload_path))
