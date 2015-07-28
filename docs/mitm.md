@@ -120,6 +120,21 @@ $ ./proxenet -b 192.168.56.1 -p 8008 -i -N
 Adding the `-N` option disables the SSL interception and make it stealthier. The
 `-i` option forces `proxenet` to use the Internet Explorer compatibility mode.
 
+From the moment `proxenet` and `Responder` are working together, you will
+automatically send fake results to your victims. By default, the `oPhishPoison`
+plugin will replace known binary content types (such as Office documents, ZIP
+files, RAR archives, etc.) with PE executables containing your payloads.
+
+When `Responder` poisons the LLMNR request for WPAD, it will indicate to the
+victim to fetch the PAC configuration from itself.
+![responder-wpad](img/responder-wpad.png)
+
+After that, **every** HTTP request from this victim will go through `proxenet`.
+You will very soon see this kind of message appearing on your screen:
+![proxenet-poison](img/proxenet-poison.png)
+
+This indicates that the attack was successful. From now, just wait for the
+shells ☺
 
 ## What's next?
 
