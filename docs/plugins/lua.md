@@ -10,10 +10,7 @@ AUTHOR = ""
 PLUGIN_NAME = ""
 
 function proxenet_request_hook (request_id, request, uri)
-    local CRLF = "\r\n"
-    return string.gsub(request,
-			CRLF..CRLF,
-			CRLF .. "X-Lua-Injected: proxenet" .. CRLF..CRLF)
+    return request
 end
 
 function proxenet_response_hook (response_id, response, uri)
