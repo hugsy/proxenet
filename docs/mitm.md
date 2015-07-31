@@ -1,14 +1,13 @@
 # Proxenet-In-The-Middle attack #
 
 `proxenet` can also be used to deliver automated payloads via a
-Man-in-the-Middle attack. This can be done with the help of the awesome tool
-[Responder](https://github.com/SpiderLabs/Responder) in two easy steps.
+Man-in-the-Middle attack. This can be done with the help of the awesome [Responder](https://github.com/SpiderLabs/Responder) tool, in two easy steps.
 
 
 ## Network setup ##
 
-We will the Windows hosts on the network `192.168.56.0/24`. Our evil box will be
-at `192.168.56.1`.
+In this example, We will target Windows hosts on the network `192.168.56.0/24`. Our evil box will be
+located at `192.168.56.1`.
 
 Let's do this.
 
@@ -16,9 +15,8 @@ Let's do this.
 ## Responder setup ##
 
 We will use `Responder` to spoof NetBIOS packets and poison local network
-Windows workstation WPAD configuration to our evil box. The configuration is
-pretty easy since we don't need any feature from `Responder` except the
-poisoning.
+Windows workstation WPAD configuration, and redirect traffic to our evil box. The configuration is
+very simple, as we only need to use poisoning feature of `Responder`.
 
 **_Note_**: I used _jrmdev_ version of `Responder` because it is way cleaner
 that the master version from SpiderLabs, and has better support for WPAD and
@@ -70,7 +68,7 @@ SSLKey = certs/responder.key
 ```
 
 And just run it to forward to our `proxenet` (which will be listening on
-`192.168.56.1:8008` - see next part).
+`192.168.56.1:8008` - see proxenet setup below).
 ```
 sudo python2 Responder.py -v -I vboxnet0 -w
 ```
@@ -120,12 +118,12 @@ $ ./proxenet -b 192.168.56.1 -p 8008 -i -N
 Adding the `-N` option disables the SSL interception and make it stealthier. The
 `-i` option forces `proxenet` to use the Internet Explorer compatibility mode.
 
-From the moment `proxenet` and `Responder` are working together, you will
-automatically send fake results to your victims. By default, the `oPhishPoison`
+From the moment `proxenet` and `Responder` are configured and running, fake LLMNR
+and WPAD responses will be sent to the victims. By default, the `oPhishPoison`
 plugin will replace known binary content types (such as Office documents, ZIP
 files, RAR archives, etc.) with PE executables containing your payloads.
 
-When `Responder` poisons the LLMNR request for WPAD, it will indicate to the
+When `Responder` poisons the LLMNR request for WPAD, it will redirect the
 victim to fetch the PAC configuration from itself.
 ![responder-wpad](img/responder-wpad.png)
 
@@ -143,8 +141,7 @@ the beauty of it.
 
    1. The Windows hosts of the victims will get poisoned by `Responder` to point
    the WPAD NetBios name to our hosts.
-   2. Whenever, the victim will use their web browser setup in
-   "Auto-configuration".
+   2. Browsers setup in "Auto-configuration" mode are vulnerable.
    3. Every HTTP request will go through `proxenet` and the response will be
    poisoned with whatever content you setup.
    4. Enjoy the free shells !
