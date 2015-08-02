@@ -23,7 +23,7 @@ $ yum install cmake       # for RedHat-based Linux
 
 ##### Mac OSX
 
-The best and easiest way to have `cmake` on OSX is through `brew`.
+The best and easiest way to install `cmake` on OSX is through `brew`.
 ```bash
 $ brew install cmake
 ```
@@ -76,8 +76,8 @@ Later versions of mbed TLS can be obtained from the
 #### VM support
 
 By default, `cmake` will try to find all the libraries already installed on the
-system to enable specific plugin. On any installation, at least `C` plugin will
-be available.
+system to enable specific plugin. Without any additinoal libraries isntalled, 
+the `C` plugin will be the minimum available.
 
 If you wish to compile `proxenet` with all the VM it currently supports, try the
 following command:
@@ -120,8 +120,8 @@ $ git clone https://github.com/hugsy/proxenet.git
 $ cd proxenet && cmake . && make
 ```
 
-`cmake` will generate the `Makefile` accordingly to your configuration and
-libraries available on your system.
+`cmake` will generate the `Makefile` for your configuration and the libraries
+available on your system, accordingly.
 If you want to explicitly enable/disable scripting supports, use the option
 `-D` when using `cmake`. For example:
 ```bash
@@ -163,9 +163,9 @@ Checking connectivity... done.
 Submodule path 'proxenet-plugins': checked out 'b7fa32a72d7e938d891ac393f30b497d6ceaf37d'
 ```
 This will populate the `proxenet-plugins` directory with the right setup tree and add some useful plugins.
-If you do not want to download the repository, you will need to create manually an `autoload` subdirectory insite the `proxenet-plugins` to pass the check.
+If you do not wish to download the repository, you will need to create  an `autoload` subdirectory manually, inside the `proxenet-plugins` to pass the check.
 ```bash
 ~/proxenet$ mkdir -p proxenet-plugins/autoload
 ```
 
-Congratz, your installation of `proxenet` is ready. Let the fun begin...
+Congratz! Your installation of `proxenet` is ready to go. Let the fun begin...
