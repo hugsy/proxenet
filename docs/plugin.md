@@ -1,33 +1,33 @@
 # Write-Your-Own-Plugins
 
-It is a fact that writing extension for `Burp` is a pain, and other tools only
-provides plugins (when they do) in the language they were written in.
-So the basic core idea behind `proxenet` is to allow pentesters to **easily**
-interact with their HTTP requests/responses in their favorite high-level
-language.
+It is a fact that writing extension for `Burp` is a pain, and other tools that do,
+only provide plugins in the language they're written in.
+So the basic core idea behind `proxenet`, is to allow pentesters to **easily**
+interact with HTTP requests/responses in their favorite high-level language.
 
 
-## HOWTO write my plugin
+## HOWTO write a plugin
 
-It was purposely made to be extremely easy to write new plugin in your favorite
-language. You just have to implement two functions respectively called (by
-default) `proxenet_response_hook` and `proxenet_request_hook` which have the
-following properties:
+`Proxenet` was purposely made to be extremely extensible, and as such, it is easy to
+write plugins for it in your favorite language. You just have to implement two functions
+called (by default) `proxenet_response_hook` and `proxenet_request_hook`.
+These two functions have the following properties:
 
 - take 3 arguments
   1.   `request_id` (or resp. `response_id`) - type Integer - the request/response
-  identifier. This parameter is unique for each request and allows to link a
+  identifier. This parameter is unique for each request and allows linking a
   request to its response(s) from the server (as a response can be delivered in
   different chunks).
   2.   `request` (or resp. `response`) - type String - the
-   request/response itself. The format is (depending of the interpreter) either
+   request/response itself. The format (depending of the interpreter), is either
    a regular string or an array of bytes.
   3.   `uri` - type String - the full URI
 - return a String (or array of bytes)
 
-Simply drop the new plugin in the plugins directory either specified on the
-command line (via the `-x` option), or by default in the location defined by
-`CFG_DEFAULT_PLUGINS_PATH` (by default `./proxenet-plugins`).
+To use, simply drop the new plugin into the default plugins directory (as defined by
+`CFG_DEFAULT_PLUGINS_PATH` (by default `./proxenet-plugins`), or by specifying the
+command line option `-x`.
+.
 
 You can then load the plugin via the client.
 ```bash
@@ -39,19 +39,18 @@ Plugin '1MyNewPlugin.rb' successfully added!
 
 ## Step-by-Step : A basic plugin example
 
-For the sake of simplicity, here is a very simple example of a proxenet plugin
+For the sake of simplicity, here's a very simple example of a proxenet plugin
 written in Python. Note that the exact same methodology applies for plugins
 written in Ruby, Lua, etc.
 
-The demo plugin is quite dumb on purpose only to make you familiar with the way
-`proxenet` proceeds with plugins.
-
-Here, we will simply append an HTTP header in every request and response.
+The demo plugin is purposely dumb. It's simply to make you familiar with the way
+`proxenet` proceeds with plugins. It will append an HTTP header in every request
+and response.
 
 
 ### Pre-requisite
 
-Here let's assume that an instance is already up and running.
+Let's assume that an instance is already up and running.
 
 A very basic Python template for creating plugins would be like this:
 ```python
@@ -73,7 +72,7 @@ template.
 
 Appending an HTTP header simply means that we want to substitute the double
 [CRLF](https://en.wikipedia.org/wiki/CRLF) - marking the end of the HTTP headers
-blob - with our header, followed by this double CRLF.
+blob, with our header, followed by this double CRLF.
 
 The implementation comes then right out of the box:
 ```python
@@ -92,8 +91,8 @@ if __name__ == "__main__":
 
 ### Plug it in
 
-Our plugin is ready. Simply use the client to load it (valid loaded script will
-immediately become active but can be disabled through the client).
+Once the plugin is ready, simply use the client to load it. Valid loaded scripts
+will immediately become active, and can also be disabled through the client.
 
 ```bash
 >>> plugin load 1AddHeader.py
@@ -110,18 +109,18 @@ keep reading
 
 Now let's do some useful stuff.
 
-The plugin to create will log every HTTP request/response in a
-[SQLite](https://sqlite.org/) database given us the possibility to
+The following plugin will log every HTTP request/response in a
+[SQLite](https://sqlite.org/) database, given us the possibility to
 (transparently) save the whole HTTP sessions during a pentest. For the record,
-this "feature" is not available in the free version of BurpSuite. So by hooking
+this 'feature' is not available in the free version of BurpSuite. So by hooking
 `proxenet` behind your free Burp and using this plugin, you will never lose any
 session.
 
 
 ### Re-use working stuff
 
-We will use the exact same template than in the example before.
-We will only rely on 2 Python modules `sqlite3` and `time`, both built-in.
+We will use the exact same template from the previous example, along with 2 Python
+modules `sqlite3` and `time`. Both of which are built-in.
 
 
 ### The "hard" work
@@ -129,13 +128,13 @@ We will only rely on 2 Python modules `sqlite3` and `time`, both built-in.
 We want our plugin to have a low priority, meaning that other plugins (which
 potentially modify requests/responses) will be executed first.
 Create a file in the plugins directory, for example `9LogReqRes.py`, and
-copy/paste the template provided a few lines above.
+copy/paste the template example provided above.
 
 Unfortunately, SQLite (not unlike **many** tools and libraries) does not support
 multi-threading. Luckily, `proxenet` was designed to multi-thread only the
 hooking functions __and nothing else__.
 
-As a consequence, we only need to define the SQLite database object as a Python
+Subsequently, we only need to define the SQLite database object as a Python
 `global` in the main thread. Like this:
 
 ```python
@@ -167,7 +166,7 @@ db = SqliteDb()
 ```
 
 By defining our database globally, the Python main thread acquires the lock for
-it *but* it is still reachable by other threads.
+it, *but* it is still reachable by other threads.
 
 Now we simply have to fill the functions:
 ```python
@@ -183,7 +182,7 @@ def proxenet_response_hook(response_id, response, uri):
     return response
 ```
 
-This is it! Now simply load it in `proxenet` and never loose any request/response
+That's it! Now simply load it in `proxenet` and never lose any request/response
 again! The full version of this plugin is available
 [here](https://github.com/hugsy/proxenet-plugins/blob/master/9LogReqRes.py).
 
@@ -192,7 +191,7 @@ again! The full version of this plugin is available
 
 The GitHub repository
 [proxenet-plugins](https://github.com/hugsy/proxenet-plugins) contains a few
-plugins already (more will come). But if you want to share a cool plugin, feel
+plugins already (more will come). But if you want to share your cool plugin, feel
 free to send a "Pull Request".
 
 Thanks for using `proxenet`.
