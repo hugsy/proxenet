@@ -76,7 +76,7 @@ Later versions of mbed TLS can be obtained from the
 #### VM support
 
 By default, `cmake` will try to find all the libraries already installed on the
-system to enable specific plugin. Without any additinoal libraries isntalled, 
+system to enable specific plugin. Without any additional libraries installed, 
 the `C` plugin will be the minimum available.
 
 If you wish to compile `proxenet` with all the VM it currently supports, try the
