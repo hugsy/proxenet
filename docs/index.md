@@ -17,17 +17,17 @@ From Ancient Greek, *πρόξενος* (*próksenos*, "public guest").
 
 ![capture1](img/proxenet-capture1.png)
 
-`proxenet` is a multi-threaded proxy which allows you manipulate your HTTP
+`proxenet` is a multi-threaded proxy which allows you to manipulate HTTP
 requests and responses using your favorite scripting language. No need to learn
-Java (like for [Burp](http://portswigger.net/burp/extender/)) or Python (like
+Java (like for [Burp](http://portswigger.net/burp/extender/)), or Python (like
 for
 [mitmproxy](http://mitmproxy.org/doc/scripting/inlinescripts.html)). `proxenet`
-supports heaps of languages (see the section "Language Versions") and more can
+supports many languages (see the section "Language Versions") and more can
 be easily added.
 
 `proxenet` is **not** script kiddie friendly. While the tool can be configured
 to use a web interface, it is not packaged with a GUI. If this is what you are
-looking for, here are a few links for you:
+looking for, here are some script kiddie friendly alternatives:
 
 - [ZAP](http://owasp.org/index.php/OWASP_Zed_Attack_Proxy_Project)
 - [Burp](http://portswigger.net/burp)
@@ -37,21 +37,21 @@ Of course, the best way is to write your own GUI as a `proxenet` plugin!
 
 
 ## Why ?
-The idea behind `proxenet` came after a lot of frustration from attempting to write
-extensions for Burp. Moreover, only a few proxies already existing supports the
-possibility to add new extensions. And when they do, they are (one) language
-specific - despite Burp's persistent attempts to make unnatural bindings (Python
-over Java, or worse: Ruby over Java).
+The idea behind `proxenet` came after much frustration from attempting to write
+extensions for Burp. Moreover, only a few existing proxies support the
+possibility to add new extensions, and when they do, they typically only support one language.
+This is not ideal for a penetration tester, as it compromises usability despite Burp's
+persistent attempts to make unnatural bindings (Python over Java, or worse: Ruby over Java).
 
-Being written in pure C, it is **fast**, **efficient** and easily
-pluggable to anything else. It is the ultimate real
+`Proxenet` is written in pure C, so it is **fast**, **efficient** and easily
+pluggable to everything else. It is the ultimate real
 [DIY](https://en.wikipedia.org/wiki/Do_it_yourself) web proxy for
-pentest(ers).
+pentesters.
 
 
 ## Features
 
-Here are a sample of features already supported by `proxenet`:
+Here's a sample of features already supported by `proxenet`:
 
 - Written in C
     - Fast (heavy thread use)
@@ -66,38 +66,36 @@ Here are a sample of features already supported by `proxenet`:
     - Perl
     - Tcl
     - Java
-- SSL
-    - Full SSL interception (internal CA)
-    - SSL client certificate authentication
+- SSL/TLS
+    - Full SSL/TLS interception (internal CA)
+    - SSL/TLS client certificate authentication
 - IPv4/IPv6
 - HTTP Proxy forwarding
-- White-list/Black-list hosts filtering
+- White-list/Black-list host filtering
 - Command interface out-of-band
 - Nice TTY colors :D
 - 100% Open-Source
-
 ... and more!
 
 
 ## The best of both worlds ?
 
 Some people might miss the beautiful interface some other GUI-friendly proxies
-provide. So be it! Chain `proxenet` along `Burp`, `Zap`, `Proxystrike`,
+provide. So be it! Chain `proxenet` along with `Burp`, `Zap`, `Proxystrike`,
 `burst`, etc. and enjoy the show!
 
 
 ## Write Your Own Plugins
 
-If you ever had to do, you already know that writing extension for `Burp` is a
-pain and other tools only provide plugins (when they do) in the language they
-were written in.
+If you've ever had the pleasure, you already know that writing extension for `Burp`
+is a pain, and other tools only provide plugins, and when they do, only in the language
+they were written in.
 
-So the simple but powerful idea behind `proxenet` is to allow pentesters to
-**easily** interact with their HTTP requests/responses in their favorite
-high-level language.
+The simple and powerful idea behind `proxenet` is to allow pentesters to
+**easily** interact with HTTP requests/responses in their favorite high-level language.
 
 Take a look at the [Plugins](plugin) section for a quick guide on how to start
-writing plugins now.
+writing plugins.
 
 ## Plugin Binding Language Versions
 
@@ -114,8 +112,8 @@ The current version of `proxenet` has been tested with:
 ## Still not convinced?
 
 Just to keep the troll alive, have a quick look at the comparison how to create
-a very simple plugin using `Burp` API and the very same plugin using `proxenet`,
-both written in Java.
+a very simple plugin using the `Burp` API, and the very same plugin using `proxenet`.
+To make things fair, both are written in Java. ;)
 
 ![burp-proxenet](img/fun.png)
 
