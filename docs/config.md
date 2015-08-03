@@ -7,18 +7,17 @@ You will find plenty of working examples for creating your own plugins in the
 scripts, feel free to
 [submit them](https://github.com/hugsy/proxenet-plugins/pulls).
 
-## SSL keys
+## SSL/TLS keys
 
-SSL layer is fully built-in and extremely flexible thanks to the amazing library
-[PolarSSL](http://polarssl.org/). To compile `proxenet`, the version 1.3+ of the
-library must be installed.
+SSL/TLS layer is fully built-in and extremely flexible thanks to the amazing [PolarSSL](http://polarssl.org/)
+library. Version 1.3+ of the library must be installed to compile `proxenet`.
 
-- Using your own SSL keys can be done easily with command line parameters
+- Using your own SSL/TLS keys can be done easily with command line parameters
 ```
 $ ./proxenet --key=/path/to/ssl.key --cert=/path/to/ssl.crt
 ```
 
-- If you don't trust me (which is a good thing), you can re-generate new SSL keys easily:
+- If you don't trust me (which is a good thing), you can re-generate new SSL/TLS keys easily:
 ```
 $ make -C keys
 ```
@@ -46,14 +45,14 @@ Plugins list:
 |_ priority=9   id=4   type=Python    [0x0] name=Intercept            (ACTIVE)
 ```
 
-`proxenet` also supports SOCKS4 and SOCKS4a proxy forwarding (useful when tunnelling through SSH).
+`proxenet` also supports SOCKS4, and SOCKS4a proxy forwarding (useful when tunnelling through SSH).
 
 
 ## Daemon mode
 
-Running as daemon will make `proxenet` detach from the current terminal session. This could be very convenient if it is used on a shared host.
+Running as daemon will make `proxenet` detach from the current terminal session. This is very convenient when it is used on a shared host.
 
-Simply run an instance with the `-d` option.
+To do this, simply run an instance with the `-d` option.
 ```bash
 $ ./proxenet -dv
 WARNING: proxenet will now run as daemon
