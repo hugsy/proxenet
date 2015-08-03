@@ -57,7 +57,7 @@ $ brew install polarssl             # for Mac OSX
 will be enough.
 
 *Note*: FreeBSD provides by default an old version of PolarSSL (1.2
-branch). This branch is not supported any more, so please install from source
+branch). This branch is not supported anymore, so please install from source
 as explained below.
 
 
@@ -133,7 +133,7 @@ $ cmake . -DUSE_PYTHON_PLUGIN=OFF && make   # to disable Python script support
 
 ### Re-Compilation
 
-Once your environmment is setup, if you wish to compile `proxenet` to take into
+Once your environment is setup, if you wish to compile `proxenet` to take into
 account new changes (for example, a new VM support), simply run the command:
 
 ```bash
