@@ -1,9 +1,8 @@
 # Controlling proxenet
 
 Every `proxenet` session creates a control socket. This socket is a Unix socket
-(`AF_UNIX`) and by default by to `/tmp/proxenet-control-socket`.
-
-Using this socket, `proxenet` provides 3 ways to be controlled.
+(`AF_UNIX`) and by default by to `/tmp/proxenet-control-socket`. `Proxenet` can
+be controlled 3 ways, via this socket.
 
 
 ## Raw client
@@ -20,7 +19,7 @@ This interface is extremely basic, but provides all the features configurable in
 it easy to read and understand for a human.
 
 So from here, you can either build your own client in the language of your
-choice, or use the one Python client provided.
+choice, or use the Python client provided.
 
 
 ## Python terminal client
@@ -55,6 +54,6 @@ And then, simply run
 $ python /path/to/proxenet/control-web.py
 ```
 
-By default, the HTTP service will be listening on TCP port 8009.
+By default, the HTTP service listens on TCP port 8009.
 
 ![proxenet-web](img/proxenet-web-interface.png)
