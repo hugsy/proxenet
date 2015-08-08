@@ -622,15 +622,10 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
 
 
 /**
-*****************************************************************************************
-*          EXPERIMENTAL
-*          PARTIALLY TESTED
-*****************************************************************************************
-*
-*
 * Add old IE support (Compatibility View) for POST requests by forcing a 2nd read on the
 * server socket, to make IE send the POST body.
-* Do not use this mode if you are using anything but IE < 9
+* Tests revealed that this mode does not change the behaviour for recent browser. Therefore,
+* it can be used all the time. Option -i allows to disable it.
 *
 * @return 0 if successful, -1 otherwise
 */

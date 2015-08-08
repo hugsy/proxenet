@@ -87,7 +87,7 @@ static void usage(int retcode)
                 "\t-E, --intercept-except\t\t\tIntercept everything except hostnames matching pattern\n"
                 "\t-m, --pattern=PATTERN\t\t\tSpecify a hostname matching pattern (default: '%s')\n"
                 "\t-N, --no-ssl-intercept\t\t\tDo not intercept any SSL traffic\n"
-                "\t-i, --ie-compatibility\t\t\tUse this option only when proxy-ing IE\n"
+                "\t-i, --ie-compatibility\t\t\tToggle old IE compatibility mode (default: on)\n"
                 ,
 
                 CFG_DEFAULT_INTERCEPT_PATTERN
@@ -294,7 +294,7 @@ static int parse_options (int argc, char** argv)
         sslcli_keyfile		= NULL;
         sslcli_keyfile_pwd	= CFG_DEFAULT_SSL_KEYFILE_PWD;
 
-        cfg->ie_compat          = false;
+        cfg->ie_compat          = true;
         cfg->ssl_intercept      = true;
 
 
@@ -337,9 +337,7 @@ static int parse_options (int argc, char** argv)
                         case 'Y': sslcli_keyfile_pwd = optarg; break;
                         case 'N': cfg->ssl_intercept = false; break;
                         case 'i':
-                                cfg->ie_compat = true;
-                                xlog(LOG_WARNING, "%s\n", "Enabling IE compatibility mode.");
-                                xlog(LOG_WARNING, "%s\n", "This mode should not be used with anything but IE <10.");
+                                cfg->ie_compat= cfg->ie_compat?false:true;
                                 break;
 
                         case '?':
