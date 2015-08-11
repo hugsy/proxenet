@@ -19,11 +19,17 @@ keys:
 	@openssl x509 -req -days $(CA_KEY_DURATION) -in $(CA_KEY_PREFIX).csr -signkey $(CA_KEY_PREFIX).key -out $(CA_KEY_PREFIX).crt >/dev/null 2>&1
 	@echo "[+] Cleaning"
 	@rm -fr $(CA_KEY_PREFIX).key.org $(CA_KEY_PREFIX).csr
-	@echo "[+] Created CA root key and certificate"
+	@echo -n "[+] Created CA root key and certificate  "
 	@mkdir -p $(CERTS_DIR)
 	@echo blah | openssl genrsa -out $(CERTS_DIR)/$(CA_GENERIC_KEY).key $(CA_KEY_SIZE) >/dev/null 2>&1
-	@echo "[+] Created generic key for on-the-fly certificate"
-	@echo "[!] Finish the install by importing the certificate \"$(CA_KEY_PREFIX).crt\" in your web browser as \"Trusted Root Authorities\""
+	@echo "Done"
+	@echo -n "[+] Creating the PKCS12 export certificate (key=proxenet)   "
+	@openssl pkcs12 -export -passout pass:proxenet -out $(CA_KEY_PREFIX).p12 -inkey $(CA_KEY_PREFIX).key -in $(CA_KEY_PREFIX).crt -certfile $(CA_KEY_PREFIX).crt
+	@echo "Done"
+	@echo -n "[+] Creating the PKCS7 export certificate   "
+	@openssl crl2pkcs7 -nocrl -certfile $(CA_KEY_PREFIX).crt -out $(CA_KEY_PREFIX).p7b -certfile $(CA_KEY_PREFIX).cer
+	@echo "Done"
+	@echo "[!] Finish the install by importing the certificate(s) in your web browser as \"Trusted Root Authorities\""
 
 clean:
 	@rm -f $(CA_KEY_PREFIX).key $(CERTS_DIR)/$(CA_GENERIC_KEY).key

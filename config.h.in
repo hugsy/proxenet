@@ -22,7 +22,7 @@
 #define CFG_DEFAULT_BIND_ADDR                 "localhost"               // default binding address
 #define CFG_DEFAULT_BIND_PORT                 "8008"                    // default binding port
 #define CFG_DEFAULT_PROXY_PORT                "8080"                    // if relay is enabled, use this port as default
-#define CFG_DEFAULT_NB_THREAD                 10                        // default number of threads
+#define CFG_DEFAULT_NB_THREAD                 20                        // default number of threads
 #define CFG_DEFAULT_TRY_EXIT_MAX              3                         // default number for attempting to kill the process gently
 #define CFG_DEFAULT_PLUGIN_PRIORITY           5                         // default priority for plugins
 #define CFG_DEFAULT_OUTPUT                    stdout                    // default output file stream

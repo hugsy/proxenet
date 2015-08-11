@@ -65,7 +65,7 @@ def build_html(**kwargs):
     <div class="row"><div class=col-md-12>
     <ul class="nav nav-tabs nav-justified">"""
 
-    for path in ["info", "plugin", "threads", "config", ]:
+    for path in ["info", "plugin", "threads", "config", "keys"]:
         body += """<li {2}><a href="/{0}">{1}</a></li>""".format(path, path.capitalize(),
                                                                  "class='active'" if path==kwargs.get("page") else "")
 
@@ -233,6 +233,24 @@ def threads_set(word):
     redirect("/threads")
     return
 
+
+@route('/keys')
+def keys():
+    extensions = [ ("PEM formatted certificate", "crt"), ("PEM formatted private key", "key"),
+                   ("PKCS12 formatted certificate+key", "p12"), ("PKCS7 formatted certificate", "p7b"), ]
+    html = """<div class="panel panel-default">"""
+    html+= """<div class="panel-heading"><h3 class="panel-title">SSL keys</h3></div>"""
+    html+= """<div class="panel-body"><ul>"""
+    html+= """"""
+    for ext,fmt in extensions:
+        html += "<li><a href=\"/keys/proxenet.{}\">{}</a></li>".format(fmt, ext)
+    html+= "</ul></div>"
+    return build_html(body=html, title="Get proxenet SSL keys", page="keys")
+
+@route('/keys/proxenet.<fmt>')
+def key(fmt):
+    if fmt in ("crt", "key", "p12", "p7b"):
+        return static_file("/proxenet.%s" % fmt, root="./keys")
 
 @route('/config')
 def config():
