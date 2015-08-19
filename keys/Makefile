@@ -27,7 +27,7 @@ keys:
 	@openssl pkcs12 -export -passout pass:proxenet -out $(CA_KEY_PREFIX).p12 -inkey $(CA_KEY_PREFIX).key -in $(CA_KEY_PREFIX).crt -certfile $(CA_KEY_PREFIX).crt
 	@echo "Done"
 	@echo -n "[+] Creating the PKCS7 export certificate   "
-	@openssl crl2pkcs7 -nocrl -certfile $(CA_KEY_PREFIX).crt -out $(CA_KEY_PREFIX).p7b -certfile $(CA_KEY_PREFIX).cer
+	@openssl crl2pkcs7 -nocrl -certfile $(CA_KEY_PREFIX).crt -out $(CA_KEY_PREFIX).p7b -certfile $(CA_KEY_PREFIX).crt
 	@echo "Done"
 	@echo "[!] Finish the install by importing the certificate(s) in your web browser as \"Trusted Root Authorities\""
 
