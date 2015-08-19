@@ -67,7 +67,7 @@ Installing the PolarSSL / mbed TLS library from source is pretty straight-forwar
 is an example with version 1.3.9:
 ``` bash
 $ curl -fsSL https://github.com/ARMmbed/mbedtls/archive/polarssl-1.3.9.tar.gz | tar xfz -
-$ cd mbedtls-polarssl-1.3.9 && cmake . && sudo make install
+$ cd mbedtls-polarssl-1.3.9 && cmake . -DCMAKE_C_FLAGS="-fPIC" -DCMAKE_SHARED_LINKER_FLAGS="-pie" && sudo make install
 ```
 
 Later versions of mbed TLS can be obtained from the
