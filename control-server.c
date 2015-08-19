@@ -326,7 +326,6 @@ static int plugin_cmd_list_available(sock_t fd)
         n = snprintf(msg, sizeof(msg),"{\"Plugins available in '%s'\": {", cfg->plugins_path);
         proxenet_write(fd, msg, n);
         while ((dir_ptr=readdir(dir))) {
-                type = -1;
                 name = dir_ptr->d_name;
 		if (!strcmp(name,".") || !strcmp(name,"..")) continue;
 

@@ -185,7 +185,7 @@ static int proxenet_ruby_initialize_function(plugin_t* plugin, req_t type)
  */
 int proxenet_ruby_load_file(plugin_t* plugin)
 {
-	char* pathname = plugin->fullpath;
+	char* pathname;
 	int res = 0;
 
         if (!plugin->interpreter || !plugin->interpreter->ready){

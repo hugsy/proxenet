@@ -94,7 +94,7 @@ static char* get_request_full_uri(request_t* req)
  */
 static int get_hostname_from_uri(request_t* req, int offset)
 {
-        char *ptr, c, *buf;
+        char *ptr, *buf;
 
         buf = req->data + offset;
 
@@ -105,9 +105,7 @@ static int get_hostname_from_uri(request_t* req, int offset)
                 return -1;
         }
 
-        c = *ptr;
         *ptr = '\0';
-
         buf = proxenet_xstrdup2(buf);
 
         /* host and port */
@@ -120,9 +118,7 @@ static int get_hostname_from_uri(request_t* req, int offset)
 
         req->http_infos.hostname = proxenet_xstrdup2(buf);
 
-        *ptr = c;
         proxenet_xfree(buf);
-
         return 0;
 }
 
@@ -210,13 +206,12 @@ int format_http_request(char** request, size_t* request_len)
         unsigned int i;
         int offlen;
 
-        offlen = -1;
         old_ptr = new_ptr = NULL;
 
         /* Move to beginning of URL */
         for(ptr=*request; ptr && *ptr!=' ' && *ptr!='\x00'; ptr++);
 
-        if(*ptr!=' '){
+        if(!ptr || *ptr!=' '){
                 xlog(LOG_ERROR, "%s\n", "HTTP request has incorrect format");
                 return -1;
         }
