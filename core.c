@@ -182,7 +182,6 @@ void proxenet_initialize_plugins()
                 proxenet_free_plugin(plugin);
                 plugin = next_plugin;
         }
-
 }
 
 

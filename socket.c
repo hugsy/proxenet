@@ -184,8 +184,7 @@ sock_t proxenet_open_socket(char *host, char* port)
 		keepalive_val = true;
 		retcode = setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE, &keepalive_val, sizeof(keepalive_val));
                 if (retcode < 0){
-                        xlog(LOG_ERROR, "setsockopt(SO_KEEPALIVE) failed: %s\n",
-                             strerror(retcode));
+                        xlog(LOG_ERROR, "setsockopt(SO_KEEPALIVE) failed: %s\n", strerror(retcode));
                         return -1;
                 }
 

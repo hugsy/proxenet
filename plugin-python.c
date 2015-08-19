@@ -221,7 +221,6 @@ static int proxenet_python_initialize_function(plugin_t* plugin, req_t type)
         pMod = PyImport_Import(pModStr);
         if(!pMod) {
                 xlog_python(LOG_ERROR, "Failed to import '%s'\n", module_name);
-                PyErr_Print();
                 Py_DECREF(pModStr);
                 return -1;
         }
