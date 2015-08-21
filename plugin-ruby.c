@@ -376,12 +376,14 @@ char* proxenet_ruby_plugin(plugin_t* plugin, request_t* request)
         rPlugin = rb_protect( rb_intern_wrap, (VALUE)plugin_name, &err);
         if (err){
                 xlog_ruby(LOG_ERROR, "%s(%s) failed miserably\n", "rb_intern", plugin_name);
+                proxenet_ruby_print_last_exception();
                 return buf;
         }
 
         module = rb_protect( rb_const_get_wrap, rPlugin, &err);
         if (err){
                 xlog_ruby(LOG_ERROR, "%s(%s) failed miserably\n", "rb_const_get", plugin_name);
+                proxenet_ruby_print_last_exception();
                 return buf;
         }
 
