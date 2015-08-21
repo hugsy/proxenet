@@ -173,7 +173,6 @@ def plugin():
         fpath = os.path.abspath("./proxenet-plugins/autoload/" + k)
 
         if os.path.islink(fpath):
-            print(fpath)
             html += """<button type="button" class="btn btn-default btn-xs" data-toggle="button" aria-pressed="true" disabled='true'">Added</button>"""
             html += """<button type="button" class="btn btn-default btn-xs" data-toggle="button" aria-pressed="false" onclick="window.location='/plugin/unautoload/{}'">Remove</button>""".format(k)
         else:
