@@ -35,7 +35,7 @@ struct proxenet_ruby_args {
 /**
  * proxenet wrapper for Ruby rb_require()
  */
-static VALUE proxenet_ruby_require_cb(VALUE arg)
+static VALUE rb_require_wrap(VALUE arg)
 {
 	return rb_require((char *)arg);
 }
