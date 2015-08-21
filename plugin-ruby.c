@@ -329,12 +329,6 @@ static void proxenet_ruby_unlock_vm(interpreter_t *interpreter)
 }
 
 
-struct rb_const_get_t {
-                VALUE rObject;
-                VALUE rPlugin;
-};
-
-
 /**
  *
  */
