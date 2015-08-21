@@ -112,49 +112,49 @@ void proxenet_initialize_plugins()
 #ifdef _PYTHON_PLUGIN
                         case _PYTHON_:
                                 if (!proxenet_python_initialize_vm(plugin) && !proxenet_python_load_file(plugin))
-                                        plugin->state = ACTIVE;
+                                        proxenet_plugin_set_state(plugin, ACTIVE);
                                 break;
 #endif
 
 #ifdef _C_PLUGIN
                         case _C_:
                                 if (!proxenet_c_initialize_vm(plugin) && !proxenet_c_load_file(plugin))
-                                        plugin->state = ACTIVE;
+                                        proxenet_plugin_set_state(plugin, ACTIVE);
                                 break;
 #endif
 
 #ifdef _RUBY_PLUGIN
                         case _RUBY_:
                                 if (!proxenet_ruby_initialize_vm(plugin) && !proxenet_ruby_load_file(plugin))
-                                        plugin->state = ACTIVE;
+                                        proxenet_plugin_set_state(plugin, ACTIVE);
                                 break;
 #endif
 
 #ifdef _PERL_PLUGIN
                         case _PERL_:
                                 if (!proxenet_perl_initialize_vm(plugin) && !proxenet_perl_load_file(plugin))
-                                        plugin->state = ACTIVE;
+                                        proxenet_plugin_set_state(plugin, ACTIVE);
                                 break;
 #endif
 
 #ifdef _LUA_PLUGIN
                         case _LUA_:
                                 if (!proxenet_lua_initialize_vm(plugin) && !proxenet_lua_load_file(plugin))
-                                        plugin->state = ACTIVE;
+                                        proxenet_plugin_set_state(plugin, ACTIVE);
                                 break;
 #endif
 
 #ifdef _TCL_PLUGIN
                         case _TCL_:
                                 if (!proxenet_tcl_initialize_vm(plugin) && !proxenet_tcl_load_file(plugin))
-                                        plugin->state = ACTIVE;
+                                        proxenet_plugin_set_state(plugin, ACTIVE);
                                 break;
 #endif
 
 #ifdef _JAVA_PLUGIN
                         case _JAVA_:
                                 if (!proxenet_java_initialize_vm(plugin) && !proxenet_java_load_file(plugin))
-                                        plugin->state = ACTIVE;
+                                        proxenet_plugin_set_state(plugin, ACTIVE);
                                 break;
 #endif
                         default:
@@ -171,7 +171,7 @@ void proxenet_initialize_plugins()
                 }
 
 
-                plugin->state = INACTIVE;
+                proxenet_plugin_set_state(plugin, INACTIVE);
                 if(prec_plugin)  prec_plugin->next = plugin->next;
                 else             plugins_list = plugin->next;
 
@@ -293,11 +293,11 @@ int proxenet_toggle_plugin(int plugin_id)
 
         switch (p->state){
                 case INACTIVE:
-                        proxenet_plugin_set_state(plugin_id, ACTIVE);
+                        proxenet_plugin_set_state(p, ACTIVE);
                         return 1;
 
                 case ACTIVE:
-                        proxenet_plugin_set_state(plugin_id, INACTIVE);
+                        proxenet_plugin_set_state(p, INACTIVE);
                         return 0;
 
                 default:
@@ -315,6 +315,7 @@ static int proxenet_apply_plugins(request_t *request)
 {
         plugin_t *p = NULL;
         char *old_data = NULL;
+        char *res = NULL;
         char* (*plugin_function)(plugin_t*, request_t*) = NULL;
 
         for (p=plugins_list; p!=NULL; p=p->next) {
@@ -367,7 +368,7 @@ static int proxenet_apply_plugins(request_t *request)
                 proxenet_xzero(&tend, sizeof(struct timeval));
                 gettimeofday(&tstart, NULL);
 #endif
-                request->data = (*plugin_function)(p, request);
+                res = (*plugin_function)(p, request);
 #ifdef DEBUG
                 gettimeofday(&tend, NULL);
 
@@ -380,6 +381,26 @@ static int proxenet_apply_plugins(request_t *request)
                      request->type==REQUEST?CFG_REQUEST_PLUGIN_FUNCTION:CFG_RESPONSE_PLUGIN_FUNCTION,
                      sec, msec, usec);
 #endif
+
+                /*
+                 * We consider a plugin execution has failed if one of those conditions is found:
+                 * - the plugin_*_apply() function returned NULL
+                 * - the new request size is 0
+                 */
+
+                if (res == NULL || request->size==0) {
+                        /*
+                         * If the plugin function returned NULL, it means that an error occured
+                         * somewhere in the VM run. To be safe, we disable the plugin, and restore
+                         * the previous context.
+                         */
+                        request->data = old_data;
+                        xlog(LOG_ERROR, "Plugin '%s' failed, disabling...\n", p->name);
+                        proxenet_plugin_set_state(p, INACTIVE);
+                        continue;
+                }
+
+                request->data = res;
 
                 if (request->data) {
                         /*
@@ -407,21 +428,6 @@ static int proxenet_apply_plugins(request_t *request)
                              p->name,
                              p->id);
 #endif
-                }
-
-                /* Additionnal check for dummy plugin coder */
-                if (!request->data || !request->size) {
-                        xlog(LOG_CRITICAL, "Plugin '%s' is invalid, disabling\n", p->name);
-                        p->state = INACTIVE;
-
-                        if (cfg->verbose){
-                                if(!request->data)
-                                        xlog(LOG_CRITICAL, "Plugin '%s' returned a NULL value\n", p->name);
-                                else
-                                        xlog(LOG_CRITICAL, "Plugin '%s' returned a NULL size\n", p->name);
-                        }
-
-                        return -1;
                 }
         }
 

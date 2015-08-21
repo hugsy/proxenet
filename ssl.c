@@ -186,6 +186,7 @@ static int ssl_init_context(ssl_atom_t* ssl_atom, int type, char* hostname)
                         break;
 
                 case SSL_IS_CLIENT:
+                        /* ssl_set_max_version(context, SSL_MAJOR_VERSION_3, SSL_MINOR_VERSION_1); */
                         ssl_set_ca_chain(context, &(ssl_atom->cert), NULL, NULL);
                         ssl_set_authmode(context, SSL_VERIFY_NONE);
                         if(use_ssl_client_auth){

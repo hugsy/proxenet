@@ -13,6 +13,7 @@
 
 #include <pthread.h>
 #include <string.h>
+#include <ctype.h>
 #include <ruby.h>
 #include <ruby/thread.h>
 
@@ -328,26 +329,77 @@ static void proxenet_ruby_unlock_vm(interpreter_t *interpreter)
 }
 
 
+struct rb_const_get_t {
+                VALUE rObject;
+                VALUE rPlugin;
+};
+
+
+/**
+ *
+ */
+VALUE rb_intern_wrap(VALUE arg)
+{
+        return rb_intern((char*)arg);
+}
+
+
+/**
+ *
+ */
+VALUE rb_const_get_wrap(VALUE arg)
+{
+        return rb_const_get(rb_cObject, arg);
+}
+
+
 /**
  *
  */
 char* proxenet_ruby_plugin(plugin_t* plugin, request_t* request)
 {
-	char* buf = NULL;
-	interpreter_t *interpreter = plugin->interpreter;
-	VALUE module;
+	char *buf, *plugin_name;
+	interpreter_t *interpreter;
+	VALUE module, rPlugin;
 	ID rFunc;
+        int err;
 
-	module = rb_const_get(rb_cObject, rb_intern(plugin->name + 1));
+        buf = plugin_name = NULL;
+        interpreter = plugin->interpreter;
+        module = 0;
 
-	if (request->type == REQUEST)
-		rFunc = (ID) plugin->pre_function;
-	else
-		rFunc = (ID) plugin->post_function;
+        if(isdigit(*plugin->name))
+                plugin_name = plugin->name + 1; // this is done to remove the digit of priority
+        else
+                plugin_name = plugin->name;
+
+        rPlugin = rb_protect( rb_intern_wrap, (VALUE)plugin_name, &err);
+        if (err){
+                xlog_ruby(LOG_ERROR, "%s(%s) failed miserably\n", "rb_intern", plugin_name);
+                return buf;
+        }
+
+        module = rb_protect( rb_const_get_wrap, rPlugin, &err);
+        if (err){
+                xlog_ruby(LOG_ERROR, "%s(%s) failed miserably\n", "rb_const_get", plugin_name);
+                return buf;
+        }
+
+	switch(request->type){
+                case REQUEST:
+        		rFunc = (ID) plugin->pre_function;
+                        break;
+                case RESPONSE:
+                        rFunc = (ID) plugin->post_function;
+                        break;
+                default:
+                        abort();
+        }
 
         proxenet_ruby_lock_vm(interpreter);
 	buf = proxenet_ruby_execute_function(module, rFunc, request);
 	proxenet_ruby_unlock_vm(interpreter);
+
 	return buf;
 }
 

@@ -525,14 +525,8 @@ plugin_t* proxenet_get_plugin_by_id(unsigned short plugin_id)
  * @param state is the new state to apply
  * @return 0 upon success, or -1 if a check has failed.
  */
-int proxenet_plugin_set_state(unsigned short plugin_id, proxenet_state state)
+int proxenet_plugin_set_state(plugin_t* p, proxenet_state state)
 {
-        plugin_t* p;
-
-        p = proxenet_get_plugin_by_id( plugin_id );
-        if (!p)
-                return -1;
-
         if (state!=ACTIVE && state!=INACTIVE)
                 return -1;
 
@@ -547,6 +541,24 @@ int proxenet_plugin_set_state(unsigned short plugin_id, proxenet_state state)
         }
 
         return 0;
+}
+
+/**
+ * Check and change a plugin state by the plugin id.
+ *
+ * @param p is the reference to the plugin to update
+ * @param state is the new state to apply
+ * @return 0 upon success, or -1 if a check has failed.
+ */
+int proxenet_plugin_set_state_by_id(unsigned short plugin_id, proxenet_state state)
+{
+        plugin_t* p;
+
+        p = proxenet_get_plugin_by_id( plugin_id );
+        if (!p)
+                return -1;
+
+        return proxenet_plugin_set_state(p, state);
 }
 
 
