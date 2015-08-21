@@ -33,14 +33,29 @@ struct proxenet_ruby_args {
 #define xlog_ruby(t, ...) xlog(t, "["_RUBY_VERSION_"] " __VA_ARGS__)
 
 /**
- * Ruby require callback
- *
+ * proxenet wrapper for Ruby rb_require()
  */
-VALUE proxenet_ruby_require_cb(VALUE arg)
+static VALUE proxenet_ruby_require_cb(VALUE arg)
 {
 	return rb_require((char *)arg);
 }
 
+/**
+ * proxenet wrapper for Ruby rb_intern()
+ */
+static VALUE rb_intern_wrap(VALUE arg)
+{
+        return rb_intern((char*)arg);
+}
+
+
+/**
+ * proxenet wrapper for Ruby rb_const_get()
+ */
+static VALUE rb_const_get_wrap(VALUE arg)
+{
+        return rb_const_get(rb_cObject, arg);
+}
 
 /**
  * Print message from last exception triggered by ruby
@@ -326,24 +341,6 @@ static void proxenet_ruby_lock_vm(interpreter_t *interpreter)
 static void proxenet_ruby_unlock_vm(interpreter_t *interpreter)
 {
 	pthread_mutex_unlock(&interpreter->mutex);
-}
-
-
-/**
- *
- */
-VALUE rb_intern_wrap(VALUE arg)
-{
-        return rb_intern((char*)arg);
-}
-
-
-/**
- *
- */
-VALUE rb_const_get_wrap(VALUE arg)
-{
-        return rb_const_get(rb_cObject, arg);
 }
 
 
