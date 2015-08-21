@@ -81,7 +81,7 @@ int proxenet_lua_initialize_vm(plugin_t* plugin)
  */
 int proxenet_lua_destroy_plugin(plugin_t* plugin)
 {
-        plugin->state = INACTIVE;
+        proxenet_plugin_set_state(plugin, INACTIVE);
         plugin->pre_function = NULL;
         plugin->post_function = NULL;
 

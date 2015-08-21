@@ -149,7 +149,7 @@ int proxenet_python_destroy_plugin(plugin_t* plugin)
 {
         PyThreadState* oldctx;
 
-        plugin->state = INACTIVE;
+        proxenet_plugin_set_state(plugin, INACTIVE);
         Py_DECREF(plugin->pre_function);
         Py_DECREF(plugin->post_function);
 

@@ -50,7 +50,7 @@ int proxenet_c_initialize_vm(plugin_t* plugin)
  */
 int proxenet_c_destroy_plugin(plugin_t* plugin)
 {
-        plugin->state = INACTIVE;
+        proxenet_plugin_set_state(plugin, INACTIVE);
         plugin->pre_function  = NULL;
         plugin->post_function = NULL;
 
@@ -135,13 +135,13 @@ static int proxenet_c_initialize_function(plugin_t* plugin, req_t type)
 int proxenet_c_load_file(plugin_t* plugin)
 {
         if (proxenet_c_initialize_function(plugin, REQUEST) < 0) {
-                plugin->state = INACTIVE;
+                proxenet_plugin_set_state(plugin, INACTIVE);
                 xlog(LOG_ERROR, "Failed to init %s in %s\n", CFG_REQUEST_PLUGIN_FUNCTION, plugin->name);
                 return -1;
         }
 
         if (proxenet_c_initialize_function(plugin, RESPONSE) < 0) {
-                plugin->state = INACTIVE;
+                proxenet_plugin_set_state(plugin, INACTIVE);
                 xlog(LOG_ERROR, "Failed to init %s in %s\n", CFG_RESPONSE_PLUGIN_FUNCTION, plugin->name);
                 return -1;
         }

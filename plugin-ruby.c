@@ -104,7 +104,7 @@ int proxenet_ruby_initialize_vm(plugin_t* plugin)
  */
 int proxenet_ruby_destroy_plugin(plugin_t* plugin)
 {
-        plugin->state = INACTIVE;
+        proxenet_plugin_set_state(plugin, INACTIVE);
         plugin->pre_function = NULL;
         plugin->post_function = NULL;
 
@@ -216,13 +216,13 @@ int proxenet_ruby_load_file(plugin_t* plugin)
 
 
         if (proxenet_ruby_initialize_function(plugin, REQUEST) < 0) {
-                plugin->state = INACTIVE;
+                proxenet_plugin_set_state(plugin, INACTIVE);
                 xlog_ruby(LOG_ERROR, "Failed to init %s in %s\n", CFG_REQUEST_PLUGIN_FUNCTION, plugin->name);
                 return -1;
         }
 
         if (proxenet_ruby_initialize_function(plugin, RESPONSE) < 0) {
-                plugin->state = INACTIVE;
+                proxenet_plugin_set_state(plugin, INACTIVE);
                 xlog_ruby(LOG_ERROR, "Failed to init %s in %s\n", CFG_RESPONSE_PLUGIN_FUNCTION, plugin->name);
                 return -1;
         }

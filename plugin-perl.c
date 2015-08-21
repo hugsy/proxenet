@@ -185,7 +185,7 @@ int proxenet_perl_initialize_vm(plugin_t* plugin)
  */
 int proxenet_perl_destroy_plugin(plugin_t* plugin)
 {
-        plugin->state = INACTIVE;
+        proxenet_plugin_set_state(plugin, INACTIVE);
         proxenet_xfree(plugin->pre_function);
         proxenet_xfree(plugin->post_function);
 
