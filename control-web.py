@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 import os, sys, socket, argparse
-import json, cgi,time
+import json, cgi,time, atexit
 
 try:
     from bottle import request, route, get, post, run, static_file, redirect
@@ -297,6 +297,34 @@ def config_set():
     redirect("/config")
     return
 
+def kill_daemon():
+    os.remove( os.getpid() )
+    return
+
+def daemon():
+    pid = os.fork()
+    if pid > 0:
+        sys.exit(0)
+
+    os.setsid()
+    os.umask(0)
+
+    pid = os.fork()
+    if pid > 0:
+        sys.exit(0)
+
+    sys.stdout.flush()
+    sys.stderr.flush()
+    si = file("/dev/null", 'r')
+    so = file("/dev/null", 'a+')
+    se = file("/dev/null", 'a+', 0)
+    os.dup2(si.fileno(), sys.stdin.fileno())
+    os.dup2(so.fileno(), sys.stdout.fileno())
+    os.dup2(se.fileno(), sys.stderr.fileno())
+
+    atexit.register(kill_daemon)
+    return
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(usage = __usage__, description = __desc__)
 
@@ -306,6 +334,9 @@ if __name__ == "__main__":
     parser.add_argument("-d", "--debug", default=False, action="store_true",
                         dest="debug", help="Enable `bottle` debug mode")
 
+    parser.add_argument("-D", "--demonize", default=False, action="store_true",
+                        dest="daemon", help="Daemonize the web server")
+
     parser.add_argument("-H", "--host", default="localhost", type=str, dest="host",
                         help="IP address to bind")
 
@@ -313,5 +344,9 @@ if __name__ == "__main__":
                         help="port to bind")
 
     args = parser.parse_args()
+
+    if args.daemon:
+        print("Starting web server as daemon on %s:%d" % (args.host,args.port))
+        daemon()
 
     run(host=args.host, port=args.port, debug=args.debug)
