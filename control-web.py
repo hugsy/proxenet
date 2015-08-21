@@ -204,7 +204,7 @@ def plugin_remove_from_autoload(fname):
     if not os.path.islink(flink):
         return build_html(body="""<div class="alert alert-danger" role="alert">Failed to remove '<b>{}</b>' from autoload directory </div>""".format(fname))
     os.unlink(flink)
-    return build_html(body="""<div class="alert alert-success" role="alert"><b>{}</b> successfully removed from autoload directory</div>""".format(cgi.escape(fname)))
+    return build_html(body="""<div class="alert alert-success" role="alert"><b>{}</b> successfully removed from autoload directory</div>""".format(fname))
 
 @get('/plugin/autoload/<fname>')
 def plugin_add_to_autoload(fname):
