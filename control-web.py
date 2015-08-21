@@ -151,7 +151,7 @@ def plugin():
         html += "</tr>"
     html += "</table></div>"""
 
-    time.sleep(0.25)
+    time.sleep(0.10)
 
     # available plugins
     res = sr("plugin list-all")
@@ -160,14 +160,29 @@ def plugin():
     html += """<div class="panel panel-default">"""
     html += """<div class="panel-heading"><h3 class="panel-title">{}</h3></div>""".format(title)
     html += """<table class="table table-hover table-condensed">"""
-    html += "<tr><th>Name</th><th>Type</th><th>Status</th></tr>"
+    html += "<tr><th>Name</th><th>Type</th><th>Status</th><th>Autoload?</th></tr>"
     for k,v in js[title].iteritems():
         _type, _is_loaded = v
         html += "<tr><td>{}</td><td>{}</td>".format(k, _type)
         if _is_loaded:
-            html += """<td><button type="button" class="btn btn-default btn-xs" data-toggle="button" aria-pressed="true" disabled='true'">Loaded</button></td></tr>"""
+            html += """<td><button type="button" class="btn btn-default btn-xs" data-toggle="button" aria-pressed="true" disabled='true'>Loaded</button></td>"""
         else:
-            html += """<td><button type="button" class="btn btn-default btn-xs" data-toggle="button" aria-pressed="false" onclick="window.location='/plugin/load/{}'">Load</button></td></tr>""".format(k)
+            html += """<td><button type="button" class="btn btn-default btn-xs" data-toggle="button" aria-pressed="false" onclick="window.location='/plugin/load/{}'">Load</button></td>""".format(k)
+
+        html += "<td>"
+        fpath = os.path.abspath("./proxenet-plugins/autoload/" + k)
+
+        if os.path.islink(fpath):
+            print(fpath)
+            html += """<button type="button" class="btn btn-default btn-xs" data-toggle="button" aria-pressed="true" disabled='true'">Added</button>"""
+            html += """<button type="button" class="btn btn-default btn-xs" data-toggle="button" aria-pressed="false" onclick="window.location='/plugin/unautoload/{}'">Remove</button>""".format(k)
+        else:
+            html += """<button type="button" class="btn btn-default btn-xs" data-toggle="button" aria-pressed="false" onclick="window.location='/plugin/autoload/{}'">Add</button>""".format(k)
+            html += """<button type="button" class="btn btn-default btn-xs" data-toggle="button" aria-pressed="true" disabled='true'>Removed</button>"""
+
+        html += "</td>"
+
+        html += "</tr>"
     html += "</table></div>"""
 
     return build_html(body=html, title="Plugins detail", page="plugin")
@@ -182,6 +197,26 @@ def plugin_load(fname):
     else:
         return build_html(body="""<div class="alert alert-success" role="alert"><b>{}</b> loaded successfully</div>""".format(cgi.escape(fname)))
 
+@get('/plugin/unautoload/<fname>')
+def plugin_remove_from_autoload(fname):
+    if not is_proxenet_running(): return build_html(body=not_running_html())
+    fname = cgi.escape(fname)
+    flink = os.path.realpath(".") + "/proxenet-plugins/autoload/" + fname
+    if not os.path.islink(flink):
+        return build_html(body="""<div class="alert alert-danger" role="alert">Failed to remove '<b>{}</b>' from autoload directory </div>""".format(fname))
+    os.unlink(flink)
+    return build_html(body="""<div class="alert alert-success" role="alert"><b>{}</b> successfully removed from autoload directory</div>""".format(cgi.escape(fname)))
+
+@get('/plugin/autoload/<fname>')
+def plugin_add_to_autoload(fname):
+    if not is_proxenet_running(): return build_html(body=not_running_html())
+    fname = cgi.escape(fname)
+    fpath = os.path.abspath("./proxenet-plugins/autoload/" + fname)
+    if not os.path.isfile(fpath):
+        return build_html(body="""<div class="alert alert-danger" role="alert">Failed to load <b>{}</b></div>""".format(fname))
+    flink = os.path.realpath("./proxenet-plugins/autoload/" + fname)
+    os.symlink(fpath, flink)
+    return build_html(body="""<div class="alert alert-success" role="alert"><b>{}</b> loaded successfully</div>""".format(fname))
 
 @get('/plugin/<id:int>/<action>')
 def plugin_toggle(id,action):
