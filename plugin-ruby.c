@@ -32,13 +32,6 @@ struct proxenet_ruby_args {
 
 #define xlog_ruby(t, ...) xlog(t, "["_RUBY_VERSION_"] " __VA_ARGS__)
 
-/**
- * proxenet wrapper for Ruby rb_require()
- */
-static VALUE rb_require_wrap(VALUE arg)
-{
-	return rb_require((char *)arg);
-}
 
 /**
  * proxenet wrapper for Ruby rb_intern()
@@ -146,6 +139,8 @@ int proxenet_ruby_destroy_vm(interpreter_t* interpreter)
  */
 static int proxenet_ruby_initialize_function(plugin_t* plugin, req_t type)
 {
+        int err;
+
 	/* checks */
 	if (!plugin->name) {
 		xlog_ruby(LOG_ERROR, "%s\n", "null plugin name");
@@ -159,7 +154,13 @@ static int proxenet_ruby_initialize_function(plugin_t* plugin, req_t type)
 				return 0;
 			}
 
-			plugin->pre_function  = (void*) rb_intern(CFG_REQUEST_PLUGIN_FUNCTION);
+			plugin->pre_function  = (void*)rb_protect(rb_intern_wrap, (VALUE)CFG_REQUEST_PLUGIN_FUNCTION, &err);
+                        if (err){
+                                xlog_ruby(LOG_ERROR, "Failed to get '%s'\n", CFG_REQUEST_PLUGIN_FUNCTION);
+                                proxenet_ruby_print_last_exception();
+                                return -1;
+                        }
+
 			if (plugin->pre_function) {
 #ifdef DEBUG
 				xlog_ruby(LOG_DEBUG, "Loaded %s:%s\n", plugin->filename, CFG_REQUEST_PLUGIN_FUNCTION);
@@ -173,7 +174,13 @@ static int proxenet_ruby_initialize_function(plugin_t* plugin, req_t type)
 				return 0;
 			}
 
-			plugin->post_function = (void*) rb_intern(CFG_RESPONSE_PLUGIN_FUNCTION);
+			plugin->post_function = (void*)rb_protect(rb_intern_wrap, (VALUE)CFG_RESPONSE_PLUGIN_FUNCTION, &err);
+                        if (err){
+                                xlog_ruby(LOG_ERROR, "Failed to get '%s'\n", CFG_RESPONSE_PLUGIN_FUNCTION);
+                                proxenet_ruby_print_last_exception();
+                                return -1;
+                        }
+
 			if (plugin->post_function) {
 #ifdef DEBUG
 				xlog_ruby(LOG_DEBUG, "Loaded %s:%s\n", plugin->filename, CFG_RESPONSE_PLUGIN_FUNCTION);
