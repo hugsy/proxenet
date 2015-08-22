@@ -39,6 +39,7 @@
 
 
 COMMAND_SIGNATURE(quit);
+COMMAND_SIGNATURE(restart);
 COMMAND_SIGNATURE(help);
 COMMAND_SIGNATURE(info);
 COMMAND_SIGNATURE(reload);
@@ -48,6 +49,7 @@ COMMAND_SIGNATURE(config);
 
 static struct command_t known_commands[] = {
         COMMAND(quit,     0,   "Make "PROGNAME" leave kindly"),
+        COMMAND(restart,  0,   "Make "PROGNAME" restart"),
         COMMAND(help,     0,   "Show this menu"),
         COMMAND(info,     0,   "Display information about environment"),
         COMMAND(reload,   0,   "Reload the plugins"),
@@ -141,13 +143,30 @@ static int send_plugin_list_as_json(sock_t fd, bool only_loaded)
  */
 static void quit_cmd(sock_t fd, char *options, unsigned int nb_options)
 {
-        char *msg = "Leaving gracefully\n";
+        char *msg = "{\"retcode\": 0, \"message\": \"Leaving gracefully\n\"}";
 
         /* happy compiler means karma++ */
         (void) options;
         (void) nb_options;
 
         proxenet_write(fd, (void*)msg, strlen(msg));
+        proxy_state = INACTIVE;
+        return;
+}
+
+
+/**
+ * This command will restart proxenet. Restarting is the only way to unload and reload
+ * plugins safely.
+ */
+static void restart_cmd(sock_t fd, char *options, unsigned int nb_options)
+{
+        (void) options;
+        (void) nb_options;
+
+        char *msg = "{\"retcode\": 0, \"message\": \"Restarting "PROGNAME"\n\"}";
+        proxenet_write(fd, msg, strlen(msg));
+        cfg->do_restart = true;
         proxy_state = INACTIVE;
         return;
 }

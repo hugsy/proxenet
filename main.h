@@ -57,6 +57,8 @@ typedef struct __proxenet_config {
 
                 bool ie_compat;
                 bool ssl_intercept;
+
+                bool do_restart;
 } conf_t;
 
 conf_t current_config;

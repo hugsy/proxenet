@@ -297,6 +297,8 @@ static int parse_options (int argc, char** argv)
         cfg->ie_compat          = true;
         cfg->ssl_intercept      = true;
 
+        cfg->do_restart         = false;
+
 
         /* parse command line arguments */
         while (1) {
@@ -538,7 +540,7 @@ void proxenet_free_config()
 int main (int argc, char **argv, char **envp)
 {
         int retcode = -1;
-        (void) *envp;
+        pid_t pid;
 
         /* get configuration */
         retcode = proxenet_init_config(argc, argv);
@@ -554,14 +556,23 @@ int main (int argc, char **argv, char **envp)
         /* proxenet ends here */
         proxenet_free_config();
 
-        if (retcode == 0) {
+        if (cfg->do_restart){
+                pid = fork();
+                if(pid==0){
+                        setsid();
+                        execve(argv[0], argv, envp);
+                } else {
+                        xlog(LOG_INFO, "Restarting %s as PID=%d\n", PROGNAME, pid);
+                }
+        }
+
+        if (retcode) {
                 if (cfg->verbose)
-                        xlog(LOG_INFO, "%s exits successfully\n", PROGNAME);
-                return EXIT_SUCCESS;
-        } else {
-                if (cfg->verbose)
-                        xlog(LOG_INFO, "%s exits with errors\n", PROGNAME);
+                        xlog(LOG_INFO, "%s exits with errors (PID=%d)\n", PROGNAME, getpid());
                 return EXIT_FAILURE;
         }
 
+        if (cfg->verbose)
+                xlog(LOG_INFO, "%s exits successfully (PID=%d)\n", PROGNAME, getpid());
+        return EXIT_SUCCESS;
 }

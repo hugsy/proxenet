@@ -206,8 +206,6 @@ int format_http_request(char** request, size_t* request_len)
         unsigned int i;
         int offlen;
 
-        old_ptr = new_ptr = NULL;
-
         /* Move to beginning of URL */
         for(ptr=*request; ptr && *ptr!=' ' && *ptr!='\x00'; ptr++);
 

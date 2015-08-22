@@ -65,10 +65,11 @@ def build_html(**kwargs):
     <div class="row"><div class=col-md-12>
     <ul class="nav nav-tabs nav-justified">"""
 
-    for path in ["info", "plugin", "threads", "config", "keys"]:
+    for path in ["info", "plugin", "threads", "config", "keys", ]:
         body += """<li {2}><a href="/{0}">{1}</a></li>""".format(path, path.capitalize(),
                                                                  "class='active'" if path==kwargs.get("page") else "")
 
+    body += """<li><a href="#" onclick="var c=confirm('Are you sure to restart?');if(c){window.location='/restart';}">Restart</a></li>"""
     body += """<li><a href="#" onclick="var c=confirm('Are you sure to quit?');if(c){window.location='/quit';}">Quit</a></li>"""
     body += """</ul></div></div>
     <div class="row"><div class="col-md-12"><br></div></div>
@@ -84,19 +85,30 @@ def logo(): return static_file("/proxenet-logo.png", root="./docs/img")
 
 @route('/js/jquery')
 def js_jquery(): return static_file("/jquery-1.11.2.min.js", root="./docs/html/js")
+
 @route('/js/bootstrap')
 def js_bootstrap(): return static_file("/bootstrap.min.js", root="./docs/html/js")
 
 @route('/css/bootstrap')
 def css_boostrap(): return static_file("/bootstrap.min.css", root="./docs/html/css")
+
 @route('/css/bootstrap-theme')
 def css_boostrap_theme(): return static_file("/bootstrap-theme.min.css", root="./docs/html/css")
+
 
 @route('/quit')
 def quit():
     if not is_proxenet_running(): return build_html(body=not_running_html())
     sr("quit")
     msg = """<div class="alert alert-warning" role="alert">Shutting down <b>proxenet</b></div><script>alert('Thanks for using proxenet');</script>"""
+    return build_html(body=msg)
+
+
+@route('/restart')
+def restart():
+    if not is_proxenet_running(): return build_html(body=not_running_html())
+    sr("restart")
+    msg = """<div class="alert alert-warning" role="alert">Restarting <b>proxenet</b></div><script>setTimeout('window.location="/info";', 3000);</script>"""
     return build_html(body=msg)
 
 
