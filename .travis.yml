@@ -16,7 +16,7 @@ after_script: ./proxenet --help
 notifications:
   email:
     recipients:
-      - hugsy+github@pyc.li
+      - hugsy+github@blah.cat
 
     on_success: always
     on_failure: always
