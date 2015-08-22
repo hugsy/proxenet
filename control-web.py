@@ -46,7 +46,7 @@ def redirect_after(n, location):
     return """<script>setTimeout('window.location="{:s}"', {:d})</script>""".format(location, n*1000)
 
 def not_running_html():
-    return alert("<b>proxenet</b> is not running")
+    return error("<b>proxenet</b> is not running")
 
 def format_result(res):
     d = res.replace('\n', "<br>")
