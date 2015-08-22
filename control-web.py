@@ -5,8 +5,17 @@ import json, cgi,time, atexit
 try:
     from bottle import request, route, get, post, run, static_file, redirect
 except ImportError:
-    sys.stderr.write("Missing package `bottle`\n")
+    sys.stderr.write("Missing `bottle` package: pip install bottle\n")
     exit(1)
+
+try:
+    from pygments import highlight
+    from pygments.lexers import get_lexer_for_filename
+    from pygments.formatters import HtmlFormatter
+except ImportError:
+    sys.stderr.write("Missing `pygments` package: pip install pygments\n")
+    exit(1)
+
 
 __author__    =   "hugsy"
 __version__   =   0.1
@@ -58,6 +67,7 @@ def build_html(**kwargs):
     header+= """<script src="/js/bootstrap"></script>"""
     header+= """<link rel="stylesheet" href="/css/bootstrap">"""
     header+= """<link rel="stylesheet" href="/css/bootstrap-theme">"""
+    header+= """<style>{}</style>""".format( HtmlFormatter().get_style_defs('.highlight') )
 
     header+= """<title>{}</title></head>""".format( kwargs.get("title", "") )
     body = """<body><div class="container">
@@ -175,7 +185,7 @@ def plugin():
     html += "<tr><th>Name</th><th>Type</th><th>Status</th><th>Autoload?</th></tr>"
     for k,v in js[title].iteritems():
         _type, _is_loaded = v
-        html += "<tr><td>{}</td><td>{}</td>".format(k, _type)
+        html += "<tr><td><a href=\"/plugin/view/{0}\">{0}</a></td><td>{1}</td>".format(k, _type)
         if _is_loaded:
             html += """<td><button type="button" class="btn btn-default btn-xs" data-toggle="button" aria-pressed="true" disabled='true'>Loaded</button></td>"""
         else:
@@ -208,6 +218,7 @@ def plugin_load(fname):
     else:
         return build_html(body="""<div class="alert alert-success" role="alert"><b>{}</b> loaded successfully</div>""".format(cgi.escape(fname)))
 
+
 @get('/plugin/unautoload/<fname>')
 def plugin_remove_from_autoload(fname):
     if not is_proxenet_running(): return build_html(body=not_running_html())
@@ -217,6 +228,7 @@ def plugin_remove_from_autoload(fname):
         return build_html(body="""<div class="alert alert-danger" role="alert">Failed to remove '<b>{}</b>' from autoload directory </div>""".format(fname))
     os.unlink(flink)
     return build_html(body="""<div class="alert alert-success" role="alert"><b>{}</b> successfully removed from autoload directory</div>""".format(fname))
+
 
 @get('/plugin/autoload/<fname>')
 def plugin_add_to_autoload(fname):
@@ -229,6 +241,7 @@ def plugin_add_to_autoload(fname):
     os.symlink(fpath, flink)
     return build_html(body="""<div class="alert alert-success" role="alert"><b>{}</b> loaded successfully</div>""".format(fname))
 
+
 @get('/plugin/<id:int>/<action>')
 def plugin_toggle(id,action):
     if not is_proxenet_running(): return build_html(body=not_running_html())
@@ -237,6 +250,29 @@ def plugin_toggle(id,action):
         return build_html(body="""<div class="alert alert-danger" role="alert">Failed to change state for plugin {}</div>""".format(id))
     else:
         return build_html(body="""<div class="alert alert-success" role="alert">Plugin {} state changed</div>""".format(id))
+
+
+@get('/plugin/view/<fname>')
+def plugin_load(fname):
+    if not is_proxenet_running():
+        return build_html(body=not_running_html())
+    fname = cgi.escape(fname)
+    fpath = os.path.realpath("./proxenet-plugins/" + fname)
+    if not os.path.isfile(fpath):
+        return build_html(body="""<div class="alert alert-danger" role="alert"><b>{}</b> is not a valid plugin</div>""".format(fname))
+
+    with open(fpath, 'r') as f:
+        code = f.read()
+
+    lexer = get_lexer_for_filename(fname)
+    html  = """"""
+    html += """<div class="panel panel-default">"""
+    html += """<div class="panel-heading"><h3 class="panel-title">{}</h3></div>""".format(fpath)
+    html += """<div class="panel-body">"""
+    html += """{}""".format( highlight(code, lexer, HtmlFormatter()) )
+    html += """</div>"""
+    html += """</div>"""
+    return build_html(body=html,page="plugin")
 
 
 @get('/threads')
@@ -293,10 +329,12 @@ def keys():
     html+= "</ul></div>"
     return build_html(body=html, title="Get proxenet SSL keys", page="keys")
 
+
 @route('/keys/proxenet.<fmt>')
 def key(fmt):
     if fmt in ("crt", "key", "p12", "p7b"):
         return static_file("/proxenet.%s" % fmt, root="./keys")
+
 
 @route('/config')
 def config():
@@ -329,6 +367,7 @@ def config():
 
     return build_html(body=html, title="proxenet Configuration", page="config")
 
+
 @route('/config/set')
 def config_set():
     if not is_proxenet_running(): return build_html(body=not_running_html())
@@ -343,9 +382,11 @@ def config_set():
     redirect("/config")
     return
 
+
 def kill_daemon():
     os.remove( os.getpid() )
     return
+
 
 def daemon():
     pid = os.fork()
@@ -370,6 +411,7 @@ def daemon():
 
     atexit.register(kill_daemon)
     return
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(usage = __usage__, description = __desc__)
