@@ -28,12 +28,25 @@ syntax: {3} [options] args
 """.format(__version__, __licence__, __author__, __file__)
 
 PROXENET_SOCKET_PATH = "/tmp/proxenet-control-socket"
+PROXENET_INI = os.getenv("HOME") + "/.proxenet.ini"
 
 def is_proxenet_running():
     return os.path.exists(PROXENET_SOCKET_PATH)
 
+def success(m):
+    return """<div class="alert alert-success alert-dismissible" role="alert">{}</div>""".format(m)
+
+def error(m):
+    return """<div class="alert alert-danger alert-dismissible" role="alert">{}</div>""".format(m)
+
+def alert(m):
+    return """<div class="alert alert-warning alert-dismissible" role="alert">{}</div>""".format(m)
+
+def redirect_after(n, location):
+    return """<script>setTimeout('window.location="{:s}"', {:d})</script>""".format(location, n*1000)
+
 def not_running_html():
-    return """<div class="alert alert-danger" role="alert"><b>proxenet</b> is not running</div>"""
+    return alert("<b>proxenet</b> is not running")
 
 def format_result(res):
     d = res.replace('\n', "<br>")
@@ -75,7 +88,7 @@ def build_html(**kwargs):
     <div class="row"><div class=col-md-12>
     <ul class="nav nav-tabs nav-justified">"""
 
-    for path in ["info", "plugin", "threads", "config", "keys", ]:
+    for path in ["info", "plugin", "threads", "config", "keys", "rc"]:
         body += """<li {2}><a href="/{0}">{1}</a></li>""".format(path, path.capitalize(),
                                                                  "class='active'" if path==kwargs.get("page") else "")
 
@@ -110,7 +123,9 @@ def css_boostrap_theme(): return static_file("/bootstrap-theme.min.css", root=".
 def quit():
     if not is_proxenet_running(): return build_html(body=not_running_html())
     sr("quit")
-    msg = """<div class="alert alert-warning" role="alert">Shutting down <b>proxenet</b></div><script>alert('Thanks for using proxenet');</script>"""
+    msg = ""
+    msg+= alert("Shutting down <b>proxenet</b>")
+    msg+= """<script>alert('Thanks for using proxenet');</script>"""
     return build_html(body=msg)
 
 
@@ -118,7 +133,9 @@ def quit():
 def restart():
     if not is_proxenet_running(): return build_html(body=not_running_html())
     sr("restart")
-    msg = """<div class="alert alert-warning" role="alert">Restarting <b>proxenet</b></div><script>setTimeout('window.location="/info";', 3000);</script>"""
+    msg = ""
+    msg+= alert("Restarting <b>proxenet</b>")
+    msg+= redirect_after(3, "/info")
     return build_html(body=msg)
 
 
@@ -212,11 +229,15 @@ def plugin():
 @get('/plugin/load/<fname>')
 def plugin_load(fname):
     if not is_proxenet_running(): return build_html(body=not_running_html())
+    fname = cgi.escape(fname)
     res = sr("plugin load {}".format(fname))
+    html = ""
     if "error" in res:
-        return build_html(body="""<div class="alert alert-danger" role="alert">Failed to load <b>{}</b></div>""".format(cgi.escape(fname)))
+        html += error("Failed to load <b>{}</b>".format(fname))
     else:
-        return build_html(body="""<div class="alert alert-success" role="alert"><b>{}</b> loaded successfully</div>""".format(cgi.escape(fname)))
+        html = success("<b>{}</b> loaded successfully".format(fname))
+    html+= redirect_after(5, "/plugin")
+    return build_html(body=html, page="plugin", title="Adding plugin {}".format(fname))
 
 
 @get('/plugin/unautoload/<fname>')
@@ -224,10 +245,14 @@ def plugin_remove_from_autoload(fname):
     if not is_proxenet_running(): return build_html(body=not_running_html())
     fname = cgi.escape(fname)
     flink = os.path.realpath(".") + "/proxenet-plugins/autoload/" + fname
+    html = ""
     if not os.path.islink(flink):
-        return build_html(body="""<div class="alert alert-danger" role="alert">Failed to remove '<b>{}</b>' from autoload directory </div>""".format(fname))
-    os.unlink(flink)
-    return build_html(body="""<div class="alert alert-success" role="alert"><b>{}</b> successfully removed from autoload directory</div>""".format(fname))
+        html += error("Failed to remove '<b>{}</b>' from autoload directory".format(fname))
+    else:
+        os.unlink(flink)
+        html += success("<b>{}</b> successfully removed from autoload directory".format(fname))
+    html+= redirect_after(5, "/plugin")
+    return build_html(body=html, page="plugin", title="Removing from autoload")
 
 
 @get('/plugin/autoload/<fname>')
@@ -235,11 +260,15 @@ def plugin_add_to_autoload(fname):
     if not is_proxenet_running(): return build_html(body=not_running_html())
     fname = cgi.escape(fname)
     fpath = os.path.abspath("./proxenet-plugins/autoload/" + fname)
+    html = ""
     if not os.path.isfile(fpath):
-        return build_html(body="""<div class="alert alert-danger" role="alert">Failed to load <b>{}</b></div>""".format(fname))
-    flink = os.path.realpath("./proxenet-plugins/autoload/" + fname)
-    os.symlink(fpath, flink)
-    return build_html(body="""<div class="alert alert-success" role="alert"><b>{}</b> loaded successfully</div>""".format(fname))
+         html+= error("Failed to load <b>{}</b>".format(fname))
+    else:
+        flink = os.path.realpath("./proxenet-plugins/autoload/" + fname)
+        os.symlink(fpath, flink)
+        html+= success("<b>{}</b> loaded successfully".format(fname))
+    html+= redirect_after(5, "/plugin")
+    return build_html(body=html)
 
 
 @get('/plugin/<id:int>/<action>')
@@ -247,19 +276,19 @@ def plugin_toggle(id,action):
     if not is_proxenet_running(): return build_html(body=not_running_html())
     res = sr("plugin set {} toggle".format(id))
     if "error" in res:
-        return build_html(body="""<div class="alert alert-danger" role="alert">Failed to change state for plugin {}</div>""".format(id))
+        return build_html(body=error("""Failed to change state for plugin {}""".format(id)))
     else:
-        return build_html(body="""<div class="alert alert-success" role="alert">Plugin {} state changed</div>""".format(id))
+        return build_html(body=success("""Plugin {} state changed""".format(id)))
 
 
 @get('/plugin/view/<fname>')
-def plugin_load(fname):
+def plugin_view(fname):
     if not is_proxenet_running():
         return build_html(body=not_running_html())
     fname = cgi.escape(fname)
     fpath = os.path.realpath("./proxenet-plugins/" + fname)
     if not os.path.isfile(fpath):
-        return build_html(body="""<div class="alert alert-danger" role="alert"><b>{}</b> is not a valid plugin</div>""".format(fname))
+        return build_html(body=error("""<b>{}</b> is not a valid plugin""".format(fname)))
 
     with open(fpath, 'r') as f:
         code = f.read()
@@ -272,7 +301,7 @@ def plugin_load(fname):
     html += """{}""".format( highlight(code, lexer, HtmlFormatter()) )
     html += """</div>"""
     html += """</div>"""
-    return build_html(body=html,page="plugin")
+    return build_html(body=html, page="plugin", title="Viewing plugin '{}'".format(fname))
 
 
 @get('/threads')
@@ -310,7 +339,7 @@ def threads():
 def threads_set(word):
     if not is_proxenet_running(): return build_html(body=not_running_html())
     if word not in ("inc", "dec", "set"):
-        return "Error"
+        return build_html(body=error("Invalid parameter"), page="threads")
     res = sr("threads {}".format(word))
     redirect("/threads")
     return
@@ -323,9 +352,7 @@ def keys():
     html = """<div class="panel panel-default">"""
     html+= """<div class="panel-heading"><h3 class="panel-title">SSL keys</h3></div>"""
     html+= """<div class="panel-body"><ul>"""
-    html+= """"""
-    for ext,fmt in extensions:
-        html += "<li><a href=\"/keys/proxenet.{}\">{}</a></li>".format(fmt, ext)
+    for ext,fmt in extensions: html += """<li><a href="/keys/proxenet.{}">{}</a></li>""".format(fmt, ext)
     html+= "</ul></div>"
     return build_html(body=html, title="Get proxenet SSL keys", page="keys")
 
@@ -364,7 +391,6 @@ def config():
         html += """<option>{}</option>""".format( k )
     html += """</select></div><div class="form-group"><label class="sr-only">Value</label><input class="form-control" name="value" placeholder="Value"></div><button type="submit" class="btn btn-default">Change Value</button>"""
     html += """</form></div></div>"""
-
     return build_html(body=html, title="proxenet Configuration", page="config")
 
 
@@ -373,13 +399,42 @@ def config_set():
     if not is_proxenet_running(): return build_html(body=not_running_html())
     param = request.params.get("setting")
     value = request.params.get("value")
-    print param, value
     res = sr("config set {} {}".format(param, value))
     js = json.loads( res )
     retcode = js.keys()[0]
     if retcode == "error":
         return """<div class="alert alert-danger" role="alert">{}</div>""".format(res[retcode])
     redirect("/config")
+    return
+
+
+@get('/rc')
+def view_plugin_params():
+    if not is_proxenet_running(): return build_html(body=not_running_html())
+    with open(PROXENET_INI, 'r') as f:
+        code = f.read()
+    html  = ""
+
+    if request.params.get("new"):
+        html += success("New configuration written")
+
+    html += """<div class="panel panel-default">"""
+    html += """<div class="panel-heading"><h3 class="panel-title">Edit plugin config</h3></div>"""
+    html += """<div class="panel-body"><form method="POST">"""
+    html += """<textarea name="config" cols="120" rows="20" style="font: 100% Courier,sans-serif;">{}</textarea><br/>""".format(code)
+    html += """<button type="submit" class="btn btn-primary">Submit</button><br/>"""
+    html += """</form></div>"""
+    html += """</div>"""
+    return build_html(body=html, page="rc", title="Viewing plugin configuration file")
+
+
+@post('/rc')
+def write_plugin_params():
+    if not is_proxenet_running(): return build_html(body=not_running_html())
+    with open(PROXENET_INI, 'w') as f:
+        f.write( request.params.get("config") )
+    success("New configuration written")
+    redirect("/rc?new=1")
     return
 
 
