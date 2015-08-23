@@ -21,6 +21,7 @@ module MyPlugin
         return response
     end
 
+    module_function :proxenet_request_hook, :proxenet_response_hook
 end
 
 if __FILE__ == $0
@@ -48,6 +49,8 @@ module AddHeader
     def proxenet_response_hook(response_id, response, uri)
         return response
     end
+
+    module_function :proxenet_request_hook, :proxenet_response_hook
 end
 
 if __FILE__ == $0

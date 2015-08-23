@@ -135,7 +135,7 @@ def restart():
     sr("restart")
     msg = ""
     msg+= alert("Restarting <b>proxenet</b>")
-    msg+= redirect_after(3, "/info")
+    msg+= redirect_after(2, "/info")
     return build_html(body=msg)
 
 
@@ -179,10 +179,10 @@ def plugin():
     html += """<div class="panel panel-default">"""
     html += """<div class="panel-heading"><h3 class="panel-title">Plugins loaded</h3></div>"""
     html += """<table class="table table-hover table-condensed">"""
-    html += "<tr><th>Id</th><th>Name</th><th>Priority</th><th>Status</th><th>Action</th></tr>"
+    html += "<tr><th>Id</th><th>Name</th><th>Priority</th><th>Type</th><th>Status</th><th>Action</th></tr>"
     for name in js.keys():
         p = js[name]
-        html += "<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td>".format(p['id'], name, p['priority'], p['state'])
+        html += "<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td>".format(p['id'], name, p['priority'], p['type'], p['state'])
         if p['state']=="INACTIVE":
             html += """<td><button type="button" class="btn btn-default btn-xs" data-toggle="button" aria-pressed="false" onclick="window.location='/plugin/{}/enable'">Enable</button></td>""".format(p["id"])
         else:
@@ -236,7 +236,7 @@ def plugin_load(fname):
         html += error("Failed to load <b>{}</b>".format(fname))
     else:
         html = success("<b>{}</b> loaded successfully".format(fname))
-    html+= redirect_after(5, "/plugin")
+    html+= redirect_after(2, "/plugin")
     return build_html(body=html, page="plugin", title="Adding plugin {}".format(fname))
 
 
@@ -251,7 +251,7 @@ def plugin_remove_from_autoload(fname):
     else:
         os.unlink(flink)
         html += success("<b>{}</b> successfully removed from autoload directory".format(fname))
-    html+= redirect_after(5, "/plugin")
+    html+= redirect_after(2, "/plugin")
     return build_html(body=html, page="plugin", title="Removing from autoload")
 
 
@@ -267,7 +267,7 @@ def plugin_add_to_autoload(fname):
         flink = os.path.realpath("./proxenet-plugins/autoload/" + fname)
         os.symlink(fpath, flink)
         html+= success("<b>{}</b> loaded successfully".format(fname))
-    html+= redirect_after(5, "/plugin")
+    html+= redirect_after(2, "/plugin")
     return build_html(body=html)
 
 
@@ -289,6 +289,12 @@ def plugin_view(fname):
     fpath = os.path.realpath("./proxenet-plugins/" + fname)
     if not os.path.isfile(fpath):
         return build_html(body=error("""<b>{}</b> is not a valid plugin""".format(fname)))
+
+    if fpath.endswith(".class"):
+        fpath = fpath.replace(".class", ".java")
+        fname = fname.replace(".class", ".java")
+        if not os.path.isfile(fpath):
+            return build_html(body=error("""<b>{}</b> is not a valid plugin""".format(fname)))
 
     with open(fpath, 'r') as f:
         code = f.read()
@@ -489,7 +495,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.daemon:
-        print("Starting web server as daemon on %s:%d" % (args.host,args.port))
+        print("Starting web server as daemon on http://%s:%d" % (args.host,args.port))
         daemon()
 
     run(host=args.host, port=args.port, debug=args.debug)

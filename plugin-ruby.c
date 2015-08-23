@@ -70,7 +70,7 @@ static void proxenet_ruby_print_last_exception()
  */
 int proxenet_ruby_initialize_vm(plugin_t* plugin)
 {
-	static char* rArgs[] = { "ruby", "/dev/null" };
+	static char* rArgs[2] = { "ruby", "/dev/null" };
 	interpreter_t *interpreter;
         VALUE rRet;
 

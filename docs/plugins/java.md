@@ -51,7 +51,7 @@ public class AddHeader
         String myReq = new String( request );
         String header = "X-Powered-By: java-proxenet";
         myReq = myReq.replace("\r\n\r\n", "\r\n"+header+"\r\n\r\n");
-        return request;
+        return myReq;
     }
 
     public static byte[] proxenet_response_hook(int response_id, byte[] response, String uri){
