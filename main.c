@@ -72,7 +72,7 @@ static void usage(int retcode)
                 "\t-V, --version\t\t\t\tShow version\n"
                 "\t-d, --daemon\t\t\t\tStart as daemon\n"
                 "\t-v, --verbose\t\t\t\tIncrease verbosity (default: 0)\n"
-                "\t-n, --no-color\t\t\t\tDisable colored output (better for )\n"
+                "\t-n, --no-color\t\t\t\tDisable colored output\n"
                 "\t-l, --logfile=/path/to/logfile\t\tLog actions in file (default stdout)\n"
                 "\t-x, --plugins=/path/to/plugins/dir\tSpecify plugins directory (default: '%s')\n"
                 ,

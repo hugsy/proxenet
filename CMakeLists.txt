@@ -273,4 +273,4 @@ add_executable(proxenet ${ALL_FILES})
 target_link_libraries(proxenet ${EXTRA_LIBS} ${CMAKE_LINK_HARDEN})
 
 # install
-install (TARGETS proxenet DESTINATION ${PREFIX}/bin)
+install (TARGETS proxenet DESTINATION ${PREFIX}/usr/bin)
