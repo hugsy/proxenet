@@ -101,13 +101,19 @@ int proxenet_java_initialize_vm(plugin_t* plugin)
         JavaVMInitArgs vm_args;
         JavaVMOption options;
         proxenet_jvm_t *pxnt_jvm;
+        char java_classpath_option[256] = {0, };
 
 	if (plugin->interpreter->ready)
 		return 0;
 
         pxnt_jvm = proxenet_xmalloc(sizeof(proxenet_jvm_t));
 
-        options.optionString = "-Djava.class.path="JAVA_CLASSPATH;
+        ret = snprintf(java_classpath_option, sizeof(java_classpath_option),
+                       "-Djava.class.path=%s", cfg->plugins_path);
+        if (ret < 0)
+                return -1;
+
+        options.optionString = java_classpath_option;
 
 #if     (_JAVA_MINOR_ == 8)
         vm_args.version = JNI_VERSION_1_8;

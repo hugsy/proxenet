@@ -8,11 +8,6 @@
 
 #define JAVA_METHOD_PROTOTYPE   "(I[BLjava/lang/String;)[B"          // Signature extracted using `javap -s -p <ClassName>`
 
-// TODO use cmake
-#ifndef JAVA_CLASSPATH
-#define JAVA_CLASSPATH "/home/hugsy/code/proxenet/proxenet-plugins"
-#endif
-
 typedef struct {
                 JavaVM* jvm;
                 JNIEnv *env;
