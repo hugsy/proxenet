@@ -76,7 +76,7 @@ Later versions of mbed TLS can be obtained from the
 #### VM support
 
 By default, `cmake` will try to find all the libraries already installed on the
-system to enable specific plugin. Without any additional libraries installed, 
+system to enable specific plugin. Without any additional libraries installed,
 the `C` plugin will be the minimum available.
 
 If you wish to compile `proxenet` with all the VM it currently supports, try the
@@ -130,6 +130,12 @@ or
 $ cmake . -DUSE_PYTHON_PLUGIN=OFF && make   # to disable Python script support
 ```
 
+If you want to install it, the following command will install `proxenet` (by
+default in `/opt/proxenet`) and setup the environment too.
+```bash
+# make install
+# make setup
+```
 
 ### Re-Compilation
 

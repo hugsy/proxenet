@@ -33,6 +33,7 @@ set (VERSION_MINOR 4)
 
 set (VERSION "${VERSION_MAJOR}.${VERSION_MINOR}-${VERSION_REL}")
 
+set (CMAKE_INSTALL_PREFIX "/opt/${PROGNAME}")
 
 # plugin cmake build path
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/ ${CMAKE_MODULE_PATH})
@@ -272,5 +273,19 @@ message("-----------------------------------------------------------------------
 add_executable(proxenet ${ALL_FILES})
 target_link_libraries(proxenet ${EXTRA_LIBS} ${CMAKE_LINK_HARDEN})
 
+
 # install
-install (TARGETS proxenet DESTINATION ${PREFIX}/usr/bin)
+set (MANDIR /usr/share/man/man1)
+install (TARGETS proxenet DESTINATION bin)
+
+add_custom_target( setup )
+add_custom_command (TARGET setup
+  POST_BUILD
+  COMMAND bash cmake/setup.sh ${CMAKE_SOURCE_DIR} ${CMAKE_INSTALL_PREFIX} ${MANDIR})
+
+add_custom_target( uninstall )
+add_custom_command (TARGET uninstall
+  POST_BUILD
+  COMMAND echo "* Deleting ${PROGNAME} tree"
+  COMMAND rm -fr "${CMAKE_INSTALL_PREFIX}" "${MANDIR}/${PROGNAME}.1.gz"
+  )
