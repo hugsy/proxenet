@@ -27,6 +27,7 @@ by {2}
 syntax: {3} [options] args
 """.format(__version__, __licence__, __author__, __file__)
 
+ROOT = os.path.dirname( os.path.realpath(sys.argv[0]))
 PROXENET_SOCKET_PATH = "/tmp/proxenet-control-socket"
 PROXENET_INI = os.getenv("HOME") + "/.proxenet.ini"
 
@@ -104,19 +105,19 @@ def build_html(**kwargs):
 
 
 @route('/img/logo')
-def logo(): return static_file("/proxenet-logo.png", root="./docs/img")
+def logo(): return static_file("/proxenet-logo.png", root=ROOT+"/docs/img")
 
 @route('/js/jquery')
-def js_jquery(): return static_file("/jquery-1.11.2.min.js", root="./docs/html/js")
+def js_jquery(): return static_file("/jquery-1.11.2.min.js", root=ROOT+"./docs/html/js")
 
 @route('/js/bootstrap')
-def js_bootstrap(): return static_file("/bootstrap.min.js", root="./docs/html/js")
+def js_bootstrap(): return static_file("/bootstrap.min.js", root=ROOT+"/docs/html/js")
 
 @route('/css/bootstrap')
-def css_boostrap(): return static_file("/bootstrap.min.css", root="./docs/html/css")
+def css_boostrap(): return static_file("/bootstrap.min.css", root=ROOT+"/docs/html/css")
 
 @route('/css/bootstrap-theme')
-def css_boostrap_theme(): return static_file("/bootstrap-theme.min.css", root="./docs/html/css")
+def css_boostrap_theme(): return static_file("/bootstrap-theme.min.css", root=ROOT+"/docs/html/css")
 
 
 @route('/quit')
@@ -209,7 +210,7 @@ def plugin():
             html += """<td><button type="button" class="btn btn-default btn-xs" data-toggle="button" aria-pressed="false" onclick="window.location='/plugin/load/{}'">Load</button></td>""".format(k)
 
         html += "<td>"
-        fpath = os.path.abspath("./proxenet-plugins/autoload/" + k)
+        fpath = os.path.abspath(ROOT + "/proxenet-plugins/autoload/" + k)
 
         if os.path.islink(fpath):
             html += """<button type="button" class="btn btn-default btn-xs" data-toggle="button" aria-pressed="true" disabled='true'">Added</button>"""
@@ -244,7 +245,7 @@ def plugin_load(fname):
 def plugin_remove_from_autoload(fname):
     if not is_proxenet_running(): return build_html(body=not_running_html())
     fname = cgi.escape(fname)
-    flink = os.path.realpath(".") + "/proxenet-plugins/autoload/" + fname
+    flink = os.path.realpath( ROOT ) + "/proxenet-plugins/autoload/" + fname
     html = ""
     if not os.path.islink(flink):
         html += error("Failed to remove '<b>{}</b>' from autoload directory".format(fname))
@@ -259,12 +260,12 @@ def plugin_remove_from_autoload(fname):
 def plugin_add_to_autoload(fname):
     if not is_proxenet_running(): return build_html(body=not_running_html())
     fname = cgi.escape(fname)
-    fpath = os.path.abspath("./proxenet-plugins/autoload/" + fname)
+    fpath = os.path.abspath(ROOT + "/proxenet-plugins/" + fname)
     html = ""
     if not os.path.isfile(fpath):
          html+= error("Failed to load <b>{}</b>".format(fname))
     else:
-        flink = os.path.realpath("./proxenet-plugins/autoload/" + fname)
+        flink = os.path.realpath(ROOT + "/proxenet-plugins/autoload/" + fname)
         os.symlink(fpath, flink)
         html+= success("<b>{}</b> loaded successfully".format(fname))
     html+= redirect_after(2, "/plugin")
@@ -286,7 +287,7 @@ def plugin_view(fname):
     if not is_proxenet_running():
         return build_html(body=not_running_html())
     fname = cgi.escape(fname)
-    fpath = os.path.realpath("./proxenet-plugins/" + fname)
+    fpath = os.path.realpath(ROOT + "/proxenet-plugins/" + fname)
     if not os.path.isfile(fpath):
         return build_html(body=error("""<b>{}</b> is not a valid plugin""".format(fname)))
 
@@ -366,7 +367,7 @@ def keys():
 @route('/keys/proxenet.<fmt>')
 def key(fmt):
     if fmt in ("crt", "key", "p12", "p7b"):
-        return static_file("/proxenet.%s" % fmt, root="./keys")
+        return static_file("/proxenet.%s" % fmt, root=ROOT + "/keys")
 
 
 @route('/config')
