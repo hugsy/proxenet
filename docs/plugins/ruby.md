@@ -12,7 +12,8 @@ module MyPlugin
     $AUTHOR = ""
     $PLUGIN_NAME = ""
 
-
+    module_function
+    
     def proxenet_request_hook(request_id, request, uri)
         return request
     end
@@ -21,7 +22,6 @@ module MyPlugin
         return response
     end
 
-    module_function :proxenet_request_hook, :proxenet_response_hook
 end
 
 if __FILE__ == $0
@@ -39,7 +39,8 @@ module AddHeader
     $AUTHOR = "hugsy"
     $PLUGIN_NAME = "AddHeader"
 
-
+    module_function
+    
     def proxenet_request_hook(request_id, request, uri)
         @CRLF = "\r\n"
         @header = "X-Powered-By: ruby-proxenet"
@@ -50,7 +51,6 @@ module AddHeader
         return response
     end
 
-    module_function :proxenet_request_hook, :proxenet_response_hook
 end
 
 if __FILE__ == $0
