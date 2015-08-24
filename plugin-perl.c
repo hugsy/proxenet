@@ -223,7 +223,7 @@ static char* proxenet_perl_execute_function(char* fname, long rid, char* request
 	size_t len;
 	SV* sv = NULL;
 
-	res = data = NULL;
+	data = NULL;
 
 	dSP;
 	ENTER;

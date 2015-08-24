@@ -19,9 +19,10 @@ make -C ${dest}/keys
 
 echo "** Copying control clients"
 cp control-web.py control-client.py ${dest}/
+cp -r ${orig}/docs ${dest}
 
 echo '#!/bin/bash' > ${dest}/${progname}
-echo "cd ${dest};./bin/proxenet \$@;cd -" >> ${dest}/${progname}
+echo "cd ${dest};./bin/proxenet \$@;cd - >/dev/null" >> ${dest}/${progname}
 chmod a+x ${dest}/${progname}
 chmod a+r -R ${dest}
 
