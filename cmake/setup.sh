@@ -24,6 +24,7 @@ cp -r ${orig}/docs ${dest}
 echo '#!/bin/bash' > ${dest}/${progname}
 echo "cd ${dest};./bin/proxenet \$@;cd - >/dev/null" >> ${dest}/${progname}
 chmod a+x ${dest}/${progname}
+chmod a+x ${dest} ${dest}/docs ${dest}/keys ${dest}/bin ${dest}/proxenet-plugins
 chmod a+r -R ${dest}
 
 echo "* Success"
