@@ -780,7 +780,7 @@ int proxenet_handle_control_event(sock_t* sock) {
                 goto cmd_end;
         }
 
-        if(cfg->verbose)
+        if(cfg->verbose > 1)
                 xlog(LOG_INFO, "Receiving control command: \"%s\" \n", cmd->name);
 
         ptr = &read_buf[strlen(cmd->name)];

@@ -269,17 +269,20 @@ def plugin_add_to_autoload(fname):
         os.symlink(fpath, flink)
         html+= success("<b>{}</b> loaded successfully".format(fname))
     html+= redirect_after(2, "/plugin")
-    return build_html(body=html)
+    return build_html(body=html, page="plugin")
 
 
 @get('/plugin/<id:int>/<action>')
 def plugin_toggle(id,action):
     if not is_proxenet_running(): return build_html(body=not_running_html())
     res = sr("plugin set {} toggle".format(id))
+    html = ""
     if "error" in res:
-        return build_html(body=error("""Failed to change state for plugin {}""".format(id)))
+        html += error("""Failed to change state for plugin {}""".format(id))
     else:
-        return build_html(body=success("""Plugin {} state changed""".format(id)))
+        html += success("""Plugin {} state changed""".format(id))
+    html+= redirect_after(2, "/plugin")
+    return build_html(body=html, page="plugin")
 
 
 @get('/plugin/view/<fname>')

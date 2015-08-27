@@ -1173,7 +1173,7 @@ void xloop(sock_t sock, sock_t ctl_sock)
 
                         if (ctl_cli_sock < 0) {
                                 ctl_cli_sock = new_conn;
-                                if(cfg->verbose)
+                                if(cfg->verbose >= 2)
                                         xlog(LOG_INFO, "%s\n", "New connection on Control socket");
                                 proxenet_write(ctl_cli_sock, CONTROL_MOTD, strlen(CONTROL_MOTD));
                                 proxenet_write(ctl_cli_sock, CONTROL_PROMPT, strlen(CONTROL_PROMPT));
