@@ -70,7 +70,7 @@ static char* get_request_full_uri(request_t* req)
         len+= strlen(http_infos->path);
         uri = (char*)proxenet_xmalloc(len+1);
 
-        snprintf(uri, len, "%s%s:%d%s",
+        proxenet_xsnprintf(uri, len, "%s%s:%d%s",
                  req->is_ssl?HTTPS_PROTO_STRING:HTTP_PROTO_STRING,
                  http_infos->hostname,
                  http_infos->port,
@@ -461,7 +461,7 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
         }
 
         ssl_ctx->use_ssl = req->is_ssl;
-        snprintf(sport, sizeof(sport), "%hu", http_infos->port);
+        proxenet_xsnprintf(sport, sizeof(sport), "%hu", http_infos->port);
 
         /* do we forward to another proxy ? */
         if (use_proxy) {
@@ -481,7 +481,7 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
 
         retcode = proxenet_open_socket(host, port);
         if (retcode < 0) {
-                snprintf(errmsg, sizeof(errmsg), "Cannot connect to %s:%s<br><br>Reason: %s",
+                proxenet_xsnprintf(errmsg, sizeof(errmsg), "Cannot connect to %s:%s<br><br>Reason: %s",
                          host, port, errno?strerror(errno):"<i>proxenet_open_socket()</i> failed");
 
                 generic_http_error_page(*server_sock, errmsg);
@@ -514,7 +514,7 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
                 int  rport = http_infos->port;
                 retcode = proxenet_socks_connect(*client_sock, rhost, rport, true);
                 if( retcode<0 ){
-                        snprintf(errmsg, sizeof(errmsg), "Failed to open SOCKS4 tunnel to %s:%s.\n",
+                        proxenet_xsnprintf(errmsg, sizeof(errmsg), "Failed to open SOCKS4 tunnel to %s:%s.\n",
                                  host, port);
                         generic_http_error_page(*server_sock, errmsg);
                         xlog(LOG_ERROR, "%s", errmsg);

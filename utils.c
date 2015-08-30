@@ -215,6 +215,29 @@ char* proxenet_xstrdup2(const char *data)
 
 
 /**
+ * Wrapper for snprintf(), returning the maximum number of bytes *actually* copied
+ * in the destination buffer.
+ *
+ * @param str: the destination buffer
+ * @param size: the maximum size to copy
+ * @param format: the format string to apply
+ */
+inline int proxenet_xsnprintf(char *str, size_t size, const char *format, ...)
+{
+        int n;
+        va_list ap;
+
+        va_start(ap, format);
+	n = vsnprintf(str, size, format, ap);
+	va_end(ap);
+        if (n < 0)
+                return n;
+
+        return MIN((unsigned int)n, (unsigned int)size);
+}
+
+
+/**
  * Checks if the provided by is a valid plugin path i.e.:
  * - verifies that path is valid
  * - checks that a `autoload` sub-directory can be accessed
@@ -234,7 +257,7 @@ bool is_valid_plugin_path(char* plugin_path, char** plugins_path_ptr, char** aut
 	}
 
         /* check the autoload path inside plugin path */
-        snprintf(autoload_path, PATH_MAX-1, "%s/%s", *plugins_path_ptr, CFG_DEFAULT_PLUGINS_AUTOLOAD_PATH);
+        proxenet_xsnprintf(autoload_path, PATH_MAX-1, "%s/%s", *plugins_path_ptr, CFG_DEFAULT_PLUGINS_AUTOLOAD_PATH);
 
         *autoload_path_ptr = realpath(autoload_path, NULL);
 	if (*autoload_path_ptr == NULL){

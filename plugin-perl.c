@@ -98,7 +98,7 @@ int proxenet_perl_load_file(plugin_t* plugin)
 			/* Save the request function path */
 			len = package_len + 2 + strlen(CFG_REQUEST_PLUGIN_FUNCTION) + 1;
 			plugin->pre_function = proxenet_xmalloc(len);
-			snprintf(plugin->pre_function, len, "%s::%s",
+			proxenet_xsnprintf(plugin->pre_function, len, "%s::%s",
                                  package_name, CFG_REQUEST_PLUGIN_FUNCTION);
 #ifdef DEBUG
                         xlog_perl(LOG_DEBUG, "Loaded '%s'\n", plugin->pre_function);
@@ -107,7 +107,7 @@ int proxenet_perl_load_file(plugin_t* plugin)
                         /* Save the reponse function path */
 			len = package_len + 2 + strlen(CFG_RESPONSE_PLUGIN_FUNCTION) + 1;
 			plugin->post_function = proxenet_xmalloc(len);
-			snprintf(plugin->post_function, len, "%s::%s",
+			proxenet_xsnprintf(plugin->post_function, len, "%s::%s",
                                  package_name, CFG_RESPONSE_PLUGIN_FUNCTION);
 #ifdef DEBUG
                         xlog_perl(LOG_DEBUG, "Loaded '%s'\n", plugin->post_function);

@@ -56,7 +56,7 @@ static int send_socks4_connect(sock_t socks_fd, char *ip_str, int port)
 
 
         /* USERID */
-        n = snprintf(userid, sizeof(userid)-1, "%s:%s:%d", PROGNAME, ip_str, port);
+        n = proxenet_xsnprintf(userid, sizeof(userid)-1, "%s:%s:%d", PROGNAME, ip_str, port);
         memcpy(&socks_request[8], userid, n);
 
         return proxenet_write(socks_fd, socks_request, 8 + n + 1);
@@ -90,7 +90,7 @@ static int send_socks4a_connect(sock_t socks_fd, char *hostname, int port)
         len += 8;
 
         /* USERID */
-        n = snprintf(userid, sizeof(userid)-1, "%s:%s:%d", PROGNAME, hostname, port);
+        n = proxenet_xsnprintf(userid, sizeof(userid)-1, "%s:%s:%d", PROGNAME, hostname, port);
         memcpy(&socks_request[len], userid, n);
 
         len += n+1;
