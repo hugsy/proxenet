@@ -140,7 +140,7 @@ static int ca_generate_csr(ctr_drbg_context *ctr_drbg, char* hostname, unsigned 
         x509write_csr_set_key( &csr, &key );
 
         /* set the subject name */
-        snprintf(subj_name, sizeof(subj_name), PROXENET_CERT_SUBJECT, hostname);
+        proxenet_xsnprintf(subj_name, sizeof(subj_name), PROXENET_CERT_SUBJECT, hostname);
         retcode = x509write_csr_set_subject_name( &csr, subj_name );
         if( retcode < 0 ) {
                 xlog(LOG_ERROR, "x509write_csr_set_subject_name() returned %d\n", retcode);
@@ -201,7 +201,7 @@ static int ca_generate_crt(ctr_drbg_context *ctr_drbg, unsigned char* csrbuf, si
         xlog(LOG_DEBUG, "%s\n", "CRT load cert & key");
 #endif
 
-        snprintf(serial_str, sizeof(serial_str), "%u", ++serial_base);
+        proxenet_xsnprintf(serial_str, sizeof(serial_str), "%u", ++serial_base);
         retcode = mpi_read_string(&serial, 10, serial_str);
         if(retcode < 0) {
                 polarssl_strerror(retcode, errbuf, sizeof(errbuf));
@@ -423,7 +423,7 @@ int proxenet_lookup_crt(char* hostname, char** crtpath)
         char buf[PATH_MAX];
         char *crt_realpath;
 
-        n = snprintf(buf, PATH_MAX, "%s/%s.crt", cfg->certsdir, hostname);
+        n = proxenet_xsnprintf(buf, PATH_MAX, "%s/%s.crt", cfg->certsdir, hostname);
         if (n<0){
                 *crtpath = NULL;
                 return -1;

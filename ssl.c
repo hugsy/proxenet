@@ -280,7 +280,7 @@ int proxenet_ssl_handshake(proxenet_ssl_context_t* ctx)
                 proxenet_xzero(ssl_strerror, sizeof(ssl_strerror));
 
                 if (retcode){
-                        snprintf(ssl_strerror, sizeof(ssl_strerror)-1,
+                        proxenet_xsnprintf(ssl_strerror, sizeof(ssl_strerror)-1,
                                  "SSL Handshake: "RED"fail"NOCOLOR" [%d]",
                                  retcode);
                         xlog(LOG_ERROR, "%s\n", ssl_strerror);
@@ -293,7 +293,7 @@ int proxenet_ssl_handshake(proxenet_ssl_context_t* ctx)
                 }
                 else
                 {
-                        snprintf(ssl_strerror, sizeof(ssl_strerror)-1,
+                        proxenet_xsnprintf(ssl_strerror, sizeof(ssl_strerror)-1,
                                  "SSL Handshake: "GREEN"success"NOCOLOR" [proto='%s',cipher='%s']",
                                  ssl_get_version( ctx ),
                                  ssl_get_ciphersuite( ctx ) );
@@ -321,7 +321,7 @@ int proxenet_ssl_handshake(proxenet_ssl_context_t* ctx)
                 strncat(errbuf, "Verify X509 cert: ", sizeof(errbuf)-strlen(errbuf)-1);
                 ret = ssl_get_verify_result( ctx );
                 if( ret != 0 ) {
-                        snprintf(errbuf+strlen(errbuf), sizeof(errbuf)-strlen(errbuf)-1, RED"failed"NOCOLOR" [%d]\n", ret);
+                        proxenet_xsnprintf(errbuf+strlen(errbuf), sizeof(errbuf)-strlen(errbuf)-1, RED"failed"NOCOLOR" [%d]\n", ret);
                         if( ret & BADCERT_EXPIRED )
                                 strncat(errbuf, RED"\t[-]"NOCOLOR" certificate expired\n", sizeof(errbuf)-strlen(errbuf)-1);
                         if( ret & BADCERT_REVOKED )

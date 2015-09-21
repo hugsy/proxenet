@@ -108,7 +108,7 @@ int proxenet_java_initialize_vm(plugin_t* plugin)
 
         pxnt_jvm = proxenet_xmalloc(sizeof(proxenet_jvm_t));
 
-        ret = snprintf(java_classpath_option, sizeof(java_classpath_option),
+        ret = proxenet_xsnprintf(java_classpath_option, sizeof(java_classpath_option),
                        "-Djava.class.path=%s", cfg->plugins_path);
         if (ret < 0)
                 return -1;

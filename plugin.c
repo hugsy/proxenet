@@ -62,8 +62,8 @@ static void insert_new_plugin_in_list(char* name, supported_plugins_t type, shor
                 abort();
         }
 
-        if (snprintf(plugin->fullpath, sizeof(plugin->fullpath), "%s/%s", cfg->plugins_path, name) < 0){
-                xlog(LOG_CRITICAL, "snprintf() failed for '%s/%s': %s", cfg->plugins_path, name, strerror(errno));
+        if (proxenet_xsnprintf(plugin->fullpath, sizeof(plugin->fullpath), "%s/%s", cfg->plugins_path, name) < 0){
+                xlog(LOG_CRITICAL, "proxenet_xsnprintf() failed for '%s/%s': %s", cfg->plugins_path, name, strerror(errno));
                 abort();
         }
 
@@ -201,7 +201,7 @@ static bool proxenet_build_plugins_list(char *list_str, int *list_len)
 	total_len = strlen("Plugins list:\n");
 
 	for (p = plugins_list; p!=NULL; p=p->next) {
-		n = snprintf(ptr, max_line_len,
+		n = proxenet_xsnprintf(ptr, max_line_len,
 			     "|_ priority=%-3d id=%-3d type=%-10s[0x%x] name=%-20s (%sACTIVE)\n",
 			     p->priority,
 			     p->id,
@@ -316,9 +316,9 @@ static char* get_full_path(char* path, char* name)
         char *realpath_buf;
         char fullpath[PATH_MAX] = {0, };
 
-        l = snprintf(fullpath, PATH_MAX, "%s/%s", path, name);
+        l = proxenet_xsnprintf(fullpath, PATH_MAX, "%s/%s", path, name);
         if(l == -1){
-                xlog(LOG_ERROR, "snprintf() failed on %d: %s\n",
+                xlog(LOG_ERROR, "proxenet_xsnprintf() failed on %d: %s\n",
                      errno, strerror(errno));
                 return NULL;
         }
@@ -407,9 +407,9 @@ int proxenet_add_new_plugins(char* plugin_path, char* plugin_name)
                         /* if file is a regular file, check it is *NOT* in autoload */
                         realpath_buf = proxenet_xmalloc(PATH_MAX);
 
-                        len = snprintf(realpath_buf, PATH_MAX, "%s/%s", plugin_path, dir_ptr->d_name);
+                        len = proxenet_xsnprintf(realpath_buf, PATH_MAX, "%s/%s", plugin_path, dir_ptr->d_name);
                         if(len == -1){
-                                xlog(LOG_ERROR, "snprintf() failed on %d: %s\n",
+                                xlog(LOG_ERROR, "proxenet_xsnprintf() failed on %d: %s\n",
                                      errno, strerror(errno));
                                 continue;
                         }
