@@ -170,7 +170,7 @@ static int get_hostname_from_header(request_t *req)
 {
         char *ptr, *header;
 
-        header = get_header_by_name(req->data, "Host: ");
+        header = get_header_by_name(req->data, "Host:");
         if (!header){
                 return -1;
         }
