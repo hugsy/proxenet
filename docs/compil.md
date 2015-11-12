@@ -63,11 +63,11 @@ as explained below.
 
 ##### From source
 
-Installing the PolarSSL / mbed TLS library from source is pretty straight-forward. Here
-is an example with version 1.3.9:
+Installing the PolarSSL/mbedTLS library from source is pretty straight-forward. Here
+is an example with version 1.3.13:
 ``` bash
-$ curl -fsSL https://github.com/ARMmbed/mbedtls/archive/polarssl-1.3.9.tar.gz | tar xfz -
-$ cd mbedtls-polarssl-1.3.9 && cmake . -DCMAKE_C_FLAGS="-fPIC" -DCMAKE_SHARED_LINKER_FLAGS="-pie" && sudo make install
+$ curl -fsSL https://github.com/ARMmbed/mbedtls/archive/mbedtls-1.3.13.tar.gz | tar xfz -
+$ cd mbedtls-mbedtls-1.3.13 && cmake . -DCMAKE_C_FLAGS="-fPIC" -DCMAKE_SHARED_LINKER_FLAGS="-pie" && sudo make install
 ```
 
 Later versions of mbed TLS can be obtained from the
