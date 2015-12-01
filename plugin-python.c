@@ -196,11 +196,6 @@ static int proxenet_python_initialize_function(plugin_t* plugin, req_t type)
 
 
         /* checks */
-        if (!plugin->name) {
-                xlog_python(LOG_ERROR, "%s\n", "null plugin name");
-                return -1;
-        }
-
         if (plugin->pre_function && type == REQUEST) {
                 return 0;
         }
