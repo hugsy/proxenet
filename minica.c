@@ -66,10 +66,10 @@ static void print_cert_serial(proxenet_ssl_buf_t serial)
 int proxenet_get_cert_serial(ssl_atom_t* ssl, proxenet_ssl_buf_t *serial)
 {
         proxenet_ssl_context_t* ctx;
-        const x509_crt *crt;
+        const mbedtls_x509_crt *crt;
 
         ctx = &ssl->context;
-        crt = ssl_get_peer_cert(ctx);
+        crt = mbedtls_ssl_get_peer_cert(ctx);
         if (!crt){
                 xlog(LOG_ERROR, "%s\n", "Failed to get peer certificate");
                 return -1;
@@ -87,14 +87,17 @@ int proxenet_get_cert_serial(ssl_atom_t* ssl, proxenet_ssl_buf_t *serial)
 /**
  *
  */
-static int ca_init_prng(entropy_context *entropy, ctr_drbg_context *ctr_drbg)
+static int ca_init_prng(mbedtls_entropy_context *entropy, mbedtls_ctr_drbg_context *ctr_drbg)
 {
         int retcode;
 
-        entropy_init( entropy );
-        retcode = ctr_drbg_init(ctr_drbg, entropy_func, entropy, (unsigned char*)PROGNAME, strlen(PROGNAME));
+        mbedtls_entropy_init( entropy );
+        mbedtls_ctr_drbg_init( ctr_drbg );
+        retcode = mbedtls_ctr_drbg_seed(ctr_drbg, mbedtls_entropy_func,
+                                        entropy, (unsigned char*)PROGNAME,
+                                        strlen(PROGNAME));
         if( retcode < 0 ){
-                xlog(LOG_ERROR, "ctr_drbg_init() returned %d\n", retcode);
+                xlog(LOG_ERROR, "mbedtls_ctr_drbg_seed() returned %d\n", retcode);
                 return -1;
         }
 
@@ -105,10 +108,10 @@ static int ca_init_prng(entropy_context *entropy, ctr_drbg_context *ctr_drbg)
 /**
  *
  */
-static int ca_release_prng(entropy_context *entropy, ctr_drbg_context *ctr_drbg)
+static int ca_release_prng(mbedtls_entropy_context *entropy, mbedtls_ctr_drbg_context *ctr_drbg)
 {
-        ctr_drbg_free(ctr_drbg);
-        entropy_free(entropy);
+        mbedtls_ctr_drbg_free(ctr_drbg);
+        mbedtls_entropy_free(entropy);
         return 0;
 }
 
@@ -118,30 +121,30 @@ static int ca_release_prng(entropy_context *entropy, ctr_drbg_context *ctr_drbg)
  *
  * @return 0 if successful, -1 otherwise
  */
-static int ca_generate_csr(ctr_drbg_context *ctr_drbg, char* hostname, unsigned char* csrbuf, size_t csrbuf_len)
+static int ca_generate_csr(mbedtls_ctr_drbg_context *ctr_drbg, char* hostname, unsigned char* csrbuf, size_t csrbuf_len)
 {
         int retcode;
         char subj_name[256] = {0, };
-        x509write_csr csr;
-        pk_context key;
+        mbedtls_x509write_csr csr;
+        mbedtls_pk_context key;
 
         /* init structures */
-        x509write_csr_init( &csr );
-        x509write_csr_set_md_alg( &csr, MBEDTLS_MD_SHA1 );
+        mbedtls_x509write_csr_init( &csr );
+        mbedtls_x509write_csr_set_md_alg( &csr, MBEDTLS_MD_SHA1 );
 
         /* set the key */
-        pk_init( &key );
-        retcode = pk_parse_keyfile(&key, cfg->certskey, cfg->certskey_pwd);
+        mbedtls_pk_init( &key );
+        retcode = mbedtls_pk_parse_keyfile(&key, cfg->certskey, cfg->certskey_pwd);
         if(retcode < 0) {
                 xlog(LOG_ERROR, "pk_parse_keyfile() returned %d\n", retcode);
                 retcode = -1;
                 goto free_all;
         }
-        x509write_csr_set_key( &csr, &key );
+        mbedtls_x509write_csr_set_key( &csr, &key );
 
         /* set the subject name */
         proxenet_xsnprintf(subj_name, sizeof(subj_name), PROXENET_CERT_SUBJECT, hostname);
-        retcode = x509write_csr_set_subject_name( &csr, subj_name );
+        retcode = mbedtls_x509write_csr_set_subject_name( &csr, subj_name );
         if( retcode < 0 ) {
                 xlog(LOG_ERROR, "x509write_csr_set_subject_name() returned %d\n", retcode);
                 retcode = -1;
@@ -149,7 +152,7 @@ static int ca_generate_csr(ctr_drbg_context *ctr_drbg, char* hostname, unsigned 
         }
 
         /* write the csr */
-        retcode = x509write_csr_pem(&csr, csrbuf, csrbuf_len, ctr_drbg_random, ctr_drbg);
+        retcode = mbedtls_x509write_csr_pem(&csr, csrbuf, csrbuf_len, mbedtls_ctr_drbg_random, ctr_drbg);
         if (retcode < 0 ){
                 xlog(LOG_ERROR, "x509write_csr_pem() returned %d\n", retcode);
                 retcode = -1;
@@ -160,8 +163,8 @@ static int ca_generate_csr(ctr_drbg_context *ctr_drbg, char* hostname, unsigned 
                 xlog(LOG_INFO, "Generated CSR for '%s'\n", hostname);
 
 free_all:
-        pk_free( &key );
-        x509write_csr_free( &csr );
+        mbedtls_pk_free( &key );
+        mbedtls_x509write_csr_free( &csr );
         return retcode;
 }
 
@@ -171,7 +174,7 @@ free_all:
  *
  * @return 0 if successful, -1 otherwise
  */
-static int ca_generate_crt(ctr_drbg_context *ctr_drbg, unsigned char* csrbuf, size_t csrbuf_len, unsigned char* crtbuf, size_t crtbuf_len)
+static int ca_generate_crt(mbedtls_ctr_drbg_context *ctr_drbg, unsigned char* csrbuf, size_t csrbuf_len, unsigned char* crtbuf, size_t crtbuf_len)
 {
         int retcode = -1;
         char errbuf[256] = {0, };
@@ -179,30 +182,30 @@ static int ca_generate_crt(ctr_drbg_context *ctr_drbg, unsigned char* csrbuf, si
         char issuer_name[256] = {0, };
         char serial_str[32] = {0, };
 
-        x509_csr csr;
-        x509_crt issuer_crt;
-        pk_context issuer_key;
-        x509write_cert crt;
-        mpi serial;
+        mbedtls_x509_csr csr;
+        mbedtls_x509_crt issuer_crt;
+        mbedtls_pk_context issuer_key;
+        mbedtls_x509write_cert crt;
+        mbedtls_mpi serial;
 
 #ifdef DEBUG
         xlog(LOG_DEBUG, "%s\n", "CRT init structs");
 #endif
 
         /* init structs */
-        x509write_crt_init( &crt );
-        x509write_crt_set_md_alg( &crt, MBEDTLS_MD_SHA1 );
-        x509_csr_init( &csr );
-        x509_crt_init( &issuer_crt );
-        pk_init( &issuer_key );
-        mpi_init( &serial );
+        mbedtls_x509write_crt_init( &crt );
+        mbedtls_x509write_crt_set_md_alg( &crt, MBEDTLS_MD_SHA1 );
+        mbedtls_x509_csr_init( &csr );
+        mbedtls_x509_crt_init( &issuer_crt );
+        mbedtls_pk_init( &issuer_key );
+        mbedtls_mpi_init( &serial );
 
 #ifdef DEBUG
         xlog(LOG_DEBUG, "%s\n", "CRT load cert & key");
 #endif
 
         proxenet_xsnprintf(serial_str, sizeof(serial_str), "%u", ++serial_base);
-        retcode = mpi_read_string(&serial, 10, serial_str);
+        retcode = mbedtls_mpi_read_string(&serial, 10, serial_str);
         if(retcode < 0) {
                 mbedtls_strerror(retcode, errbuf, sizeof(errbuf));
                 xlog(LOG_ERROR, "mpi_read_string() returned -0x%02x - %s\n", -retcode, errbuf);
@@ -210,7 +213,7 @@ static int ca_generate_crt(ctr_drbg_context *ctr_drbg, unsigned char* csrbuf, si
         }
 
         /* load proxenet CA certificate */
-        retcode = x509_crt_parse_file(&issuer_crt, cfg->cafile);
+        retcode = mbedtls_x509_crt_parse_file(&issuer_crt, cfg->cafile);
         if(retcode < 0) {
             mbedtls_strerror(retcode, errbuf, sizeof(errbuf));
             xlog(LOG_ERROR, "x509_crt_parse_file() returned -0x%02x - %s\n", -retcode, errbuf);
@@ -218,7 +221,7 @@ static int ca_generate_crt(ctr_drbg_context *ctr_drbg, unsigned char* csrbuf, si
         }
 
        /* load proxenet CA key */
-        retcode = pk_parse_keyfile(&issuer_key, cfg->keyfile, cfg->keyfile_pwd);
+        retcode = mbedtls_pk_parse_keyfile(&issuer_key, cfg->keyfile, cfg->keyfile_pwd);
         if(retcode < 0){
             mbedtls_strerror(retcode, errbuf, sizeof(errbuf));
             xlog(LOG_ERROR, "pk_parse_keyfile() returned -0x%02x - %s\n", -retcode, errbuf);
@@ -226,7 +229,7 @@ static int ca_generate_crt(ctr_drbg_context *ctr_drbg, unsigned char* csrbuf, si
         }
 
         /* get proxenet CA CN field */
-        retcode = x509_dn_gets(issuer_name, sizeof(issuer_name), &issuer_crt.subject);
+        retcode = mbedtls_x509_dn_gets(issuer_name, sizeof(issuer_name), &issuer_crt.subject);
         if(retcode < 0) {
                 mbedtls_strerror(retcode, errbuf, sizeof(errbuf));
                 xlog(LOG_ERROR, "x509_dn_gets() returned -0x%02x - %s\n", -retcode, errbuf);
@@ -234,7 +237,7 @@ static int ca_generate_crt(ctr_drbg_context *ctr_drbg, unsigned char* csrbuf, si
         }
 
         /* parse CSR  */
-        retcode = x509_csr_parse(&csr, csrbuf, csrbuf_len);
+        retcode = mbedtls_x509_csr_parse(&csr, csrbuf, csrbuf_len);
         if(retcode < 0) {
                 mbedtls_strerror(retcode, errbuf, sizeof(errbuf));
                 xlog(LOG_ERROR, "x509_csr_parse() returned -0x%02x - %s\n", -retcode, errbuf );
@@ -242,7 +245,7 @@ static int ca_generate_crt(ctr_drbg_context *ctr_drbg, unsigned char* csrbuf, si
         }
 
         /* load CSR subject name */
-        retcode = x509_dn_gets(subject_name, sizeof(subject_name), &csr.subject);
+        retcode = mbedtls_x509_dn_gets(subject_name, sizeof(subject_name), &csr.subject);
         if(retcode < 0) {
                 mbedtls_strerror(retcode, errbuf, sizeof(errbuf));
                 xlog(LOG_ERROR, "x509_csr_parse() returned -0x%02x - %s\n", -retcode, errbuf );
@@ -254,59 +257,59 @@ static int ca_generate_crt(ctr_drbg_context *ctr_drbg, unsigned char* csrbuf, si
 #endif
 
         /* apply settings */
-        x509write_crt_set_subject_key(&crt, &csr.pk);
-        x509write_crt_set_issuer_key(&crt, &issuer_key);
+        mbedtls_x509write_crt_set_subject_key(&crt, &csr.pk);
+        mbedtls_x509write_crt_set_issuer_key(&crt, &issuer_key);
 
-        retcode = x509write_crt_set_subject_name(&crt, subject_name);
+        retcode = mbedtls_x509write_crt_set_subject_name(&crt, subject_name);
         if(retcode < 0) {
                 mbedtls_strerror(retcode, errbuf, sizeof(errbuf));
                 xlog(LOG_ERROR, "x509write_crt_set_subject_name() returned -0x%02x - %s\n", -retcode, errbuf );
                 goto exit;
         }
 
-        retcode = x509write_crt_set_issuer_name(&crt, issuer_name);
+        retcode = mbedtls_x509write_crt_set_issuer_name(&crt, issuer_name);
         if(retcode < 0) {
                 mbedtls_strerror(retcode, errbuf, sizeof(errbuf));
                 xlog(LOG_ERROR, "x509write_crt_set_issuer_name() returned -0x%02x - %s\n", -retcode, errbuf );
                 goto exit;
         }
 
-        retcode = x509write_crt_set_serial(&crt, &serial);
+        retcode = mbedtls_x509write_crt_set_serial(&crt, &serial);
         if(retcode < 0) {
                 mbedtls_strerror(retcode, errbuf, sizeof(errbuf));
                 xlog(LOG_ERROR, "x509write_crt_set_serial() returned -0x%02x - %s\n", -retcode, errbuf );
                 goto exit;
         }
 
-        retcode = x509write_crt_set_validity(&crt, PROXENET_CERT_NOT_BEFORE, PROXENET_CERT_NOT_AFTER);
+        retcode = mbedtls_x509write_crt_set_validity(&crt, PROXENET_CERT_NOT_BEFORE, PROXENET_CERT_NOT_AFTER);
         if(retcode < 0) {
                 mbedtls_strerror(retcode, errbuf, sizeof(errbuf));
                 xlog(LOG_ERROR, "x509write_crt_set_validity() returned -0x%02x - %s\n", -retcode, errbuf );
                 goto exit;
         }
 
-        retcode = x509write_crt_set_basic_constraints(&crt, false, 0);
+        retcode = mbedtls_x509write_crt_set_basic_constraints(&crt, false, 0);
         if(retcode < 0) {
                 mbedtls_strerror(retcode, errbuf, sizeof(errbuf));
                 xlog(LOG_ERROR, "x509write_crt_set_basic_constraints() returned -0x%02x - %s\n", -retcode, errbuf );
                 goto exit;
         }
 
-        retcode = x509write_crt_set_subject_key_identifier( &crt );
+        retcode = mbedtls_x509write_crt_set_subject_key_identifier( &crt );
         if(retcode < 0) {
                 mbedtls_strerror(retcode, errbuf, sizeof(errbuf));
                 xlog(LOG_ERROR, "x509write_crt_set_subject_key_identifier() returned -0x%02x - %s\n", -retcode, errbuf );
                 goto exit;
         }
 
-        retcode = x509write_crt_set_authority_key_identifier( &crt );
+        retcode = mbedtls_x509write_crt_set_authority_key_identifier( &crt );
         if(retcode < 0) {
                 mbedtls_strerror(retcode, errbuf, sizeof(errbuf));
                 xlog(LOG_ERROR, "x509write_crt_set_authority_key_identifier() returned -0x%02x - %s\n", -retcode, errbuf );
                 goto exit;
         }
 
-        retcode = x509write_crt_set_ns_cert_type( &crt, NS_CERT_TYPE_SSL_SERVER );
+        retcode = mbedtls_x509write_crt_set_ns_cert_type( &crt, MBEDTLS_X509_NS_CERT_TYPE_SSL_SERVER );
         if(retcode < 0) {
                 mbedtls_strerror(retcode, errbuf, sizeof(errbuf));
                 xlog(LOG_ERROR, "x509write_crt_set_ns_cert_type() returned -0x%02x - %s\n", -retcode, errbuf );
@@ -315,7 +318,7 @@ static int ca_generate_crt(ctr_drbg_context *ctr_drbg, unsigned char* csrbuf, si
 
 
         /* write CRT in buffer */
-        retcode = x509write_crt_pem(&crt, crtbuf, crtbuf_len, ctr_drbg_random, ctr_drbg);
+        retcode = mbedtls_x509write_crt_pem(&crt, crtbuf, crtbuf_len, mbedtls_ctr_drbg_random, ctr_drbg);
         if( retcode < 0 ){
                 xlog(LOG_ERROR, "x509write_crt_pem() failed: %d\n", retcode);
                 return retcode;
@@ -324,9 +327,9 @@ static int ca_generate_crt(ctr_drbg_context *ctr_drbg, unsigned char* csrbuf, si
 
         /* free structs */
 exit:
-        x509write_crt_free( &crt );
-        pk_free( &issuer_key );
-        mpi_free( &serial );
+        mbedtls_x509write_crt_free( &crt );
+        mbedtls_pk_free( &issuer_key );
+        mbedtls_mpi_free( &serial );
 
         return retcode;
 }
@@ -346,8 +349,8 @@ static int create_crt(char* hostname, char* crtpath)
         unsigned char crtbuf[4096]={0, };
         ssize_t n;
 
-        entropy_context entropy;
-        ctr_drbg_context ctr_drbg;
+        mbedtls_entropy_context entropy;
+        mbedtls_ctr_drbg_context ctr_drbg;
 
 
         /* init prng */

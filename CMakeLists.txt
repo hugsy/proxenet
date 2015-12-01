@@ -132,6 +132,7 @@ else()
   return()
 endif()
 
+
 # prepare compilation
 set(ALL_FILES ${CORE_FILES})
 
@@ -270,6 +271,7 @@ message("-----------------------------------------------------------------------
 
 
 # compile and link
+message("Compile with ${EXTRA_LIBS}")
 add_executable(proxenet ${ALL_FILES})
 target_link_libraries(proxenet ${EXTRA_LIBS} ${CMAKE_LINK_HARDEN})
 
