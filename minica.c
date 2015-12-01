@@ -136,7 +136,7 @@ static int ca_generate_csr(mbedtls_ctr_drbg_context *ctr_drbg, char* hostname, u
         mbedtls_pk_init( &key );
         retcode = mbedtls_pk_parse_keyfile(&key, cfg->certskey, cfg->certskey_pwd);
         if(retcode < 0) {
-                xlog(LOG_ERROR, "pk_parse_keyfile() returned %d\n", retcode);
+                xlog(LOG_ERROR, "pk_parse_keyfile() returned %#x\n", retcode);
                 retcode = -1;
                 goto free_all;
         }

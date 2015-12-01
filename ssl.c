@@ -201,7 +201,7 @@ static int ssl_init_context(ssl_atom_t* ssl_atom, int type, char* hostname)
         }
 
         retcode = mbedtls_ssl_setup(context, conf);
-        if(retcode){
+        if(retcode < 0){
                 xlog(LOG_ERROR, "failed to setup mbedtls session: retcode=%#x\n", retcode);
                 goto end_init;
         }
