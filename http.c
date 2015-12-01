@@ -159,6 +159,7 @@ static char* get_header_by_name(char* request, const char* header_name)
         }
 
         *ptr2 = c;
+        proxenet_strip(header_value);
         return header_value;
 }
 
