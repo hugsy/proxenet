@@ -1,3 +1,5 @@
+#define _GNU_SOURCE     1
+
 #include <stdlib.h>
 #include <strings.h>
 #include <string.h>
@@ -498,17 +500,19 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
         *client_sock = retcode;
 
         req->do_intercept = ( (cfg->intercept_mode==INTERCEPT_ONLY && \
-                               fnmatch(cfg->intercept_pattern, http_infos->hostname, 0)==0) || \
+                               fnmatch(cfg->intercept_pattern, http_infos->hostname, FNM_CASEFOLD)==0) || \
                               (cfg->intercept_mode==INTERCEPT_EXCEPT && \
-                               fnmatch(cfg->intercept_pattern, http_infos->hostname, 0)==FNM_NOMATCH) );
+                               fnmatch(cfg->intercept_pattern, http_infos->hostname, FNM_CASEFOLD)==FNM_NOMATCH) );
 
-#ifdef DEBUG
-        xlog(LOG_DEBUG, "Server '%s' %s match interception '%s' with pattern '%s'\n",
-             http_infos->hostname,
-             req->do_intercept?"do":"do not",
-             cfg->intercept_mode==INTERCEPT_ONLY?"INTERCEPT_ONLY":"INTERCEPT_EXCEPT",
-             cfg->intercept_pattern);
-#endif
+
+        if (cfg->verbose > 1) {
+                xlog(LOG_INFO, "Server '%s' %s match filter '%s' with pattern '%s'\n",
+                     http_infos->hostname,
+                     req->do_intercept ? "do" : "do not",
+                     cfg->intercept_mode==INTERCEPT_ONLY?"INTERCEPT_ONLY":"INTERCEPT_EXCEPT",
+                     cfg->intercept_pattern);
+        }
+
 
         if(use_socks_proxy){
                 char*rhost = http_infos->hostname;
@@ -526,8 +530,9 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
         /* set up ssl layer */
         if (req->is_ssl) {
 
-                /* adjust do_intercept if we do not SSL intercept was explicitely disabled */
-                req->do_intercept = cfg->ssl_intercept;
+                /* disable all interception if ssl intercept was explicitely disabled by config */
+                if (cfg->ssl_intercept == false)
+                        req->do_intercept = false;
 
                 if (use_http_proxy) {
                         char *connect_buf = NULL;
