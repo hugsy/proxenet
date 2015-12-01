@@ -12,13 +12,13 @@
 #include <string.h>
 #include <unistd.h>
 
-#include <polarssl/config.h>
-#include <polarssl/net.h>
-#include <polarssl/ssl.h>
-#include <polarssl/entropy.h>
-#include <polarssl/ctr_drbg.h>
-#include <polarssl/error.h>
-#include <polarssl/certs.h>
+#include <mbedtls/config.h>
+#include <mbedtls/net.h>
+#include <mbedtls/ssl.h>
+#include <mbedtls/entropy.h>
+#include <mbedtls/ctr_drbg.h>
+#include <mbedtls/error.h>
+#include <mbedtls/certs.h>
 
 #include "socket.h"
 #include "utils.h"
@@ -32,7 +32,7 @@
  */
 
 /*
- * Compatible with PolarSSL 1.3+ API
+ * Compatible with mbedTLS 2.x API
  */
 
 
@@ -42,7 +42,7 @@
 
 static char errbuf[4096] = {0, };
 
-#include <polarssl/debug.h>
+#include <mbedtls/debug.h>
 
 /**
  *
@@ -71,15 +71,16 @@ static int ssl_init_context(ssl_atom_t* ssl_atom, int type, char* hostname)
         int retcode = -1;
         char ssl_error_buffer[128] = {0, };
         proxenet_ssl_context_t *context = &(ssl_atom->context);
+        mbedtls_ssl_config *conf = &(ssl_atom->conf);
         char *certfile, *keyfile, *keyfile_pwd, *domain;
-        const char* type_str = (type==SSL_IS_CLIENT)?"CLIENT":"SERVER";
-        bool use_ssl_client_auth = (type==SSL_IS_CLIENT && cfg->sslcli_certfile && cfg->sslcli_keyfile)?true:false;
+        const char* type_str = (type==MBEDTLS_SSL_IS_CLIENT)?"CLIENT":"SERVER";
+        bool use_ssl_client_auth = (type==MBEDTLS_SSL_IS_CLIENT && cfg->sslcli_certfile && cfg->sslcli_keyfile)?true:false;
 
         certfile = keyfile = keyfile_pwd = domain = NULL;
 
 
         /* We only define a certificate if we're a server, or the user requested SSL cert auth */
-        if (type==SSL_IS_SERVER) {
+        if (type==MBEDTLS_SSL_IS_SERVER) {
                 if (proxenet_lookup_crt(hostname, &certfile) < 0){
                         xlog(LOG_ERROR, "proxenet_lookup_crt() failed for '%s'\n", hostname);
                         return -1;
@@ -106,33 +107,33 @@ static int ssl_init_context(ssl_atom_t* ssl_atom, int type, char* hostname)
         }
 
 
-        /* init entropy */
-        entropy_init( &(ssl_atom->entropy) );
-
         /* init rng */
-        retcode = ctr_drbg_init( &(ssl_atom->ctr_drbg), entropy_func, &(ssl_atom->entropy), NULL, 0);
-        if( retcode != 0 ) {
-                xlog(LOG_ERROR, "ctr_drbg_init returned %d\n", retcode);
-                retcode = -1;
+        mbedtls_entropy_init( &(ssl_atom->entropy) );
+        mbedtls_ctr_drbg_init( &(ssl_atom->ctr_drbg) );
+
+        /* seed pool from rng */
+        retcode = mbedtls_ctr_drbg_seed( &(ssl_atom->ctr_drbg), mbedtls_entropy_func,
+                                         &(ssl_atom->entropy), NULL, 0);
+        if(retcode){
+                xlog(LOG_ERROR, "failed to seed the rng, retcode=%#x\n", retcode);
                 goto end_init;
         }
 
-
-        x509_crt_init( &(ssl_atom->cert) );
-        if (type==SSL_IS_SERVER || use_ssl_client_auth){
+        mbedtls_x509_crt_init( &(ssl_atom->cert) );
+        if (type==MBEDTLS_SSL_IS_SERVER || use_ssl_client_auth){
                 /* checking ssl_atom certificate */
-                retcode = x509_crt_parse_file(&(ssl_atom->cert), certfile);
+                retcode = mbedtls_x509_crt_parse_file(&(ssl_atom->cert), certfile);
                 if(retcode) {
-                        error_strerror(retcode, ssl_error_buffer, 127);
+                        mbedtls_strerror(retcode, ssl_error_buffer, 127);
                         xlog(LOG_ERROR, "Failed to parse %s certificate '%s': %s\n",
                              type_str, certfile, ssl_error_buffer);
                         retcode = -1;
                         goto end_init;
                 }
 
-                retcode = x509_crt_parse_file(&(ssl_atom->ca), cfg->cafile);
+                retcode = mbedtls_x509_crt_parse_file(&(ssl_atom->ca), cfg->cafile);
                 if(retcode) {
-                        error_strerror(retcode, ssl_error_buffer, 127);
+                        mbedtls_strerror(retcode, ssl_error_buffer, 127);
                         xlog(LOG_ERROR, "Failed to parse %s CA certificate '%s': %s\n",
                              type_str, cfg->cafile, ssl_error_buffer);
                         retcode = -1;
@@ -153,12 +154,12 @@ static int ssl_init_context(ssl_atom_t* ssl_atom, int type, char* hostname)
 #endif
 
                 /* checking private key */
-                rsa_init(&(ssl_atom->rsa), RSA_PKCS_V15, 0);
-                pk_init( &(ssl_atom->pkey) );
-                retcode = pk_parse_keyfile(&(ssl_atom->pkey), keyfile, keyfile_pwd);
+                mbedtls_rsa_init(&(ssl_atom->rsa), MBEDTLS_RSA_PKCS_V15, 0);
+                mbedtls_pk_init( &(ssl_atom->pkey) );
+                retcode = mbedtls_pk_parse_keyfile(&(ssl_atom->pkey), keyfile, keyfile_pwd);
                 if(retcode) {
-                        error_strerror(retcode, ssl_error_buffer, 127);
-                        rsa_free(&(ssl_atom->rsa));
+                        mbedtls_strerror(retcode, ssl_error_buffer, 127);
+                        mbedtls_rsa_free(&(ssl_atom->rsa));
                         xlog(LOG_ERROR, "Failed to parse key '%s' (pwd='%s'): %s\n", keyfile, keyfile_pwd, ssl_error_buffer);
                         retcode = -1;
                         goto end_init;
@@ -169,33 +170,29 @@ static int ssl_init_context(ssl_atom_t* ssl_atom, int type, char* hostname)
         }
 
         /* init ssl context */
-        if (ssl_init(context) != 0) {
-                retcode = -1;
-                goto end_init;
-        }
-
-        ssl_set_endpoint(context, type);
-        ssl_set_rng(context, ctr_drbg_random, &(ssl_atom->ctr_drbg) );
+        mbedtls_ssl_init(context);
+        mbedtls_ssl_config_init(conf);
+        mbedtls_ssl_config_defaults(conf, type, MBEDTLS_SSL_TRANSPORT_STREAM, MBEDTLS_SSL_PRESET_DEFAULT);
+        /* mbedtls_ssl_conf_endpoint(context, type); */
+        mbedtls_ssl_conf_rng(conf, mbedtls_ctr_drbg_random, &(ssl_atom->ctr_drbg) );
 
         switch(type) {
-                case SSL_IS_SERVER:
-                        ssl_set_ca_chain(context, &(ssl_atom->ca), NULL, hostname);
-                        ssl_set_own_cert(context, &(ssl_atom->cert), &(ssl_atom->pkey));
-                        ssl_set_authmode(context, SSL_VERIFY_NONE);
-                        ssl_set_min_version(context, SSL_MAJOR_VERSION_3, SSL_MINOR_VERSION_1); // TLSv1.0+
+                case MBEDTLS_SSL_IS_SERVER:
+                        mbedtls_ssl_conf_ca_chain(conf, &(ssl_atom->ca), NULL);
+                        mbedtls_ssl_conf_own_cert(conf, &(ssl_atom->cert), &(ssl_atom->pkey));
+                        mbedtls_ssl_conf_authmode(conf, MBEDTLS_SSL_VERIFY_NONE);
+                        mbedtls_ssl_conf_min_version(conf, MBEDTLS_SSL_MAJOR_VERSION_3, MBEDTLS_SSL_MINOR_VERSION_1); // TLSv1.0+
                         break;
 
-                case SSL_IS_CLIENT:
-                        /* ssl_set_max_version(context, SSL_MAJOR_VERSION_3, SSL_MINOR_VERSION_1); */
-                        ssl_set_ca_chain(context, &(ssl_atom->cert), NULL, NULL);
-                        ssl_set_authmode(context, SSL_VERIFY_NONE);
+                case MBEDTLS_SSL_IS_CLIENT:
+                        mbedtls_ssl_conf_ca_chain(conf, &(ssl_atom->cert), NULL);
+                        mbedtls_ssl_conf_authmode(conf, MBEDTLS_SSL_VERIFY_NONE);
                         if(use_ssl_client_auth){
-                                ssl_set_hostname( context, domain );
-                                ssl_set_own_cert(context, &(ssl_atom->cert), &(ssl_atom->pkey));
+                                mbedtls_ssl_set_hostname(context, domain);
+                                mbedtls_ssl_conf_own_cert(conf, &(ssl_atom->cert), &(ssl_atom->pkey));
                         } else {
-                                ssl_set_hostname( context, hostname );
+                                mbedtls_ssl_set_hostname(context, hostname);
                         }
-
                         break;
 
                 default:
@@ -203,16 +200,22 @@ static int ssl_init_context(ssl_atom_t* ssl_atom, int type, char* hostname)
                         goto end_init;
         }
 
+        retcode = mbedtls_ssl_setup(context, conf);
+        if(retcode){
+                xlog(LOG_ERROR, "failed to setup mbedtls session: retcode=%#x\n", retcode);
+                goto end_init;
+        }
+
 
 #ifdef DEBUG_SSL
-        ssl_set_dbg(context, proxenet_ssl_debug, stderr);
+        mbedtls_ssl_conf_dbg(context, proxenet_ssl_debug, stderr);
 #endif
 
         ssl_atom->is_valid = true;
         retcode = 0;
 
 end_init:
-        if (type==SSL_IS_SERVER)
+        if (type==MBEDTLS_SSL_IS_SERVER)
                 proxenet_xfree(certfile);
 
         return retcode;
@@ -224,7 +227,7 @@ end_init:
  */
 int proxenet_ssl_init_server_context(ssl_atom_t *server, char* hostname)
 {
-        return ssl_init_context(server, SSL_IS_SERVER, hostname);
+        return ssl_init_context(server, MBEDTLS_SSL_IS_SERVER, hostname);
 }
 
 
@@ -233,7 +236,7 @@ int proxenet_ssl_init_server_context(ssl_atom_t *server, char* hostname)
  */
 int proxenet_ssl_init_client_context(ssl_atom_t* client, char* hostname)
 {
-        return ssl_init_context(client, SSL_IS_CLIENT, hostname);
+        return ssl_init_context(client, MBEDTLS_SSL_IS_CLIENT, hostname);
 }
 
 
@@ -242,7 +245,7 @@ int proxenet_ssl_init_client_context(ssl_atom_t* client, char* hostname)
  */
 void proxenet_ssl_wrap_socket(proxenet_ssl_context_t* ctx, sock_t* sock)
 {
-        ssl_set_bio(ctx, net_recv, sock, net_send, sock );
+        mbedtls_ssl_set_bio(ctx, sock, mbedtls_net_send, mbedtls_net_recv, NULL);
 }
 
 
@@ -255,14 +258,14 @@ int proxenet_ssl_handshake(proxenet_ssl_context_t* ctx)
         char ssl_strerror[4096];
 
         do {
-                retcode = ssl_handshake( ctx );
+                retcode = mbedtls_ssl_handshake( ctx );
                 if(retcode == 0)
                         break;
 
-                if(retcode!=POLARSSL_ERR_NET_WANT_READ && \
-                   retcode!=POLARSSL_ERR_NET_WANT_WRITE) {
+                if(retcode!=MBEDTLS_ERR_SSL_WANT_READ && \
+                   retcode!=MBEDTLS_ERR_SSL_WANT_WRITE) {
 
-                        if (retcode == POLARSSL_ERR_NET_CONN_RESET)
+                        if (retcode == MBEDTLS_ERR_NET_CONN_RESET)
                                 xlog(LOG_WARNING,
                                      "Peer has reset the SSL connection during handshake (error "
                                      "%#x).To remove this warning, make sure to add proxenet "
@@ -287,7 +290,7 @@ int proxenet_ssl_handshake(proxenet_ssl_context_t* ctx)
 
                         if (cfg->verbose > 1){
                                 proxenet_xzero(ssl_strerror, sizeof(ssl_strerror));
-                                polarssl_strerror(retcode, ssl_strerror, sizeof(ssl_strerror));
+                                mbedtls_strerror(retcode, ssl_strerror, sizeof(ssl_strerror));
                                 xlog(LOG_ERROR, "Details: %s\n", ssl_strerror);
                         }
                 }
@@ -295,15 +298,15 @@ int proxenet_ssl_handshake(proxenet_ssl_context_t* ctx)
                 {
                         proxenet_xsnprintf(ssl_strerror, sizeof(ssl_strerror)-1,
                                  "SSL Handshake: "GREEN"success"NOCOLOR" [proto='%s',cipher='%s']",
-                                 ssl_get_version( ctx ),
-                                 ssl_get_ciphersuite( ctx ) );
+                                 mbedtls_ssl_get_version( ctx ),
+                                 mbedtls_ssl_get_ciphersuite( ctx ) );
                         xlog(LOG_INFO, "%s\n", ssl_strerror);
 
                         if (cfg->verbose>1){
-                                if(ssl_get_peer_cert( ctx ) != NULL){
+                                if(mbedtls_ssl_get_peer_cert( ctx ) != NULL){
                                         proxenet_xzero(ssl_strerror, sizeof(ssl_strerror));
-                                        x509_crt_info( ssl_strerror, sizeof(ssl_strerror)-1,
-                                                       "      ", ssl_get_peer_cert( ctx ) );
+                                        mbedtls_x509_crt_info( ssl_strerror, sizeof(ssl_strerror)-1,
+                                                               "      ", mbedtls_ssl_get_peer_cert( ctx ) );
                                         xlog(LOG_INFO, "Peer SSL certificate info:\n%s", ssl_strerror);
                                 }
                         }
@@ -362,13 +365,13 @@ int proxenet_ssl_handshake(proxenet_ssl_context_t* ctx)
  */
 void proxenet_ssl_free_structs(ssl_atom_t* ssl)
 {
-        x509_crt_free( &ssl->cert );
-        x509_crt_free( &ssl->ca );
-        ctr_drbg_free( &ssl->ctr_drbg );
-        entropy_free( &ssl->entropy );
-	rsa_free(&ssl->rsa);
-        pk_free( &ssl->pkey );
-        ssl_free( &ssl->context );
+        mbedtls_x509_crt_free( &ssl->cert );
+        mbedtls_x509_crt_free( &ssl->ca );
+        mbedtls_ctr_drbg_free( &ssl->ctr_drbg );
+        mbedtls_entropy_free( &ssl->entropy );
+	mbedtls_rsa_free(&ssl->rsa);
+        mbedtls_pk_free( &ssl->pkey );
+        mbedtls_ssl_free( &ssl->context );
 
         ssl->is_valid = false;
 
@@ -381,7 +384,7 @@ void proxenet_ssl_free_structs(ssl_atom_t* ssl)
  */
 void proxenet_ssl_finish(ssl_atom_t* ssl)
 {
-        ssl_close_notify( &ssl->context );
+        mbedtls_ssl_close_notify( &ssl->context );
 	return;
 }
 
@@ -399,8 +402,8 @@ static ssize_t proxenet_ssl_ioctl(int (*func)(), void *buf, size_t count, proxen
         do {
                 retcode = (*func)(ssl, buf, count);
 
-                if (retcode == POLARSSL_ERR_NET_WANT_READ ||\
-                    retcode == POLARSSL_ERR_NET_WANT_WRITE )
+                if (retcode == MBEDTLS_ERR_SSL_WANT_READ ||\
+                    retcode == MBEDTLS_ERR_SSL_WANT_WRITE )
                         continue;
 
                 if (retcode>0)
@@ -410,14 +413,14 @@ static ssize_t proxenet_ssl_ioctl(int (*func)(), void *buf, size_t count, proxen
                         char ssl_strerror[256] = {0, };
 
                         switch(retcode) {
-                                case POLARSSL_ERR_SSL_PEER_CLOSE_NOTIFY :
+                                case MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY :
 #ifdef DEBUG
                                         /* acceptable case */
                                         xlog(LOG_DEBUG, "%s\n", "SSL close notify received");
 #endif
                                         return 0;
 
-                                case POLARSSL_ERR_NET_CONN_RESET:
+                                case MBEDTLS_ERR_NET_CONN_RESET:
                                         xlog(LOG_ERROR, "%s\n", "SSL connection reset by peer");
                                         return -1;
 
@@ -425,7 +428,7 @@ static ssize_t proxenet_ssl_ioctl(int (*func)(), void *buf, size_t count, proxen
                                         return 0;
 
                                 default:
-                                        error_strerror(retcode, ssl_strerror, 127);
+                                        mbedtls_strerror(retcode, ssl_strerror, 127);
                                         xlog(LOG_ERROR, "SSL I/O got %#x: %s\n", -retcode, ssl_strerror);
                                         return -1;
                         }
@@ -442,7 +445,7 @@ static ssize_t proxenet_ssl_ioctl(int (*func)(), void *buf, size_t count, proxen
  */
 ssize_t proxenet_ssl_read(proxenet_ssl_context_t* ssl, void *buf, size_t count)
 {
-        int (*func)() = &ssl_read;
+        int (*func)() = &mbedtls_net_recv;
         int ret = -1;
 
         ret = proxenet_ssl_ioctl(func, buf, count, ssl);
@@ -464,7 +467,7 @@ ssize_t proxenet_ssl_read(proxenet_ssl_context_t* ssl, void *buf, size_t count)
  */
 ssize_t proxenet_ssl_write(proxenet_ssl_context_t* ssl, void *buf, size_t count)
 {
-        int (*func)() = &ssl_write;
+        int (*func)() = &mbedtls_net_send;
         int ret = -1;
 
         ret = proxenet_ssl_ioctl(func, buf, count, ssl);

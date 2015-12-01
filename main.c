@@ -149,12 +149,12 @@ static void help()
         version(false);
         printf("Written by %s\n"
                "Released under: %s\n"
-               "Using library: PolarSSL %s\n"
+               "Using library: mbedTLS %s\n"
                "Compiled by %s (%s) with support for :\n"
                ,
                AUTHOR,
                LICENSE,
-               _POLARSSL_VERSION_,
+               _MBEDTLS_VERSION_,
                CC, SYSTEM);
 
         i = 0;
@@ -177,7 +177,7 @@ static void help()
 #endif
 
 #ifdef DEBUG_SSL
-        printf("\t[+] "BLUE"PolarSSL DEBUG symbols"NOCOLOR"\n");
+        printf("\t[+] "BLUE"mbedTLS DEBUG symbols"NOCOLOR"\n");
 #endif
 
         usage(EXIT_SUCCESS);

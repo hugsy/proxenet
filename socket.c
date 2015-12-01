@@ -7,7 +7,7 @@
 #include <sys/un.h>
 #include <netdb.h>
 #include <unistd.h>
-#include <polarssl/error.h>
+//#include <polarssl/error.h>
 #include <netdb.h>
 
 #include "core.h"

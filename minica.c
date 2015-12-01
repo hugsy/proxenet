@@ -13,12 +13,12 @@
 #include <alloca.h>
 #endif
 
-#include <polarssl/x509_crt.h>
-#include <polarssl/x509_csr.h>
-#include <polarssl/x509.h>
-#include <polarssl/entropy.h>
-#include <polarssl/ctr_drbg.h>
-#include <polarssl/error.h>
+#include <mbedtls/x509_crt.h>
+#include <mbedtls/x509_csr.h>
+#include <mbedtls/x509.h>
+#include <mbedtls/entropy.h>
+#include <mbedtls/ctr_drbg.h>
+#include <mbedtls/error.h>
 
 #include "ssl.h"
 #include "minica.h"
@@ -127,7 +127,7 @@ static int ca_generate_csr(ctr_drbg_context *ctr_drbg, char* hostname, unsigned 
 
         /* init structures */
         x509write_csr_init( &csr );
-        x509write_csr_set_md_alg( &csr, POLARSSL_MD_SHA1 );
+        x509write_csr_set_md_alg( &csr, MBEDTLS_MD_SHA1 );
 
         /* set the key */
         pk_init( &key );
@@ -191,7 +191,7 @@ static int ca_generate_crt(ctr_drbg_context *ctr_drbg, unsigned char* csrbuf, si
 
         /* init structs */
         x509write_crt_init( &crt );
-        x509write_crt_set_md_alg( &crt, POLARSSL_MD_SHA1 );
+        x509write_crt_set_md_alg( &crt, MBEDTLS_MD_SHA1 );
         x509_csr_init( &csr );
         x509_crt_init( &issuer_crt );
         pk_init( &issuer_key );
@@ -204,7 +204,7 @@ static int ca_generate_crt(ctr_drbg_context *ctr_drbg, unsigned char* csrbuf, si
         proxenet_xsnprintf(serial_str, sizeof(serial_str), "%u", ++serial_base);
         retcode = mpi_read_string(&serial, 10, serial_str);
         if(retcode < 0) {
-                polarssl_strerror(retcode, errbuf, sizeof(errbuf));
+                mbedtls_strerror(retcode, errbuf, sizeof(errbuf));
                 xlog(LOG_ERROR, "mpi_read_string() returned -0x%02x - %s\n", -retcode, errbuf);
                 goto exit;
         }
@@ -212,7 +212,7 @@ static int ca_generate_crt(ctr_drbg_context *ctr_drbg, unsigned char* csrbuf, si
         /* load proxenet CA certificate */
         retcode = x509_crt_parse_file(&issuer_crt, cfg->cafile);
         if(retcode < 0) {
-            polarssl_strerror(retcode, errbuf, sizeof(errbuf));
+            mbedtls_strerror(retcode, errbuf, sizeof(errbuf));
             xlog(LOG_ERROR, "x509_crt_parse_file() returned -0x%02x - %s\n", -retcode, errbuf);
             goto exit;
         }
@@ -220,7 +220,7 @@ static int ca_generate_crt(ctr_drbg_context *ctr_drbg, unsigned char* csrbuf, si
        /* load proxenet CA key */
         retcode = pk_parse_keyfile(&issuer_key, cfg->keyfile, cfg->keyfile_pwd);
         if(retcode < 0){
-            polarssl_strerror(retcode, errbuf, sizeof(errbuf));
+            mbedtls_strerror(retcode, errbuf, sizeof(errbuf));
             xlog(LOG_ERROR, "pk_parse_keyfile() returned -0x%02x - %s\n", -retcode, errbuf);
             goto exit;
         }
@@ -228,7 +228,7 @@ static int ca_generate_crt(ctr_drbg_context *ctr_drbg, unsigned char* csrbuf, si
         /* get proxenet CA CN field */
         retcode = x509_dn_gets(issuer_name, sizeof(issuer_name), &issuer_crt.subject);
         if(retcode < 0) {
-                polarssl_strerror(retcode, errbuf, sizeof(errbuf));
+                mbedtls_strerror(retcode, errbuf, sizeof(errbuf));
                 xlog(LOG_ERROR, "x509_dn_gets() returned -0x%02x - %s\n", -retcode, errbuf);
                 goto exit;
         }
@@ -236,7 +236,7 @@ static int ca_generate_crt(ctr_drbg_context *ctr_drbg, unsigned char* csrbuf, si
         /* parse CSR  */
         retcode = x509_csr_parse(&csr, csrbuf, csrbuf_len);
         if(retcode < 0) {
-                polarssl_strerror(retcode, errbuf, sizeof(errbuf));
+                mbedtls_strerror(retcode, errbuf, sizeof(errbuf));
                 xlog(LOG_ERROR, "x509_csr_parse() returned -0x%02x - %s\n", -retcode, errbuf );
                 goto exit;
         }
@@ -244,7 +244,7 @@ static int ca_generate_crt(ctr_drbg_context *ctr_drbg, unsigned char* csrbuf, si
         /* load CSR subject name */
         retcode = x509_dn_gets(subject_name, sizeof(subject_name), &csr.subject);
         if(retcode < 0) {
-                polarssl_strerror(retcode, errbuf, sizeof(errbuf));
+                mbedtls_strerror(retcode, errbuf, sizeof(errbuf));
                 xlog(LOG_ERROR, "x509_csr_parse() returned -0x%02x - %s\n", -retcode, errbuf );
                 goto exit;
         }
@@ -259,56 +259,56 @@ static int ca_generate_crt(ctr_drbg_context *ctr_drbg, unsigned char* csrbuf, si
 
         retcode = x509write_crt_set_subject_name(&crt, subject_name);
         if(retcode < 0) {
-                polarssl_strerror(retcode, errbuf, sizeof(errbuf));
+                mbedtls_strerror(retcode, errbuf, sizeof(errbuf));
                 xlog(LOG_ERROR, "x509write_crt_set_subject_name() returned -0x%02x - %s\n", -retcode, errbuf );
                 goto exit;
         }
 
         retcode = x509write_crt_set_issuer_name(&crt, issuer_name);
         if(retcode < 0) {
-                polarssl_strerror(retcode, errbuf, sizeof(errbuf));
+                mbedtls_strerror(retcode, errbuf, sizeof(errbuf));
                 xlog(LOG_ERROR, "x509write_crt_set_issuer_name() returned -0x%02x - %s\n", -retcode, errbuf );
                 goto exit;
         }
 
         retcode = x509write_crt_set_serial(&crt, &serial);
         if(retcode < 0) {
-                polarssl_strerror(retcode, errbuf, sizeof(errbuf));
+                mbedtls_strerror(retcode, errbuf, sizeof(errbuf));
                 xlog(LOG_ERROR, "x509write_crt_set_serial() returned -0x%02x - %s\n", -retcode, errbuf );
                 goto exit;
         }
 
         retcode = x509write_crt_set_validity(&crt, PROXENET_CERT_NOT_BEFORE, PROXENET_CERT_NOT_AFTER);
         if(retcode < 0) {
-                polarssl_strerror(retcode, errbuf, sizeof(errbuf));
+                mbedtls_strerror(retcode, errbuf, sizeof(errbuf));
                 xlog(LOG_ERROR, "x509write_crt_set_validity() returned -0x%02x - %s\n", -retcode, errbuf );
                 goto exit;
         }
 
         retcode = x509write_crt_set_basic_constraints(&crt, false, 0);
         if(retcode < 0) {
-                polarssl_strerror(retcode, errbuf, sizeof(errbuf));
+                mbedtls_strerror(retcode, errbuf, sizeof(errbuf));
                 xlog(LOG_ERROR, "x509write_crt_set_basic_constraints() returned -0x%02x - %s\n", -retcode, errbuf );
                 goto exit;
         }
 
         retcode = x509write_crt_set_subject_key_identifier( &crt );
         if(retcode < 0) {
-                polarssl_strerror(retcode, errbuf, sizeof(errbuf));
+                mbedtls_strerror(retcode, errbuf, sizeof(errbuf));
                 xlog(LOG_ERROR, "x509write_crt_set_subject_key_identifier() returned -0x%02x - %s\n", -retcode, errbuf );
                 goto exit;
         }
 
         retcode = x509write_crt_set_authority_key_identifier( &crt );
         if(retcode < 0) {
-                polarssl_strerror(retcode, errbuf, sizeof(errbuf));
+                mbedtls_strerror(retcode, errbuf, sizeof(errbuf));
                 xlog(LOG_ERROR, "x509write_crt_set_authority_key_identifier() returned -0x%02x - %s\n", -retcode, errbuf );
                 goto exit;
         }
 
         retcode = x509write_crt_set_ns_cert_type( &crt, NS_CERT_TYPE_SSL_SERVER );
         if(retcode < 0) {
-                polarssl_strerror(retcode, errbuf, sizeof(errbuf));
+                mbedtls_strerror(retcode, errbuf, sizeof(errbuf));
                 xlog(LOG_ERROR, "x509write_crt_set_ns_cert_type() returned -0x%02x - %s\n", -retcode, errbuf );
                 goto exit;
         }
