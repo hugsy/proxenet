@@ -68,7 +68,7 @@
 #define CC              "@CMAKE_C_COMPILER_ID@"
 
 
-#cmakedefine _POLARSSL_VERSION_ "@POLARSSL_VERSION@"
+#cmakedefine _MBEDTLS_VERSION_ "@MBEDTLS_VERSION@"
 
 #cmakedefine _C_PLUGIN
 #cmakedefine _C_VERSION_       "C"
