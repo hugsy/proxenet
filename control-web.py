@@ -107,6 +107,9 @@ def build_html(**kwargs):
 @route('/img/logo')
 def logo(): return static_file("/proxenet-logo.png", root=ROOT+"/docs/img")
 
+@route('/favicon.ico')
+def favion(): return static_file("/favicon.ico", root=ROOT+"/docs/img")
+
 @route('/js/jquery')
 def js_jquery(): return static_file("/jquery-1.11.2.min.js", root=ROOT+"./docs/html/js")
 
