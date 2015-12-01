@@ -173,7 +173,6 @@ static int ssl_init_context(ssl_atom_t* ssl_atom, int type, char* hostname)
         mbedtls_ssl_init(context);
         mbedtls_ssl_config_init(conf);
         mbedtls_ssl_config_defaults(conf, type, MBEDTLS_SSL_TRANSPORT_STREAM, MBEDTLS_SSL_PRESET_DEFAULT);
-        /* mbedtls_ssl_conf_endpoint(context, type); */
         mbedtls_ssl_conf_rng(conf, mbedtls_ctr_drbg_random, &(ssl_atom->ctr_drbg) );
 
         switch(type) {
@@ -445,7 +444,7 @@ static ssize_t proxenet_ssl_ioctl(int (*func)(), void *buf, size_t count, proxen
  */
 ssize_t proxenet_ssl_read(proxenet_ssl_context_t* ssl, void *buf, size_t count)
 {
-        int (*func)() = &mbedtls_net_recv;
+        int (*func)() = &mbedtls_ssl_read;
         int ret = -1;
 
         ret = proxenet_ssl_ioctl(func, buf, count, ssl);
@@ -467,7 +466,7 @@ ssize_t proxenet_ssl_read(proxenet_ssl_context_t* ssl, void *buf, size_t count)
  */
 ssize_t proxenet_ssl_write(proxenet_ssl_context_t* ssl, void *buf, size_t count)
 {
-        int (*func)() = &mbedtls_net_send;
+        int (*func)() = &mbedtls_ssl_write;
         int ret = -1;
 
         ret = proxenet_ssl_ioctl(func, buf, count, ssl);

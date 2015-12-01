@@ -215,6 +215,73 @@ char* proxenet_xstrdup2(const char *data)
 
 
 /**
+ * Remove tabs and spaces at the beginning of a string. The characters
+ * are overwritten with NULL bytes.
+ *
+ * @param str : the buffer to strip from the left (beginning)
+ */
+void proxenet_lstrip(char* str)
+{
+        size_t i, j, d;
+        size_t len = strlen(str);
+
+        if (!len)
+                return;
+
+        for(i=0; i<=len-1 && (str[i]=='\t' || str[i]=='\n' || str[i]==' '); i++);
+        if(i == len-1)
+                return;
+
+        d = len-i;
+        for(j=0; j<d; j++, i++)
+                str[j] = str[i];
+
+        for(j=i-1; j<len; j++)
+                str[j] = '\x00';
+
+        return;
+}
+
+
+/**
+ * Remove tabs and spaces at the end of the string by overwriting them with
+ * NULL byte.
+ *
+ * @param str : the buffer to strip from the right (end)
+ */
+void proxenet_rstrip(char* str)
+{
+        size_t i, j;
+        size_t len = strlen(str);
+
+        if (!len)
+                return;
+
+        for(i=len-1; i && (str[i]=='\t' || str[i]=='\n' || str[i]==' '); i--);
+        if(i == len-1)
+                return;
+
+        for(j=i; j<len; j++)
+                str[j] = '\x00';
+
+        return;
+}
+
+
+/**
+ * Remove tabs and spaces at the beginning and the end of the string.
+ *
+ * @param str : the buffer to strip
+ */
+void proxenet_strip(char* str)
+{
+        proxenet_lstrip(str);
+        proxenet_rstrip(str);
+        return;
+}
+
+
+/**
  * Wrapper for snprintf(), returning the maximum number of bytes *actually* copied
  * in the destination buffer.
  *
