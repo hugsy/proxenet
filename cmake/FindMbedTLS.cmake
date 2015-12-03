@@ -10,10 +10,9 @@
 # MBEDTLS_VERSION
 
 include(FindPackageHandleStandardArgs)
-
 find_path(MBEDTLS_INCLUDE_DIR NAMES mbedtls/ssl.h)
-find_library(MBEDX509_LIB NAMES mbedx509)
-find_package_handle_standard_args(MBEDTLS REQUIRED_VARS MBEDTLS_INCLUDE_DIR MBEDTLS_LIBRARIES)
+find_library(MBEDTLS_LIB NAMES mbedtls)
+find_package_handle_standard_args(MBEDTLS REQUIRED_VARS MBEDTLS_INCLUDE_DIR MBEDTLS_LIB)
 
 if( ${MBEDTLS_LIBRARIES-NOTFOUND} )
   message(FATAL_ERROR "Failed to get info from Mbedtls library, check your Mbedtls installation")
@@ -38,8 +37,8 @@ if( ${MBEDTLS_VERSION} VERSION_LESS "2.1.0")
   return()
 endif()
 
+find_library(MBEDX509_LIB NAMES mbedx509)
 find_library(MBEDCRYPTO_LIB NAMES mbedcrypto)
-find_library(MBEDTLS_LIBRARIES NAMES mbedtls)
 set(MBEDTLS_LIBRARIES ${MBEDX509_LIB} ${MBEDTLS_LIB} ${MBEDCRYPTO_LIB})
 
 set(MBEDTLS_FOUND True)

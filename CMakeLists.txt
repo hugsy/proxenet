@@ -64,16 +64,18 @@ option(DEBUG_SSL              "Enable SSL debug"                       OFF)
 option(DEBUG_LEAK             "Enable memleak checks"                  OFF)
 
 if (DEBUG)
+  message("-- Compiling as debug mode")
   set(CMAKE_BUILD_TYPE Debug)
   set(CMAKE_C_FLAGS_DEBUG "-ggdb -DDEBUG -O0")
   set(CMAKE_VERBOSE_MAKEFILE ON)
 
   if(DEBUG_LEAK)
-
-    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG}")
+    message("-- Compiling with sanitizers")
+    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -fsanitize=address")
   endif(DEBUG_LEAK)
 
   if (DEBUG_SSL)
+    message("-- Compiling with SSL debug informations")
     set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -DDEBUG_SSL")
   endif(DEBUG_SSL)
 

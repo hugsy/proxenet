@@ -77,7 +77,7 @@ def sr(msg):
 
 def build_html(**kwargs):
     header = """<!DOCTYPE html><html lang="en"><head>"""
-    header+= """<script src="/js/jquery"></script>"""
+    # header+= """<script src="/js/jquery"></script>"""
     header+= """<script src="/js/bootstrap"></script>"""
     header+= """<link rel="stylesheet" href="/css/bootstrap">"""
     header+= """<link rel="stylesheet" href="/css/bootstrap-theme">"""
