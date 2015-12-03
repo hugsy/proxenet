@@ -7,7 +7,7 @@ compiler:
 before_script:
 - sudo apt-get update -qq
 - sudo apt-get install -qq cmake python python-dev liblua5.2-dev ruby ruby-dev libperl-dev tcl-dev default-jdk
-- curl -fSsL https://tls.mbed.org/download/mbedtls-2.2.0-gpl.tgz|tar xz && cd mbedtls-2.2.0 && cmake . && make && sudo make install && cd ..
+- curl -fSsL https://tls.mbed.org/download/mbedtls-2.2.0-gpl.tgz|tar xz && cd mbedtls-2.2.0 && cmake . -DCMAKE_C_FLAGS="-fPIC" -DCMAKE_SHARED_LINKER_FLAGS="-pie" && make && sudo make install && cd ..
 
 script: cmake . -DDEBUG=on && make && make clean && cmake . -DDEBUG=off && make
 
