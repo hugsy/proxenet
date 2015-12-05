@@ -119,6 +119,9 @@ To make things fair, both are written in Java. ;)
 
 *Note*: This troll is naturally totally unbiaised of course.
 
+## Presentation
+
+ - Ruxmon Melbourne Aug-2015 (https://blah.cat:8000/public/Ruxmon.2015-08.-.proxenet.pdf)
 
 ## Contributing
 
