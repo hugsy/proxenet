@@ -71,7 +71,7 @@ static int send_socks4_connect(sock_t socks_fd, char *ip_str, int port)
 static int send_socks4a_connect(sock_t socks_fd, char *hostname, int port)
 {
         unsigned char socks_request[SOCKS_REQUEST_MAXLEN]={0,};
-        unsigned char userid[64] = {0,};
+        char userid[64] = {0,};
         size_t len = 0;
         int n;
 

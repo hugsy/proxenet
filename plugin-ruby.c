@@ -141,12 +141,6 @@ static int proxenet_ruby_initialize_function(plugin_t* plugin, req_t type)
 {
         int err;
 
-	/* checks */
-	if (!plugin->name) {
-		xlog_ruby(LOG_ERROR, "%s\n", "null plugin name");
-		return -1;
-	}
-
 	/* get function ID */
 	switch(type) {
 		case REQUEST:
