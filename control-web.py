@@ -203,15 +203,16 @@ def plugin():
     html += """<div class="panel panel-default">"""
     html += """<div class="panel-heading"><h3 class="panel-title">{}</h3></div>""".format(title)
     html += """<table class="table table-hover table-condensed">"""
-    html += "<tr><th>Name</th><th>Type</th><th>Status</th><th>Autoload?</th></tr>"
+    html += "<tr><th>Name</th><th>Type</th><th>Enabled</th><th>Autoload?</th></tr>"
     for k,v in js[title].iteritems():
         _type, _is_loaded = v
         html += "<tr><td><a href=\"/plugin/view/{0}\">{0}</a></td><td>{1}</td>".format(k, _type)
+        html += "<td>"
         if _is_loaded:
-            html += """<td><button type="button" class="btn btn-default btn-xs" data-toggle="button" aria-pressed="true" disabled='true'>Loaded</button></td>"""
+            html += """<input type="checkbox" checked="true" disabled="true"/>"""
         else:
-            html += """<td><button type="button" class="btn btn-default btn-xs" data-toggle="button" aria-pressed="false" onclick="window.location='/plugin/load/{}'">Load</button></td>""".format(k)
-
+            html += """<input type="checkbox" onclick="window.location='/plugin/load/{}'"/>""".format(k)
+        html += "</td>"
         html += "<td>"
         fpath = os.path.abspath(ROOT + "/proxenet-plugins/autoload/" + k)
 
