@@ -25,39 +25,59 @@ static pthread_mutex_t tty_mutex;
 void _xlog(int type, const char* fmt, ...)
 {
 	va_list ap;
+        time_t t = time(NULL);
+        struct tm tm = *localtime(&t);
 
 	/* lock tty before printing */
         pthread_mutex_lock(&tty_mutex);
 
+#ifdef DEBUG
+        fprintf(cfg->logfile_fd,
+                "%.4d/%.2d/%.2d ",
+                tm.tm_year + 1900,
+                tm.tm_mon + 1,
+                tm.tm_mday);
+#endif
+
+        fprintf(cfg->logfile_fd,
+                "%.2d:%.2d:%.2d-",
+                tm.tm_hour, tm.tm_min,
+                tm.tm_sec);
+
+
 	switch (type) {
 		case LOG_CRITICAL:
 			if (cfg->use_color) fprintf(cfg->logfile_fd, DARK);
-			fprintf(cfg->logfile_fd, "CRITICAL: ");
+			fprintf(cfg->logfile_fd, "CRITICAL");
 			break;
 
 		case LOG_ERROR:
 			if (cfg->use_color) fprintf(cfg->logfile_fd, RED);
-			fprintf(cfg->logfile_fd, "ERROR: ");
+			fprintf(cfg->logfile_fd, "ERROR");
 			break;
 
 		case LOG_WARNING:
 			if (cfg->use_color) fprintf(cfg->logfile_fd, YELLOW);
-			fprintf(cfg->logfile_fd, "WARNING: ");
+			fprintf(cfg->logfile_fd, "WARNING");
 			break;
 
 		case LOG_DEBUG:
 			if (cfg->use_color) fprintf(cfg->logfile_fd, BLUE);
-			fprintf(cfg->logfile_fd, "DEBUG: ");
+			fprintf(cfg->logfile_fd, "DEBUG");
 			break;
 
 		case LOG_INFO:
 		default:
 			if (cfg->use_color) fprintf(cfg->logfile_fd, GREEN);
-			fprintf(cfg->logfile_fd, "INFO: ");
+			fprintf(cfg->logfile_fd, "INFO");
 			break;
 	}
 
-	if (cfg->use_color) fprintf(cfg->logfile_fd, NOCOLOR);
+
+        fprintf(cfg->logfile_fd, "-");
+
+	if (cfg->use_color)
+                fprintf(cfg->logfile_fd, NOCOLOR);
 
 
 #ifdef DEBUG
