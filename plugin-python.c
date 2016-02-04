@@ -150,6 +150,8 @@ int proxenet_python_destroy_plugin(plugin_t* plugin)
         PyThreadState* oldctx;
         PyObject *pResult;
 
+        proxenet_plugin_set_state(plugin, INACTIVE);
+
         if (plugin->onleave_function){
                 pResult = PyObject_CallObject(plugin->onleave_function, NULL);
                 if (!pResult || PyErr_Occurred()){
@@ -158,7 +160,6 @@ int proxenet_python_destroy_plugin(plugin_t* plugin)
                 }
         }
 
-        proxenet_plugin_set_state(plugin, INACTIVE);
         Py_DECREF(plugin->pre_function);
         Py_DECREF(plugin->post_function);
 
