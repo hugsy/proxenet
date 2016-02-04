@@ -29,6 +29,7 @@ int proxenet_tcl_load_file(plugin_t* plugin)
 {
 	char* pathname;
 	Tcl_Interp* tcl_interpreter;
+        Tcl_Obj* tcl_cmds_ptr;
 
         if(plugin->state != INACTIVE){
 #ifdef DEBUG
@@ -71,7 +72,6 @@ int proxenet_tcl_initialize_vm(plugin_t* plugin)
 {
 	interpreter_t* interpreter;
 	Tcl_Interp* tcl_interpreter;
-        Tcl_Obj* tcl_cmds_ptr;
 
 	interpreter = plugin->interpreter;
 
