@@ -55,13 +55,13 @@ static VALUE rb_const_get_wrap(VALUE arg)
  */
 static void proxenet_ruby_print_last_exception()
 {
-	VALUE rException, rExceptStr;
+        VALUE rException, rExceptStr;
 
-	rException = rb_errinfo();         /* get last exception */
+        rException = rb_errinfo();         /* get last exception */
         rb_set_errinfo(Qnil);              /* clear last exception */
         rExceptStr = rb_funcall(rException, rb_intern("to_s"), 0, Qnil);
         xlog_ruby(LOG_ERROR, "Exception: %s\n", StringValuePtr(rExceptStr));
-	return;
+        return;
 }
 
 
@@ -70,28 +70,28 @@ static void proxenet_ruby_print_last_exception()
  */
 int proxenet_ruby_initialize_vm(plugin_t* plugin)
 {
-	static char* rArgs[2] = { "ruby", "/dev/null" };
-	interpreter_t *interpreter;
+        static char* rArgs[2] = { "ruby", "/dev/null" };
+        interpreter_t *interpreter;
         VALUE rRet;
 
-	interpreter = plugin->interpreter;
+        interpreter = plugin->interpreter;
 
-	/* checks */
-	if (interpreter->ready)
-		return 0;
+        /* checks */
+        if (interpreter->ready)
+                return 0;
 
 #ifdef DEBUG
-	xlog_ruby(LOG_DEBUG, "Initializing Ruby VM version %s\n", _RUBY_VERSION_);
+        xlog_ruby(LOG_DEBUG, "Initializing Ruby VM version %s\n", _RUBY_VERSION_);
 #endif
 
-	/* init vm */
-	ruby_init();
+        /* init vm */
+        ruby_init();
 
-	/*
-	 * The hack of calling ruby_process_options() with /dev/null allows to simply (in one call)
-	 * init all the structures and encoding params by the vm
-	 * Details: http://rxr.whitequark.org/mri/source/ruby.c#1915
-	 */
+        /*
+         * The hack of calling ruby_process_options() with /dev/null allows to simply (in one call)
+         * init all the structures and encoding params by the vm
+         * Details: http://rxr.whitequark.org/mri/source/ruby.c#1915
+         */
         rRet = (VALUE)ruby_process_options(2, rArgs);
 
         if (rRet == Qnil) {
@@ -100,10 +100,10 @@ int proxenet_ruby_initialize_vm(plugin_t* plugin)
                 return -1;
         }
 
-	interpreter->vm = (void*) rb_mKernel;
-	interpreter->ready = true;
+        interpreter->vm = (void*) rb_mKernel;
+        interpreter->ready = true;
 
-	return 0;
+        return 0;
 }
 
 
@@ -116,7 +116,7 @@ int proxenet_ruby_destroy_plugin(plugin_t* plugin)
         plugin->pre_function = NULL;
         plugin->post_function = NULL;
 
-	return 0;
+        return 0;
 }
 
 
@@ -142,56 +142,56 @@ static int proxenet_ruby_initialize_function(plugin_t* plugin, req_t type)
         int err;
 
 	/* get function ID */
-	switch(type) {
-		case REQUEST:
-			if (plugin->pre_function) {
-				return 0;
-			}
+        switch(type) {
+                case REQUEST:
+                        if (plugin->pre_function) {
+                                return 0;
+                        }
 
-			plugin->pre_function  = (void*)rb_protect(rb_intern_wrap, (VALUE)CFG_REQUEST_PLUGIN_FUNCTION, &err);
+                        plugin->pre_function  = (void*)rb_protect(rb_intern_wrap, (VALUE)CFG_REQUEST_PLUGIN_FUNCTION, &err);
                         if (err){
                                 xlog_ruby(LOG_ERROR, "Failed to get '%s'\n", CFG_REQUEST_PLUGIN_FUNCTION);
                                 proxenet_ruby_print_last_exception();
                                 return -1;
                         }
 
-			if (plugin->pre_function) {
+                        if (plugin->pre_function) {
 #ifdef DEBUG
-				xlog_ruby(LOG_DEBUG, "Loaded %s:%s\n", plugin->filename, CFG_REQUEST_PLUGIN_FUNCTION);
+                                xlog_ruby(LOG_DEBUG, "Loaded %s:%s\n", plugin->filename, CFG_REQUEST_PLUGIN_FUNCTION);
 #endif
-				return 0;
-			}
-			break;
+                                return 0;
+                        }
+                        break;
 
-		case RESPONSE:
-			if (plugin->post_function) {
-				return 0;
-			}
+                case RESPONSE:
+                        if (plugin->post_function) {
+                                return 0;
+                        }
 
-			plugin->post_function = (void*)rb_protect(rb_intern_wrap, (VALUE)CFG_RESPONSE_PLUGIN_FUNCTION, &err);
+                        plugin->post_function = (void*)rb_protect(rb_intern_wrap, (VALUE)CFG_RESPONSE_PLUGIN_FUNCTION, &err);
                         if (err){
                                 xlog_ruby(LOG_ERROR, "Failed to get '%s'\n", CFG_RESPONSE_PLUGIN_FUNCTION);
                                 proxenet_ruby_print_last_exception();
                                 return -1;
                         }
 
-			if (plugin->post_function) {
+                        if (plugin->post_function) {
 #ifdef DEBUG
-				xlog_ruby(LOG_DEBUG, "Loaded %s:%s\n", plugin->filename, CFG_RESPONSE_PLUGIN_FUNCTION);
+                                xlog_ruby(LOG_DEBUG, "Loaded %s:%s\n", plugin->filename, CFG_RESPONSE_PLUGIN_FUNCTION);
 #endif
-				return 0;
-			}
-			break;
+                                return 0;
+                        }
+                        break;
 
-		default:
-			xlog_ruby(LOG_CRITICAL, "%s\n", "Should never be here, autokill !");
-			abort();
-			break;
-	}
+                default:
+                        xlog_ruby(LOG_CRITICAL, "%s\n", "Should never be here, autokill !");
+                        abort();
+                        break;
+        }
 
-	xlog_ruby(LOG_ERROR, "%s\n", "Failed to find function");
+        xlog_ruby(LOG_ERROR, "%s\n", "Failed to find function");
 
-	return -1;
+        return -1;
 }
 
 
@@ -202,8 +202,8 @@ static int proxenet_ruby_initialize_function(plugin_t* plugin, req_t type)
  */
 int proxenet_ruby_load_file(plugin_t* plugin)
 {
-	char* pathname;
-	int res = 0;
+        char* pathname;
+        int res = 0;
 
         if (!plugin->interpreter || !plugin->interpreter->ready){
                 xlog_ruby(LOG_ERROR, "Interpreter '%s' is not ready\n", _RUBY_VERSION_);
@@ -220,15 +220,15 @@ int proxenet_ruby_load_file(plugin_t* plugin)
 
         pathname = plugin->fullpath;
 
-	rb_load_protect(rb_str_new2(pathname), false, &res);
-	if (res != 0) {
-	        xlog_ruby(LOG_ERROR, "Error %d when load file '%s'\n", res, pathname);
-		proxenet_ruby_print_last_exception();
-		return -1;
-	}
+        rb_load_protect(rb_str_new2(pathname), false, &res);
+        if (res != 0) {
+                xlog_ruby(LOG_ERROR, "Error %d when load file '%s'\n", res, pathname);
+                proxenet_ruby_print_last_exception();
+                return -1;
+        }
 
-	if (cfg->verbose)
-		xlog_ruby(LOG_INFO, "File '%s' is loaded\n", pathname);
+        if (cfg->verbose)
+                xlog_ruby(LOG_INFO, "File '%s' is loaded\n", pathname);
 
 
         if (proxenet_ruby_initialize_function(plugin, REQUEST) < 0) {
@@ -243,7 +243,17 @@ int proxenet_ruby_load_file(plugin_t* plugin)
                 return -1;
         }
 
-	return 0;
+        plugin->onload_function = (void*)rb_protect(rb_intern_wrap, (VALUE)CFG_ONLOAD_PLUGIN_FUNCTION, &res);
+        if (res){
+                xlog_ruby(LOG_WARNING, "Failed to get '%s'\n", CFG_ONLOAD_PLUGIN_FUNCTION);
+        }
+
+        plugin->onleave_function = (void*)rb_protect(rb_intern_wrap, (VALUE)CFG_ONLEAVE_PLUGIN_FUNCTION, &res);
+        if (res){
+                xlog_ruby(LOG_WARNING, "Failed to get '%s'\n", CFG_ONLEAVE_PLUGIN_FUNCTION);
+        }
+
+        return 0;
 }
 
 
@@ -270,7 +280,7 @@ static char* proxenet_ruby_execute_function(VALUE module, ID rFunc, request_t* r
 	int buflen, i, state;
 	VALUE rRet;
 	char *uri;
-        struct proxenet_ruby_args args;
+    struct proxenet_ruby_args args;
 
 	uri = request->http_infos.uri;
 	if (!uri)
@@ -279,7 +289,7 @@ static char* proxenet_ruby_execute_function(VALUE module, ID rFunc, request_t* r
 	/* build args */
 	args.rVM = module;
 
-        args.rFunc = rFunc;
+    args.rFunc = rFunc;
 
 	args.rArgs[0] = INT2NUM(request->id);
 	args.rArgs[1] = rb_str_new(request->data, request->size);
