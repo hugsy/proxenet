@@ -49,6 +49,9 @@ int proxenet_lua_load_file(plugin_t* plugin)
 		return -1;
 	}
 
+        lua_getglobal(lua_interpreter, CFG_ONLOAD_PLUGIN_FUNCTION);
+	lua_call(lua_interpreter, 0, 0);
+
 	return 0;
 }
 
@@ -71,9 +74,6 @@ int proxenet_lua_initialize_vm(plugin_t* plugin)
 
 	plugin->interpreter->vm = lua_interpreter;
 	plugin->interpreter->ready = true;
-
-        lua_getglobal(lua_interpreter, CFG_ONLOAD_PLUGIN_FUNCTION);
-	lua_call(lua_interpreter, 0, 0);
 
 	return 0;
 }
