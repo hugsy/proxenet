@@ -37,6 +37,8 @@
 #define CFG_DEFAULT_IP_VERSION                AF_INET                   // IP version (AF_INET for IPv6 or AF_INET6 for IPv6)
 #define CFG_REQUEST_PLUGIN_FUNCTION          "proxenet_request_hook"    // default name for hooking request function
 #define CFG_RESPONSE_PLUGIN_FUNCTION         "proxenet_response_hook"   // default name for hooking response function
+#define CFG_ONLOAD_PLUGIN_FUNCTION           "proxenet_on_load"         // default name for on-load trigger function
+#define CFG_ONLEAVE_PLUGIN_FUNCTION          "proxenet_on_leave"        // default name for on-leave trigger function
 #define CFG_DEFAULT_SSL_CLIENT_DOMAIN        "*"                        // default domain to use the SSL client certificate (* means any)
 #define CFG_DEFAULT_INTERCEPT_PATTERN        "*"                        // default pattern to intercept (all)
 #define CFG_CONTROL_SOCK_PATH                "/tmp/proxenet-control-socket"

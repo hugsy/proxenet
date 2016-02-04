@@ -156,6 +156,8 @@ typedef struct _plugin_type {
 		proxenet_state state;
 
 		interpreter_t *interpreter;               // points to the type of interpreter
+                void *onload_function;
+                void *onleave_function;
 		void *pre_function;
 		void *post_function;
                 void *internal;                           // internal is a free field that can freely used by plugin

@@ -74,11 +74,10 @@ void _xlog(int type, const char* fmt, ...)
 	}
 
 
-        fprintf(cfg->logfile_fd, "-");
-
-	if (cfg->use_color)
+        if (cfg->use_color)
                 fprintf(cfg->logfile_fd, NOCOLOR);
 
+        fprintf(cfg->logfile_fd, "-");
 
 #ifdef DEBUG
 #if defined __LINUX__
