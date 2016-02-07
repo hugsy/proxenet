@@ -77,7 +77,6 @@ def sr(msg):
 
 def build_html(**kwargs):
     header = """<!DOCTYPE html><html lang="en"><head>"""
-    # header+= """<script src="/js/jquery"></script>"""
     header+= """<script src="/js/bootstrap"></script>"""
     header+= """<link rel="stylesheet" href="/css/bootstrap">"""
     header+= """<link rel="stylesheet" href="/css/bootstrap-theme">"""
@@ -128,8 +127,7 @@ def quit():
     if not is_proxenet_running(): return build_html(body=not_running_html())
     sr("quit")
     msg = ""
-    msg+= alert("Shutting down <b>proxenet</b>")
-    msg+= """<script>alert('Thanks for using proxenet');</script>"""
+    msg+= alert("Shutting down <b>proxenet</b> , thanks for using it")
     return build_html(body=msg)
 
 
@@ -425,7 +423,10 @@ def config_set():
 @get('/rc')
 def view_plugin_params():
     if not is_proxenet_running(): return build_html(body=not_running_html())
-    with open(PROXENET_INI, 'r') as f:
+
+    if not os.access(PROXENET_INI, os.R_OK):
+        open(PROXENET_INI, 'a+')
+    with open(PROXENET_INI, 'r+') as f:
         code = f.read()
     html  = ""
 

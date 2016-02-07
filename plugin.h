@@ -120,7 +120,9 @@ typedef struct _http_request_fields
 
 typedef enum {
 	REQUEST	 = 0,
-	RESPONSE = 1
+	RESPONSE,
+        ONLOAD,
+        ONLEAVE
 } req_t;
 
 typedef struct _request_type {
