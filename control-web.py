@@ -1,6 +1,7 @@
 #!/usr/bin/env python2.7
 import os, sys, socket, argparse
 import json, cgi,time, atexit
+import subprocess
 
 try:
     from bottle import request, route, get, post, run, static_file, redirect
@@ -92,8 +93,12 @@ def build_html(**kwargs):
         body += """<li {2}><a href="/{0}">{1}</a></li>""".format(path, path.capitalize(),
                                                                  "class='active'" if path==kwargs.get("page") else "")
 
-    body += """<li><a href="#" onclick="var c=confirm('Are you sure to restart?');if(c){window.location='/restart';}">Restart</a></li>"""
-    body += """<li><a href="#" onclick="var c=confirm('Are you sure to quit?');if(c){window.location='/quit';}">Quit</a></li>"""
+    if is_proxenet_running():
+        body += """<li><a href="#" onclick="var c=confirm('Are you sure to restart?');if(c){window.location='/restart';}">Restart</a></li>"""
+        body += """<li><a href="#" onclick="var c=confirm('Are you sure to quit?');if(c){window.location='/quit';}">Quit</a></li>"""
+    else:
+        body += """<li><a href="/start">Start</a></li>"""
+
     body += """</ul></div></div>
     <div class="row"><div class="col-md-12"><br></div></div>
     <div class="row">
@@ -122,7 +127,16 @@ def css_boostrap(): return static_file("/bootstrap.min.css", root=ROOT+"/docs/ht
 def css_boostrap_theme(): return static_file("/bootstrap-theme.min.css", root=ROOT+"/docs/html/css")
 
 
-@route('/quit')
+@get('/start')
+def start():
+    msg = ""
+    msg+= alert("Starting <b>proxenet</b>")
+    subprocess.call(["./proxenet", "--daemon"])
+    msg+= redirect_after(2, "/info")
+    return build_html(body=msg)
+
+
+@get('/quit')
 def quit():
     if not is_proxenet_running(): return build_html(body=not_running_html())
     sr("quit")
@@ -131,7 +145,7 @@ def quit():
     return build_html(body=msg)
 
 
-@route('/restart')
+@get('/restart')
 def restart():
     if not is_proxenet_running(): return build_html(body=not_running_html())
     sr("restart")
@@ -141,7 +155,7 @@ def restart():
     return build_html(body=msg)
 
 
-@route('/info')
+@get('/info')
 def info():
     if not is_proxenet_running(): return build_html(body=not_running_html())
     res = sr("info")
