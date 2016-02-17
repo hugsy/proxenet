@@ -19,10 +19,10 @@ except ImportError:
 
 
 __author__    =   "hugsy"
-__version__   =   0.1
+__version__   =   0.2
 __licence__   =   "GPL v.2"
-__file__      =   "control-web.py"
-__desc__      =   """control-web is a basic Web interface to control proxenet"""
+__file__      =   "proxenet-control-web.py"
+__desc__      =   """proxenet-control-web is a Web interface to control proxenet"""
 __usage__     =   """{3} version {0}, {1}
 by {2}
 syntax: {3} [options] args
@@ -129,9 +129,51 @@ def css_boostrap_theme(): return static_file("/bootstrap-theme.min.css", root=RO
 
 @get('/start')
 def start():
+    html = ""
+    html += """<div class="panel panel-default">"""
+    html += """<div class="panel-heading"><h3 class="panel-title"><code>proxenet</code> start configuration</h3></div>"""
+    html += """<div class="panel-body"><form method="POST"><table boder=0>"""
+    html += """<tr><td>Listening port:</td><td><input name="port" value="{}"/></td><tr>""".format(8000)
+    html += """<tr><td>Write logs to:</td><td><input name="logfile" value="{}"/></td><tr>""".format("")
+    html += """<tr><td>Disable SSL intercept:</td><td><input name="no_ssl_intercept" type="checkbox"/></td><tr>"""
+    html += """<tr><td>Forward to proxy:</td><td><input name="proxy_forward"/></td><tr>"""
+    html += """<tr><td>Use SOCKS for proxy forwarding (default HTTP):</td><td><input name="proxy_forward_socks" type="checkbox"/></td><tr>"""
+    html += """<tr><td><button type="submit" class="btn btn-primary">Start!</button><br/></td><td></td><tr>"""
+    html += """</table></form></div>"""
+    html += """</div>"""
+    return build_html(body=html)
+
+
+@post('/start')
+def do_start():
     msg = ""
-    msg+= alert("Starting <b>proxenet</b>")
-    subprocess.call(["./proxenet", "--daemon"])
+    cmd = []
+
+    port = int(request.params.get("port")) or 8000
+    logfile  = request.params.get("logfile") or "/dev/null"
+    no_ssl_intercept = True if request.params.get("no_ssl_intercept") else False
+    proxy_use_socks = proxy_forward_host = proxy_forward_port = None
+    if request.params.get("proxy_forward"):
+        proxy_forward_host, proxy_forward_port = request.params.get("proxy_forward").split(":", 1)
+        if request.params.get("proxy_forward_socks"):
+            proxy_use_socks = True
+
+    cmd.append("./proxenet")
+    cmd.append("--daemon")
+    cmd.append("--port=%d" % port)
+    cmd.append("--logfile=%s" % logfile)
+    if no_ssl_intercept:
+        cmd.append("--no-ssl-intercept")
+    if proxy_forward_host and proxy_forward_port:
+        cmd.append("--proxy-host=%s" % proxy_forward_host)
+        cmd.append("--proxy-port=%s" % proxy_forward_port)
+        if proxy_use_socks:
+            cmd.append("--use-socks")
+
+    popup = "Launching <b>proxenet</b> with command:<br/><br/>"
+    popup+= """<div style="font: 100% Courier,sans-serif;">""" + " ".join(cmd) + """</div>"""
+    msg+= alert(popup)
+    subprocess.call(cmd)
     msg+= redirect_after(2, "/info")
     return build_html(body=msg)
 
