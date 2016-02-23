@@ -478,8 +478,6 @@ def config_set():
 
 @get('/rc')
 def view_plugin_params():
-    if not is_proxenet_running(): return build_html(body=not_running_html())
-
     if not os.access(PROXENET_INI, os.R_OK):
         open(PROXENET_INI, 'a+')
     with open(PROXENET_INI, 'r+') as f:
