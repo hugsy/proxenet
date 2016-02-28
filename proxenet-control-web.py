@@ -7,7 +7,7 @@ try:
     from bottle import request, route, get, post, run, static_file, redirect
 except ImportError:
     sys.stderr.write("Missing `bottle` package: pip install bottle\n")
-    exit(1)
+    sys.exit(1)
 
 try:
     from pygments import highlight
@@ -15,7 +15,7 @@ try:
     from pygments.formatters import HtmlFormatter
 except ImportError:
     sys.stderr.write("Missing `pygments` package: pip install pygments\n")
-    exit(1)
+    sys.exit(1)
 
 
 __author__    =   "hugsy"
@@ -50,10 +50,32 @@ def redirect_after(n, location):
 def not_running_html():
     return error("<b>proxenet</b> is not running")
 
+
 def format_result(res):
     d = res.replace('\n', "<br>")
     d = d[:-4]
     return d
+
+
+def which(program):
+    path = os.pathsep.join( os.environ["PATH"] + "." )
+
+    def is_exe(fpath):
+        return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
+
+    fpath, fname = os.path.split(program)
+    if fpath:
+        if is_exe(program):
+            return os.sep.join([fpath, program])
+    else:
+        for path in path.split(os.pathsep):
+            path = path.strip('"')
+            exe_file = os.path.join(path, program)
+            if is_exe(exe_file):
+                return os.sep.join([fpath, exe_file])
+
+    raise IOError("Missing file `%s`" % program)
+
 
 def recv_until(sock, pattern=">>> "):
     data = ""
@@ -62,6 +84,7 @@ def recv_until(sock, pattern=">>> "):
         if data.endswith(pattern):
             break
     return data
+
 
 def sr(msg):
     s = socket.socket( socket.AF_UNIX, socket.SOCK_STREAM )
@@ -133,6 +156,7 @@ def start():
     html += """<div class="panel panel-default">"""
     html += """<div class="panel-heading"><h3 class="panel-title"><code>proxenet</code> start configuration</h3></div>"""
     html += """<div class="panel-body"><form method="POST"><table boder=0>"""
+    html += """<tr><td>Path to <em>proxenet</em>:</td><td><input name="proxenet" value="{}"/></td><tr>""".format(which("proxenet"))
     html += """<tr><td>Listening port:</td><td><input name="port" value="{}"/></td><tr>""".format(8000)
     html += """<tr><td>Write logs to:</td><td><input name="logfile" value="{}"/></td><tr>""".format("")
     html += """<tr><td>Disable SSL intercept:</td><td><input name="no_ssl_intercept" type="checkbox"/></td><tr>"""
@@ -564,3 +588,5 @@ if __name__ == "__main__":
         daemon()
 
     run(host=args.host, port=args.port, debug=args.debug)
+
+    sys.exit(0)
