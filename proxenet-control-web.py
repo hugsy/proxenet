@@ -157,11 +157,15 @@ def start():
     html += """<div class="panel-heading"><h3 class="panel-title"><code>proxenet</code> start configuration</h3></div>"""
     html += """<div class="panel-body"><form method="POST"><table boder=0>"""
     html += """<tr><td>Path to <em>proxenet</em>:</td><td><input name="proxenet" value="{}"/></td><tr>""".format(which("proxenet"))
-    html += """<tr><td>Listening port:</td><td><input name="port" value="{}"/></td><tr>""".format(8000)
+    html += """<tr><td>Listening address:</td><td><input name="address" value="{}"/></td><tr>""".format("0.0.0.0")
+    html += """<tr><td>Listening port:</td><td><input name="port" value="{}"/></td><tr>""".format(8008)
     html += """<tr><td>Write logs to:</td><td><input name="logfile" value="{}"/></td><tr>""".format("")
-    html += """<tr><td>Disable SSL intercept:</td><td><input name="no_ssl_intercept" type="checkbox"/></td><tr>"""
-    html += """<tr><td>Forward to proxy:</td><td><input name="proxy_forward"/></td><tr>"""
+    html += """<tr><td>Forward to proxy (host:port):</td><td><input name="proxy_forward"/></td><tr>"""
+
+    html += """<tr><td>Do NOT intercept SSL traffic:</td><td><input name="no_ssl_intercept" type="checkbox"/></td><tr>"""
     html += """<tr><td>Use SOCKS for proxy forwarding (default HTTP):</td><td><input name="proxy_forward_socks" type="checkbox"/></td><tr>"""
+    html += """<tr><td>Use IPv6 (default IPv4 only):</td><td><input name="ipv6" type="checkbox"/></td><tr>"""
+
     html += """<tr><td><button type="submit" class="btn btn-primary">Start!</button><br/></td><td></td><tr>"""
     html += """</table></form></div>"""
     html += """</div>"""
@@ -173,9 +177,11 @@ def do_start():
     msg = ""
     cmd = []
 
-    port = int(request.params.get("port")) or 8000
+    port = int(request.params.get("port")) or 8008
+    addr = request.params.get("address") or "0.0.0.0"
     logfile  = request.params.get("logfile") or "/dev/null"
     no_ssl_intercept = True if request.params.get("no_ssl_intercept") else False
+    use_ipv6 = "-6" if request.params.get("ipv6") else "-4"
     proxy_use_socks = proxy_forward_host = proxy_forward_port = None
     if request.params.get("proxy_forward"):
         proxy_forward_host, proxy_forward_port = request.params.get("proxy_forward").split(":", 1)
@@ -184,7 +190,9 @@ def do_start():
 
     cmd.append("./proxenet")
     cmd.append("--daemon")
+    cmd.append("--bind=%s" % addr)
     cmd.append("--port=%d" % port)
+    cmd.append(use_ipv6)
     cmd.append("--logfile=%s" % logfile)
     if no_ssl_intercept:
         cmd.append("--no-ssl-intercept")
