@@ -1,7 +1,12 @@
 #!/usr/bin/env python2.7
+#
+#
+# proxenet web command control interface
+#
+#
 import os, sys, socket, argparse
-import json, cgi,time, atexit
-import subprocess
+import json, cgi, time, atexit
+import subprocess, tempfile
 
 try:
     from bottle import request, route, get, post, run, static_file, redirect
@@ -31,6 +36,7 @@ syntax: {3} [options] args
 ROOT = os.path.dirname( os.path.realpath(sys.argv[0]))
 PROXENET_SOCKET_PATH = "/tmp/proxenet-control-socket"
 PROXENET_INI = os.getenv("HOME") + "/.proxenet.ini"
+PROXENET_LOGFILE = None
 
 def is_proxenet_running():
     return os.path.exists(PROXENET_SOCKET_PATH)
@@ -105,16 +111,21 @@ def build_html(**kwargs):
     header+= """<link rel="stylesheet" href="/css/bootstrap">"""
     header+= """<link rel="stylesheet" href="/css/bootstrap-theme">"""
     header+= """<style>{}</style>""".format( HtmlFormatter().get_style_defs('.highlight') )
-
+    header+= "\n".join( kwargs.get("headers", []) )
     header+= """<title>{}</title></head>""".format( kwargs.get("title", "") )
+
     body = """<body><div class="container">
     <div><img src="/img/logo"></div>
     <div class="row"><div class=col-md-12>
     <ul class="nav nav-tabs nav-justified">"""
 
-    for path in ["info", "plugin", "threads", "config", "keys", "rc"]:
-        body += """<li {2}><a href="/{0}">{1}</a></li>""".format(path, path.capitalize(),
-                                                                 "class='active'" if path==kwargs.get("page") else "")
+    tabs = ["info", "plugin", "threads", "config", "keys", "rc"]
+    if is_proxenet_running():
+        tabs.append("log")
+
+    for tab in tabs:
+        body += """<li {2}><a href="/{0}">{1}</a></li>""".format(tab, tab.capitalize(),
+                                                                 "class='active'" if tab==kwargs.get("page") else "")
 
     if is_proxenet_running():
         body += """<li><a href="#" onclick="var c=confirm('Are you sure to restart?');if(c){window.location='/restart';}">Restart</a></li>"""
@@ -159,7 +170,7 @@ def start():
     html += """<tr><td>Path to <em>proxenet</em>:</td><td><input name="proxenet" value="{}"/></td><tr>""".format(which("proxenet"))
     html += """<tr><td>Listening address:</td><td><input name="address" value="{}"/></td><tr>""".format("0.0.0.0")
     html += """<tr><td>Listening port:</td><td><input name="port" value="{}"/></td><tr>""".format(8008)
-    html += """<tr><td>Write logs to:</td><td><input name="logfile" value="{}"/></td><tr>""".format("")
+    html += """<tr><td>Write logs to (empty = temp file):</td><td><input name="logfile" value="{}"/></td><tr>""".format("/dev/null")
     html += """<tr><td>Forward to proxy (host:port):</td><td><input name="proxy_forward"/></td><tr>"""
 
     html += """<tr><td>Do NOT intercept SSL traffic:</td><td><input name="no_ssl_intercept" type="checkbox"/></td><tr>"""
@@ -174,12 +185,13 @@ def start():
 
 @post('/start')
 def do_start():
+    global PROXENET_LOGFILE
+
     msg = ""
     cmd = []
 
     port = int(request.params.get("port")) or 8008
     addr = request.params.get("address") or "0.0.0.0"
-    logfile  = request.params.get("logfile") or "/dev/null"
     no_ssl_intercept = True if request.params.get("no_ssl_intercept") else False
     use_ipv6 = "-6" if request.params.get("ipv6") else "-4"
     proxy_use_socks = proxy_forward_host = proxy_forward_port = None
@@ -187,6 +199,14 @@ def do_start():
         proxy_forward_host, proxy_forward_port = request.params.get("proxy_forward").split(":", 1)
         if request.params.get("proxy_forward_socks"):
             proxy_use_socks = True
+
+    if request.params.get("logfile") is None or len(request.params.get("logfile").strip())==0:
+        logfile_fd, logfile = tempfile.mkstemp(suffix=".log", prefix="proxenet-", dir="/tmp", text=True)
+        os.close(logfile_fd)
+    else:
+        logfile = request.params.get("logfile")
+
+    PROXENET_LOGFILE = logfile
 
     cmd.append("./proxenet")
     cmd.append("--daemon")
@@ -199,8 +219,7 @@ def do_start():
     if proxy_forward_host and proxy_forward_port:
         cmd.append("--proxy-host=%s" % proxy_forward_host)
         cmd.append("--proxy-port=%s" % proxy_forward_port)
-        if proxy_use_socks:
-            cmd.append("--use-socks")
+        if proxy_use_socks: cmd.append("--use-socks")
 
     popup = "Launching <b>proxenet</b> with command:<br/><br/>"
     popup+= """<div style="font: 100% Courier,sans-serif;">""" + " ".join(cmd) + """</div>"""
@@ -537,6 +556,28 @@ def write_plugin_params():
     success("New configuration written")
     redirect("/rc?new=1")
     return
+
+
+@get('/log')
+def view_logfile():
+    global PROXENET_LOGFILE
+
+    if not is_proxenet_running(): return build_html(body=not_running_html())
+    if PROXENET_LOGFILE is None:  return build_html(body=not_running_html())
+
+    with open(PROXENET_LOGFILE, 'r') as f:
+        logs = f.read()
+
+    headers = ["""<meta http-equiv="refresh" content="5"/>""", ]
+
+    html  = ""
+    html += """<div class="panel panel-default">"""
+    html += """<div class="panel-heading"><h3 class="panel-title">Logs</h3></div>"""
+    html += """<div class="panel-body">"""
+    html += """<textarea name="logs" cols="120" rows="20" style="font: 100% Courier,sans-serif;" readonly>{}</textarea><br/>""".format(logs)
+    html += """</div>"""
+    html += """</div>"""
+    return build_html(body=html, page="log", title="Log file", headers=headers)
 
 
 def kill_daemon():
