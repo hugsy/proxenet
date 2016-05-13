@@ -563,7 +563,7 @@ def view_logfile():
     global PROXENET_LOGFILE
 
     if not is_proxenet_running(): return build_html(body=not_running_html())
-    if PROXENET_LOGFILE is None:  return build_html(body=not_running_html())
+    if PROXENET_LOGFILE in (None, "", "/dev/null"): return build_html(body=not_running_html())
 
     with open(PROXENET_LOGFILE, 'r') as f:
         logs = f.read()
@@ -574,7 +574,7 @@ def view_logfile():
     html += """<div class="panel panel-default">"""
     html += """<div class="panel-heading"><h3 class="panel-title">Logs</h3></div>"""
     html += """<div class="panel-body">"""
-    html += """<textarea name="logs" cols="120" rows="20" style="font: 100% Courier,sans-serif;" readonly>{}</textarea><br/>""".format(logs)
+    html += """<textarea name="logs"  rows="30" style="font: 100% Courier,sans-serif;" readonly>{}</textarea><br/>""".format(logs)
     html += """</div>"""
     html += """</div>"""
     return build_html(body=html, page="log", title="Log file", headers=headers)
