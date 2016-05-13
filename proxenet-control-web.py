@@ -572,7 +572,7 @@ def view_logfile():
 
     html  = ""
     html += """<div class="panel panel-default">"""
-    html += """<div class="panel-heading"><h3 class="panel-title">Logs</h3></div>"""
+    html += """<div class="panel-heading"><h3 class="panel-title">Logs from '{}'</h3></div>""".format(PROXENET_LOGFILE)
     html += """<div class="panel-body">"""
     html += """<textarea name="logs" cols="130"  rows="30" style="font: 100% Courier,sans-serif;" readonly>{}</textarea><br/>""".format(logs)
     html += """</div>"""
