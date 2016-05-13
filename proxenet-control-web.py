@@ -574,7 +574,7 @@ def view_logfile():
     html += """<div class="panel panel-default">"""
     html += """<div class="panel-heading"><h3 class="panel-title">Logs</h3></div>"""
     html += """<div class="panel-body">"""
-    html += """<textarea name="logs"  rows="30" style="font: 100% Courier,sans-serif;" readonly>{}</textarea><br/>""".format(logs)
+    html += """<textarea name="logs" cols="130"  rows="30" style="font: 100% Courier,sans-serif;" readonly>{}</textarea><br/>""".format(logs)
     html += """</div>"""
     html += """</div>"""
     return build_html(body=html, page="log", title="Log file", headers=headers)
