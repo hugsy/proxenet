@@ -214,7 +214,7 @@ char* proxenet_xstrdup(const char *data, size_t len)
 	if (!memcpy(s, data, len)) {
 		xlog(LOG_CRITICAL, "proxenet_xstrdup() failed in memcpy: %s\n", strerror(errno));
 		proxenet_xfree(s);
-		return NULL;
+		abort();
 	}
 
 	return s;

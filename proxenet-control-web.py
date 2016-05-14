@@ -157,7 +157,7 @@ def start():
     html += """<div class="panel-heading"><h3 class="panel-title"><code>proxenet</code> start configuration</h3></div>"""
     html += """<div class="panel-body"><form method="POST"><table boder=0>"""
     html += """<tr><td>Path to <em>proxenet</em>:</td><td><input name="proxenet" value="{}"/></td><tr>""".format(which("proxenet"))
-    html += """<tr><td>Listening port:</td><td><input name="port" value="{}"/></td><tr>""".format(8000)
+    html += """<tr><td>Listening port:</td><td><input name="port" value="{}"/></td><tr>""".format(8008)
     html += """<tr><td>Write logs to:</td><td><input name="logfile" value="{}"/></td><tr>""".format("")
     html += """<tr><td>Disable SSL intercept:</td><td><input name="no_ssl_intercept" type="checkbox"/></td><tr>"""
     html += """<tr><td>Forward to proxy:</td><td><input name="proxy_forward"/></td><tr>"""

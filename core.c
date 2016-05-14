@@ -540,7 +540,7 @@ void proxenet_process_http_request(sock_t server_socket)
 
                                 free_http_infos(&(req.http_infos));
 
-                                if (update_http_infos(&req) < 0){
+                                if (parse_http_request(&req) < 0){
                                         xlog(LOG_ERROR, "Failed to update HTTP information for request %d\n", req.id);
                                         proxenet_xfree( host );
                                         proxenet_xfree( old_req );
@@ -612,13 +612,13 @@ void proxenet_process_http_request(sock_t server_socket)
 
                                 if (is_new_http_connection) {
 
-                                        if (is_ssl) {
+                                        if (req.http_infos.proto_type==HTTPS) {
                                                 /*
                                                  * SSL request fields still have the values gathered in the CONNECT
                                                  * Those values must be updated to reflect the real request
                                                  */
                                                 free_http_infos(&(req.http_infos));
-                                                retcode = update_http_infos(&req);
+                                                retcode = parse_http_request(&req);
                                         } else {
                                                 /*
                                                  * Format requests
@@ -626,7 +626,7 @@ void proxenet_process_http_request(sock_t server_socket)
                                                  * into
                                                  * GET /bar.blah HTTP/1.1 ...
                                                  */
-                                                retcode = format_http_request(&req.data, &req.size);
+                                                retcode = format_http_request(&req);
                                         }
                                 } else {
                                         /* if here, at least 1 request has been to server */
@@ -636,7 +636,7 @@ void proxenet_process_http_request(sock_t server_socket)
                                         xlog(LOG_DEBUG, "Resuming stream '%d'->'%d'\n", client_socket, server_socket);
 #endif
                                         free_http_infos(&(req.http_infos));
-                                        retcode = update_http_infos(&req);
+                                        retcode = parse_http_request(&req);
                                 }
 
                                 if (retcode < 0){

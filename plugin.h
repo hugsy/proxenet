@@ -107,33 +107,6 @@ static const UNUSED char* plugins_extensions_str[] = {
 
 #define MAX_VMS 10
 
-typedef struct _http_request_fields
-{
-                char* method;
-                char* proto;
-                char* hostname;
-                unsigned short port;
-                char* path;
-                char* version;
-                char* uri;
-} http_request_t ;
-
-typedef enum {
-	REQUEST	 = 0,
-	RESPONSE,
-        ONLOAD,
-        ONLEAVE
-} req_t;
-
-typedef struct _request_type {
-		long id;
-		req_t type;
-		char* data;
-		size_t size;
-                bool is_ssl;
-		http_request_t http_infos;
-                bool do_intercept;
-} request_t;
 
 typedef struct _interpreter_type {
 		unsigned short id;

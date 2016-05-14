@@ -315,7 +315,11 @@ ssize_t proxenet_write(sock_t sock, void *buf, size_t count)
 
 
 /**
+ * Read all the data pending in the socket.
+ * The buffer with the data is allocated by proxenet_read_all() and *MUST* be free-ed
+ * by the caller.
  *
+ * @return the number of bytes read, or -1 if an error occured
  */
 int proxenet_read_all(sock_t sock, char** ptr, proxenet_ssl_context_t* ssl)
 {
