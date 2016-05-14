@@ -366,6 +366,9 @@ static int parse_options (int argc, char** argv)
                                 return -1;
                         }
                 }
+
+                /* disable color to avoid tty color code in file */
+                cfg->use_color = false;
         }
 
         /* check if nb of threads is in boundaries */
