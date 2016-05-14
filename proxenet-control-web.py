@@ -33,10 +33,13 @@ by {2}
 syntax: {3} [options] args
 """.format(__version__, __licence__, __author__, __file__)
 
-ROOT = os.path.dirname( os.path.realpath(sys.argv[0]))
+PROXENET_ROOT = os.path.dirname( os.path.realpath(sys.argv[0]) )
 PROXENET_SOCKET_PATH = "/tmp/proxenet-control-socket"
 PROXENET_INI = os.getenv("HOME") + "/.proxenet.ini"
 PROXENET_LOGFILE = None
+PROXENET_DEFAULT_IP = "0.0.0.0"
+PROXENET_DEFAULT_PORT = 8008
+PROXENET_DEFAULT_PLUGINS_DIR = os.getcwd() + "/proxenet-plugins"
 
 def is_proxenet_running():
     return os.path.exists(PROXENET_SOCKET_PATH)
@@ -56,6 +59,9 @@ def redirect_after(n, location):
 def not_running_html():
     return error("<b>proxenet</b> is not running")
 
+def no_logfile_html():
+    return error("Logs are not saved to file.")
+
 
 def format_result(res):
     d = res.replace('\n', "<br>")
@@ -64,21 +70,12 @@ def format_result(res):
 
 
 def which(program):
-    path = os.pathsep.join( os.environ["PATH"] + "." )
-
-    def is_exe(fpath):
-        return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
-
-    fpath, fname = os.path.split(program)
-    if fpath:
-        if is_exe(program):
-            return os.sep.join([fpath, program])
-    else:
-        for path in path.split(os.pathsep):
-            path = path.strip('"')
-            exe_file = os.path.join(path, program)
-            if is_exe(exe_file):
-                return os.sep.join([fpath, exe_file])
+    for d in os.getenv("PATH").split(":"):
+        path = os.path.realpath(d)
+        if not os.access(path, os.R_OK | os.X_OK): continue
+        exe_file = os.sep.join([path, program])
+        if os.path.isfile(exe_file) and os.access(exe_file, os.X_OK):
+            return exe_file
 
     raise IOError("Missing file `%s`" % program)
 
@@ -143,22 +140,22 @@ def build_html(**kwargs):
 
 
 @route('/img/logo')
-def logo(): return static_file("/proxenet-logo.png", root=ROOT+"/docs/img")
+def logo(): return static_file("/proxenet-logo.png", root=PROXENET_ROOT+"/docs/img")
 
 @route('/favicon.ico')
-def favicon(): return static_file("/favicon.ico", root=ROOT+"/docs/img")
+def favicon(): return static_file("/favicon.ico", root=PROXENET_ROOT+"/docs/img")
 
 @route('/js/jquery')
-def js_jquery(): return static_file("/jquery-1.11.2.min.js", root=ROOT+"./docs/html/js")
+def js_jquery(): return static_file("/jquery-1.11.2.min.js", root=PROXENET_ROOT+"./docs/html/js")
 
 @route('/js/bootstrap')
-def js_bootstrap(): return static_file("/bootstrap.min.js", root=ROOT+"/docs/html/js")
+def js_bootstrap(): return static_file("/bootstrap.min.js", root=PROXENET_ROOT+"/docs/html/js")
 
 @route('/css/bootstrap')
-def css_boostrap(): return static_file("/bootstrap.min.css", root=ROOT+"/docs/html/css")
+def css_boostrap(): return static_file("/bootstrap.min.css", root=PROXENET_ROOT+"/docs/html/css")
 
 @route('/css/bootstrap-theme')
-def css_boostrap_theme(): return static_file("/bootstrap-theme.min.css", root=ROOT+"/docs/html/css")
+def css_boostrap_theme(): return static_file("/bootstrap-theme.min.css", root=PROXENET_ROOT+"/docs/html/css")
 
 
 @get('/start')
@@ -167,9 +164,10 @@ def start():
     html += """<div class="panel panel-default">"""
     html += """<div class="panel-heading"><h3 class="panel-title"><code>proxenet</code> start configuration</h3></div>"""
     html += """<div class="panel-body"><form method="POST"><table boder=0>"""
-    html += """<tr><td>Path to <em>proxenet</em>:</td><td><input name="proxenet" value="{}"/></td><tr>""".format(which("proxenet"))
-    html += """<tr><td>Listening address:</td><td><input name="address" value="{}"/></td><tr>""".format("0.0.0.0")
-    html += """<tr><td>Listening port:</td><td><input name="port" value="{}"/></td><tr>""".format(8008)
+    html += """<tr><td>Path to <em>proxenet</em> (default "{}"):</td><td><input name="proxenet"/></td><tr>""".format(which("proxenet"))
+    html += """<tr><td>Path to <em>proxenet</em> plugins (default "{}"):</td><td><input name="plugins" /></td><tr>""".format(PROXENET_DEFAULT_PLUGINS_DIR)
+    html += """<tr><td>Listening address (default "{}"):</td><td><input name="address"/></td><tr>""".format(PROXENET_DEFAULT_IP)
+    html += """<tr><td>Listening port (default "{}"):</td><td><input name="port"/></td><tr>""".format(PROXENET_DEFAULT_PORT)
     html += """<tr><td>Write logs to (empty = temp file):</td><td><input name="logfile" value="{}"/></td><tr>""".format("/dev/null")
     html += """<tr><td>Forward to proxy (host:port):</td><td><input name="proxy_forward"/></td><tr>"""
 
@@ -190,8 +188,9 @@ def do_start():
     msg = ""
     cmd = []
 
-    port = int(request.params.get("port")) or 8008
-    addr = request.params.get("address") or "0.0.0.0"
+    port = int(request.params.get("port")) if request.params.get("port").isdigit() else PROXENET_DEFAULT_PORT
+    addr = request.params.get("address") or PROXENET_DEFAULT_IP
+    plugins_dir = request.params.get("plugins") or PROXENET_DEFAULT_PLUGINS_DIR
     no_ssl_intercept = True if request.params.get("no_ssl_intercept") else False
     use_ipv6 = "-6" if request.params.get("ipv6") else "-4"
     proxy_use_socks = proxy_forward_host = proxy_forward_port = None
@@ -212,8 +211,9 @@ def do_start():
     cmd.append("--daemon")
     cmd.append("--bind=%s" % addr)
     cmd.append("--port=%d" % port)
-    cmd.append(use_ipv6)
+    cmd.append("--plugins=%s" % plugins_dir)
     cmd.append("--logfile=%s" % logfile)
+    cmd.append(use_ipv6)
     if no_ssl_intercept:
         cmd.append("--no-ssl-intercept")
     if proxy_forward_host and proxy_forward_port:
@@ -319,7 +319,7 @@ def plugin():
             html += """<input type="checkbox" onclick="window.location='/plugin/load/{}'"/>""".format(k)
         html += "</td>"
         html += "<td>"
-        fpath = os.path.abspath(ROOT + "/proxenet-plugins/autoload/" + k)
+        fpath = os.path.abspath(PROXENET_ROOT + "/proxenet-plugins/autoload/" + k)
 
         if os.path.islink(fpath):
             html += """<button type="button" class="btn btn-default btn-xs" data-toggle="button" aria-pressed="true" disabled='true'">Added</button>"""
@@ -354,7 +354,7 @@ def plugin_load(fname):
 def plugin_remove_from_autoload(fname):
     if not is_proxenet_running(): return build_html(body=not_running_html())
     fname = cgi.escape(fname)
-    flink = os.path.realpath( ROOT ) + "/proxenet-plugins/autoload/" + fname
+    flink = os.path.realpath( PROXENET_ROOT ) + "/proxenet-plugins/autoload/" + fname
     html = ""
     if not os.path.islink(flink):
         html += error("Failed to remove '<b>{}</b>' from autoload directory".format(fname))
@@ -369,12 +369,12 @@ def plugin_remove_from_autoload(fname):
 def plugin_add_to_autoload(fname):
     if not is_proxenet_running(): return build_html(body=not_running_html())
     fname = cgi.escape(fname)
-    fpath = os.path.abspath(ROOT + "/proxenet-plugins/" + fname)
+    fpath = os.path.abspath(PROXENET_ROOT + "/proxenet-plugins/" + fname)
     html = ""
     if not os.path.isfile(fpath):
          html+= error("Failed to load <b>{}</b>".format(fname))
     else:
-        flink = os.path.realpath(ROOT + "/proxenet-plugins/autoload/" + fname)
+        flink = os.path.realpath(PROXENET_ROOT + "/proxenet-plugins/autoload/" + fname)
         os.symlink(fpath, flink)
         html+= success("<b>{}</b> loaded successfully".format(fname))
     html+= redirect_after(2, "/plugin")
@@ -399,7 +399,7 @@ def plugin_view(fname):
     if not is_proxenet_running():
         return build_html(body=not_running_html())
     fname = cgi.escape(fname)
-    fpath = os.path.realpath(ROOT + "/proxenet-plugins/" + fname)
+    fpath = os.path.realpath(PROXENET_ROOT + "/proxenet-plugins/" + fname)
     if not os.path.isfile(fpath):
         return build_html(body=error("""<b>{}</b> is not a valid plugin""".format(fname)))
 
@@ -479,7 +479,7 @@ def keys():
 @route('/keys/proxenet.<fmt>')
 def key(fmt):
     if fmt in ("crt", "key", "p12", "p7b"):
-        return static_file("/proxenet.%s" % fmt, root=ROOT + "/keys")
+        return static_file("/proxenet.%s" % fmt, root=PROXENET_ROOT + "/keys")
 
 
 @route('/config')
@@ -550,7 +550,6 @@ def view_plugin_params():
 
 @post('/rc')
 def write_plugin_params():
-    if not is_proxenet_running(): return build_html(body=not_running_html())
     with open(PROXENET_INI, 'w') as f:
         f.write( request.params.get("config") )
     success("New configuration written")
@@ -563,7 +562,7 @@ def view_logfile():
     global PROXENET_LOGFILE
 
     if not is_proxenet_running(): return build_html(body=not_running_html())
-    if PROXENET_LOGFILE in (None, "", "/dev/null"): return build_html(body=not_running_html())
+    if PROXENET_LOGFILE in (None, "", "/dev/null"): return build_html(body=no_logfile_html())
 
     with open(PROXENET_LOGFILE, 'r') as f:
         logs = f.read()
