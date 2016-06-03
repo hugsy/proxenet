@@ -9,7 +9,7 @@ AUTOLOAD_DIR="${dest}/proxenet-plugins/autoload"
 
 echo "* Setup ${progname} environment"
 
-echo "** Building proxenet-plugins tree in '${AUTOLOAD_DIR}'"
+echo "** Building proxenet-plugins tree"
 mkdir -p ${AUTOLOAD_DIR}
 
 if [ ! -d ${KEYS_DIR} ]; then
@@ -17,6 +17,8 @@ if [ ! -d ${KEYS_DIR} ]; then
     cp -r ${orig}/keys ${dest}
     chmod a+rx ${KEYS_DIR}
     make -C ${KEYS_DIR} clean keys
+else
+    echo "** CA already created"
 fi
 
 echo "* Success"

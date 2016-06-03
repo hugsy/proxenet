@@ -288,6 +288,7 @@ install (DIRECTORY docs
   DESTINATION misc
   )
 install (FILES proxenet-control-cli.py proxenet-control-web.py
+  PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
   DESTINATION misc
   )
 
