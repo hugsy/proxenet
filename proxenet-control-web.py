@@ -70,7 +70,7 @@ def format_result(res):
 
 
 def which(program):
-    for d in os.getenv("PATH").split(":"):
+    for d in os.getenv("PATH").split(":")+[".",]:
         path = os.path.realpath(d)
         if not os.access(path, os.R_OK | os.X_OK): continue
         exe_file = os.sep.join([path, program])
@@ -235,6 +235,7 @@ def quit():
     sr("quit")
     msg = ""
     msg+= alert("Shutting down <b>proxenet</b> , thanks for using it")
+    msg+= redirect_after(2, "/info")
     return build_html(body=msg)
 
 

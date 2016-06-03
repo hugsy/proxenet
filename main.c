@@ -74,10 +74,7 @@ static void usage(int retcode)
                 "\t-v, --verbose\t\t\t\tIncrease verbosity (default: 0)\n"
                 "\t-n, --no-color\t\t\t\tDisable colored output\n"
                 "\t-l, --logfile=/path/to/logfile\t\tLog actions in file (default stdout)\n"
-                "\t-x, --plugins=/path/to/plugins/dir\tSpecify plugins directory (default: '%s')\n"
-                ,
-
-                CFG_DEFAULT_PLUGINS_PATH
+                "\t-x, --plugins=/path/to/plugins/dir\tSpecify plugins directory\n"
                );
 
         /* intercept options */

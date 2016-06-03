@@ -2,30 +2,20 @@
 
 orig=$1
 dest=$2
-mandir=$3
 progname="proxenet"
 
+KEYS_DIR="${dest}/keys"
+AUTOLOAD_DIR="${dest}/proxenet-plugins/autoload"
+
 echo "* Setup ${progname} environment"
-echo "** Install man page"
-gzip --to-stdout ${orig}/${progname}.1 > ${mandir}/${progname}.1.gz
 
-echo "** Building proxenet-plugins tree"
-mkdir -p ${dest}/proxenet-plugins/autoload
+echo "** Building proxenet-plugins tree in '${AUTOLOAD_DIR}'"
+mkdir -p ${AUTOLOAD_DIR}
 
-echo "** Building SSL CA"
+echo "** Building SSL CA in '${KEYS_DIR}'"
 cp -r ${orig}/keys ${dest}
-chmod a+rx ${dest}/keys
-make -C ${dest}/keys
-
-echo "** Copying control clients"
-cp control-web.py control-client.py ${dest}/
-cp -r ${orig}/docs ${dest}
-
-echo '#!/bin/bash' > ${dest}/${progname}
-echo "cd ${dest};./bin/proxenet \$@;cd - >/dev/null" >> ${dest}/${progname}
-chmod a+x ${dest}/${progname}
-chmod a+x ${dest} ${dest}/docs ${dest}/keys ${dest}/bin ${dest}/proxenet-plugins
-chmod a+r -R ${dest}
+chmod a+rx ${KEYS_DIR}
+make -C ${KEYS_DIR} clean keys
 
 echo "* Success"
 echo "! Run ${dest}/${progname} to start"

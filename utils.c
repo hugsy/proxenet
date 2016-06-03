@@ -343,7 +343,7 @@ bool is_valid_plugin_path(char* plugin_path, char** plugins_path_ptr, char** aut
 	}
 
         /* check the autoload path inside plugin path */
-        proxenet_xsnprintf(autoload_path, PATH_MAX-1, "%s/%s", *plugins_path_ptr, CFG_DEFAULT_PLUGINS_AUTOLOAD_PATH);
+        proxenet_xsnprintf(autoload_path, PATH_MAX-1, "%s/%s", *plugins_path_ptr, CFG_DEFAULT_PLUGINS_AUTOLOAD_PATHNAME);
 
         *autoload_path_ptr = realpath(autoload_path, NULL);
 	if (*autoload_path_ptr == NULL){

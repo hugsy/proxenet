@@ -19,5 +19,7 @@ int          proxenet_close_socket(sock_t sock, ssl_atom_t* ssl_atom);
 ssize_t      proxenet_write(sock_t sock, void *buf, size_t count);
 ssize_t      proxenet_read(sock_t sock, void *buf, size_t count);
 int          proxenet_read_all(sock_t sock, char** ptr, proxenet_ssl_context_t* ssl_sess);
+int          get_ip_address_from_fd(unsigned char* ip, int iplen, int fd);
+int          get_port_from_fd(sock_t fd);
 
 #endif /* _SOCKET_H */

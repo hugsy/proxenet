@@ -444,6 +444,8 @@ static int proxenet_apply_plugins(request_t *request)
  */
 void proxenet_process_http_request(sock_t server_socket)
 {
+        unsigned char server_socket_ip[128];
+        int server_socket_port;
         sock_t client_socket;
         request_t req;
         int retcode, n;
@@ -457,6 +459,16 @@ void proxenet_process_http_request(sock_t server_socket)
         client_socket = retcode = n = -1;
         proxenet_xzero(&req, sizeof(request_t));
         proxenet_xzero(&ssl_context, sizeof(ssl_context_t));
+        proxenet_xzero(server_socket_ip, sizeof(server_socket_ip));
+
+        if (get_ip_address_from_fd(server_socket_ip, sizeof(server_socket_ip), server_socket) < 0)
+                return;
+
+        if ((server_socket_port = get_port_from_fd(server_socket)) < 0)
+                return;
+
+        if(cfg->verbose)
+                xlog(LOG_INFO, "Processing new HTTP request on sock=#%d for %s:%d\n", server_socket, server_socket_ip, server_socket_port);
 
         /* wait for any event on sockets */
         while(proxy_state == ACTIVE) {
@@ -509,7 +521,6 @@ void proxenet_process_http_request(sock_t server_socket)
 #endif
 
                         if (n < 0) {
-                                xlog(LOG_ERROR, "%s\n", "read() failed, end thread");
                                 break;
                         }
 

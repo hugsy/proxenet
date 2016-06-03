@@ -7,8 +7,10 @@
 #include <sys/un.h>
 #include <netdb.h>
 #include <unistd.h>
-//#include <polarssl/error.h>
 #include <netdb.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <string.h>
 
 #include "core.h"
 #include "socket.h"
@@ -346,7 +348,7 @@ int proxenet_read_all(sock_t sock, char** ptr, proxenet_ssl_context_t* ssl)
 		}
 		if (ret < 0) {
 			proxenet_xfree(data);
-                        xlog(LOG_ERROR, "read() on sock #%d failed [%d]\n", sock, ret);
+                        xlog(LOG_ERROR, "read(%d) = %d\n", sock, ret);
 			return -1;
 		}
 
@@ -373,4 +375,52 @@ int proxenet_read_all(sock_t sock, char** ptr, proxenet_ssl_context_t* ssl)
 	*ptr = data;
 
 	return total_bytes_read;
+}
+
+
+/**
+ * Obtain the IP address from a socket descriptor.
+ *
+ * @return -1 on error, 0 on success
+ */
+int get_ip_address_from_fd(unsigned char* ip, int iplen, sock_t fd)
+{
+        struct sockaddr_in addr;
+        socklen_t addrlen;
+        int res;
+
+        addrlen = sizeof(struct sockaddr_in);
+        res = getpeername(fd, (struct sockaddr *)&addr, &addrlen);
+        if(res){
+                xlog(LOG_ERROR, "getpeername() failed with %d\n", res);
+                return -1;
+        }
+        if(iplen < 1)
+                return -1;
+
+        strncpy((char*)ip, inet_ntoa(addr.sin_addr), iplen-1);
+
+        return 0;
+}
+
+
+/**
+ * Obtain the port associated with the given socket descriptor.
+ *
+ * @return -1 on error, the port number on success
+ */
+int get_port_from_fd(sock_t fd)
+{
+        struct sockaddr_in addr;
+        socklen_t addrlen;
+        int res;
+
+        addrlen = sizeof(struct sockaddr_in);
+        res = getpeername(fd, (struct sockaddr *)&addr, &addrlen);
+        if(res){
+                xlog(LOG_ERROR, "getpeername() failed with %d\n", res);
+                return -1;
+        }
+
+        return addr.sin_port;
 }

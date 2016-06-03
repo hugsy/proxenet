@@ -600,21 +600,6 @@ int create_https_socket(request_t *req, sock_t *cli_sock, sock_t *srv_sock, ssl_
 
 
 /**
- *
- */
-int create_ws_socket(request_t *req, sock_t *cli_sock, sock_t *srv_sock)
-{
-        if (proxenet_write(*srv_sock, "HTTP/1.0 200 Connection established\r\n\r\n", 39) < 0){
-                return -1;
-        }
-
-        proxenet_hexdump(req->data, req->size);
-
-        return 0;
-}
-
-
-/**
  * This function aimes to establish whether a request should be intercepted or not.
  * A request should be intercepted if
  * - Interception is set to INTERCEPT_ONLY and the hostname regex matches the expression
@@ -655,8 +640,8 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
         char sport[7] = {0, };
         http_infos_t* http_infos = &req->http_infos;
         bool use_proxy = (cfg->proxy.host != NULL);
-        bool use_http_proxy = use_proxy && (cfg->is_socks_proxy == false);
-        bool use_socks_proxy = use_proxy && cfg->is_socks_proxy;
+        bool use_socks_proxy = use_proxy && (cfg->is_socks_proxy==true);
+        bool use_http_proxy = use_proxy && (cfg->is_socks_proxy==false);
         char errmsg[512]={0,};
 
         if (parse_http_request(req) < 0){
@@ -686,17 +671,16 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
         retcode = proxenet_open_socket(host, port);
         if (retcode < 0) {
                 proxenet_xsnprintf(errmsg, sizeof(errmsg), "Cannot connect to %s:%s<br><br>Reason: %s",
-                         host, port, errno?strerror(errno):"<i>proxenet_open_socket()</i> failed");
+                                   host, port, errno?strerror(errno):"<i>proxenet_open_socket()</i> failed");
 
                 generic_http_error_page(*server_sock, errmsg);
                 return -1;
         }
 
-#ifdef DEBUG
-        xlog(LOG_DEBUG, "Socket to %s '%s:%s': fd=%d\n",
-             use_http_proxy?"HTTP proxy":(use_socks_proxy?"SOCKS4 proxy":"server"),
-             host, port, retcode);
-#endif
+        if (cfg->verbose > 2)
+                xlog(LOG_INFO, "Socket to %s '%s:%s': fd=%d\n",
+                     use_http_proxy?"HTTP proxy":(use_socks_proxy?"SOCKS4 proxy":"server"),
+                     host, port, retcode);
 
         *client_sock = retcode;
 
@@ -727,22 +711,9 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
         /* set up specific sockets */
         switch (http_infos->proto_type){
                 case HTTPS:
-#ifdef DEBUG
-                        xlog(LOG_DEBUG, "Creating a new HTTPS socket: %d/%d proxy=%s\n", client_sock, server_sock, use_socks_proxy?"true":"false");
-#endif
-
+                        if(cfg->verbose > 2)
+                                xlog(LOG_INFO, "Creating a new HTTPS socket: %d/%d proxy=%s\n", client_sock, server_sock, use_socks_proxy?"true":"false");
                         return create_https_socket(req, client_sock, server_sock, ssl_ctx, use_socks_proxy);
-
-                case WS:
-#ifdef DEBUG
-                        xlog(LOG_DEBUG, "Creating a new WebSocket socket: %d/%d\n", client_sock, server_sock, use_socks_proxy?"true":"false");
-#endif
-
-                        return create_ws_socket(req, client_sock, server_sock);
-
-                case WSS:
-                        xlog(LOG_ERROR, "%s\n", "Secure WebSocket is not supported yet");
-                        return -1;
 
                 default:
                         break;

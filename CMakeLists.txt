@@ -279,7 +279,17 @@ target_link_libraries(proxenet ${EXTRA_LIBS} ${CMAKE_LINK_HARDEN})
 
 # install
 set (MANDIR /usr/share/man/man1)
-install (TARGETS proxenet DESTINATION bin)
+if(DEBUG)
+  install (TARGETS proxenet DESTINATION bin CONFIGURATIONS Debug)
+else()
+  install (TARGETS proxenet DESTINATION bin CONFIGURATIONS Release)
+endif()
+install (DIRECTORY docs
+  DESTINATION misc
+  )
+install (FILES proxenet-control-cli.py proxenet-control-web.py
+  DESTINATION misc
+  )
 
 add_custom_target( setup )
 add_custom_command (TARGET setup
@@ -288,7 +298,6 @@ add_custom_command (TARGET setup
 
 add_custom_target( uninstall )
 add_custom_command (TARGET uninstall
-  POST_BUILD
   COMMAND echo "* Deleting ${PROGNAME} tree"
   COMMAND rm -fr "${CMAKE_INSTALL_PREFIX}" "${MANDIR}/${PROGNAME}.1.gz"
   )
