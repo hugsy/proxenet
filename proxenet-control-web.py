@@ -38,7 +38,8 @@ PROXENET_BIN                     = PROXENET_ROOT + "/bin"
 PROXENET_MISC                    = PROXENET_ROOT + "/misc"
 PROXENET_DOCS                    = PROXENET_MISC + "/docs"
 PROXENET_HTML                    = PROXENET_DOCS + "/html"
-PROXENET_DEFAULT_PLUGINS_DIR     = PROXENET_ROOT + "/proxenet-plugins"
+PROXENET_PLUGINS_DIR             = PROXENET_ROOT + "/proxenet-plugins"
+PROXENET_AUTOLOAD_DIR            = PROXENET_PLUGINS_DIR + "/autoload"
 PROXENET_SOCKET_PATH             = "/tmp/proxenet-control-socket"
 PROXENET_INI                     = os.getenv("HOME") + "/.proxenet.ini"
 PROXENET_LOGFILE                 = None
@@ -170,7 +171,7 @@ def start():
     html += """<div class="panel-heading"><h3 class="panel-title"><code>proxenet</code> start configuration</h3></div>"""
     html += """<div class="panel-body"><form method="POST"><table boder=0>"""
     html += """<tr><td>Path to <em>proxenet</em> (default "{}"):</td><td><input name="proxenet"/></td><tr>""".format(which("proxenet"))
-    html += """<tr><td>Path to <em>proxenet</em> plugins (default "{}"):</td><td><input name="plugins" /></td><tr>""".format(PROXENET_DEFAULT_PLUGINS_DIR)
+    html += """<tr><td>Path to <em>proxenet</em> plugins (default "{}"):</td><td><input name="plugins" /></td><tr>""".format(PROXENET_PLUGINS_DIR)
     html += """<tr><td>Listening address (default "{}"):</td><td><input name="address"/></td><tr>""".format(PROXENET_DEFAULT_IP)
     html += """<tr><td>Listening port (default "{}"):</td><td><input name="port"/></td><tr>""".format(PROXENET_DEFAULT_PORT)
     html += """<tr><td>Write logs to (empty = temp file):</td><td><input name="logfile" value="{}"/></td><tr>""".format("/dev/null")
@@ -195,7 +196,7 @@ def do_start():
 
     port = int(request.params.get("port")) if request.params.get("port").isdigit() else PROXENET_DEFAULT_PORT
     addr = request.params.get("address") or PROXENET_DEFAULT_IP
-    plugins_dir = request.params.get("plugins") or PROXENET_DEFAULT_PLUGINS_DIR
+    plugins_dir = request.params.get("plugins") or PROXENET_PLUGINS_DIR
     no_ssl_intercept = True if request.params.get("no_ssl_intercept") else False
     use_ipv6 = "-6" if request.params.get("ipv6") else "-4"
     proxy_use_socks = proxy_forward_host = proxy_forward_port = None
@@ -360,7 +361,7 @@ def plugin_load(fname):
 def plugin_remove_from_autoload(fname):
     if not is_proxenet_running(): return build_html(body=not_running_html())
     fname = cgi.escape(fname)
-    flink = os.path.realpath( PROXENET_ROOT ) + "/proxenet-plugins/autoload/" + fname
+    flink = os.path.realpath( PROXENET_AUTOLOAD_DIR + '/' + fname)
     html = ""
     if not os.path.islink(flink):
         html += error("Failed to remove '<b>{}</b>' from autoload directory".format(fname))
@@ -375,12 +376,12 @@ def plugin_remove_from_autoload(fname):
 def plugin_add_to_autoload(fname):
     if not is_proxenet_running(): return build_html(body=not_running_html())
     fname = cgi.escape(fname)
-    fpath = os.path.abspath(PROXENET_ROOT + "/proxenet-plugins/" + fname)
+    fpath = os.path.abspath(PROXENET_PLUGINS_DIR + "/" + fname)
     html = ""
     if not os.path.isfile(fpath):
          html+= error("Failed to load <b>{}</b>".format(fname))
     else:
-        flink = os.path.realpath(PROXENET_ROOT + "/proxenet-plugins/autoload/" + fname)
+        flink = os.path.realpath(PROXENET_AUTOLOAD_DIR + "/" + fname)
         os.symlink(fpath, flink)
         html+= success("<b>{}</b> loaded successfully".format(fname))
     html+= redirect_after(2, "/plugin")
@@ -435,7 +436,14 @@ def threads():
     res = sr("threads")
     js = json.loads( res )
     title = js.keys()[0]
-    html = """<div class="panel panel-default">"""
+    html = ""
+
+    if request.params.get("msg"):
+        msg = request.params.get("msg").strip()
+        msg = msg.replace("%20", " ")
+        html+= success(cgi.escape(msg))
+
+    html += """<div class="panel panel-default">"""
     html += """<div class="panel-heading"><h3 class="panel-title">{}</h3></div>""".format(title)
     html += """<div class="panel-body"><ul>"""
     for k,v in js[title].iteritems():
@@ -444,7 +452,7 @@ def threads():
             for a,b in v.iteritems():
                 html += "<li>"
                 html += "{} &#8594; {}".format(a,b)
-                html += "<a href='/threads/kill?tid={}'>&#x2718;</a>".format(v)
+                html += "<a href='/threads/kill?tid={}'>&#x2718;</a>".format(b)
                 html += "</li>"
 
             html += "</li>"
@@ -461,25 +469,27 @@ def threads():
 
 @get('/threads/<word>')
 def threads_set(word):
+    tid = ""
     if not is_proxenet_running():
         return build_html(body=not_running_html())
 
     if word not in ("inc", "dec", "kill"):
         return build_html(body=error("Invalid action"), page="threads")
 
-    if word=="kill" and not request.params.get("tid"):
-        return build_html(body=error("Invalid ThreadId"), page="threads")
+    if word=="kill":
+        if not request.params.get("tid"):
+            return build_html(body=error("Invalid ThreadId"), page="threads")
 
-    tid = request.params.get("tid").strip()
-    if not tid.isdigit():
-        return build_html(body=error("Invalid ThreadId"), page="threads")
+        tid = request.params.get("tid").strip()
+        if not tid.isdigit():
+            return build_html(body=error("Invalid ThreadId"), page="threads")
 
-    if word in ("inc", "dec"):
-        res = sr("threads {}".format(word))
-    else:
+    if word == "kill":
         res = sr("threads kill {}".format(tid))
+    else:
+        res = sr("threads {}".format(word))
 
-    redirect("/threads")
+    redirect("/threads?msg={}".format(res))
     return
 
 

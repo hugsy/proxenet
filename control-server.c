@@ -53,7 +53,7 @@ static struct command_t known_commands[] = {
         COMMAND(help,     0,   "Show this menu"),
         COMMAND(info,     0,   "Display information about environment"),
         COMMAND(reload,   0,   "Reload the plugins"),
-        COMMAND(threads,  0,   "Show info about threads"),
+        COMMAND(threads,  1,   "Command the threads"),
         COMMAND(plugin,   1,   "Get/Set info about plugin"),
         COMMAND(config,   1,   "Edit configuration at runtime"),
 
@@ -296,7 +296,9 @@ static void threads_cmd(sock_t fd, char *options, unsigned int nb_options)
         char msg[BUFSIZE] = {0, };
         char *static_msg;
         char *ptr;
-        int n, tid, res;
+        int n, res;
+        long long tid;
+
 
         (void) options;
         (void) nb_options;
@@ -310,36 +312,36 @@ static void threads_cmd(sock_t fd, char *options, unsigned int nb_options)
         }
 
         if (strcmp(ptr, "inc")==0 && cfg->nb_threads<MAX_THREADS){
-                n = proxenet_xsnprintf(msg, BUFSIZE, "Nb threads level is now %d\n", ++cfg->nb_threads);
+                n = proxenet_xsnprintf(msg, BUFSIZE, "Nb threads level is now %d", ++cfg->nb_threads);
                 proxenet_write(fd, (void*)msg, n);
         } else if (strcmp(ptr, "dec")==0 && cfg->nb_threads>1){
-                n = proxenet_xsnprintf(msg, BUFSIZE, "Nb threads level is now %d\n", --cfg->nb_threads);
+                n = proxenet_xsnprintf(msg, BUFSIZE, "Nb threads level is now %d", --cfg->nb_threads);
                 proxenet_write(fd, (void*)msg, n);
-        } else if (strcmp(ptr, "kill")==0 && cfg->nb_threads>1){
-                ptr = strtok(options, " \n");
+        } else if (strcmp(ptr, "kill")==0){
+                ptr = strtok(NULL, " \n");
                 if (!ptr){
-                        static_msg = "Missing ThreadId\n";
+                        static_msg = "Missing ThreadId";
                         proxenet_write(fd, (void*)msg, strlen(msg));
                         return;
                 }
 
-                tid = atoi(ptr);
+                tid = atoll(ptr);
                 if(tid<=0){
-                        static_msg = "Invalid ThreadId value\n";
+                        static_msg = "Invalid ThreadId value";
                         proxenet_write(fd, (void*)msg, strlen(msg));
                         return;
                 }
 
                 res = proxenet_kill_thread((pthread_t)tid);
                 if(res==0){
-                        n = proxenet_xsnprintf(msg, BUFSIZE, "Thread %d killed successfully\n", tid);
+                        n = proxenet_xsnprintf(msg, BUFSIZE, "Thread %lu killed successfully", tid);
                 } else {
-                        n = proxenet_xsnprintf(msg, BUFSIZE, "Failed to kill thread %d: retcode=%d\n", tid, res);
+                        n = proxenet_xsnprintf(msg, BUFSIZE, "Failed to kill thread %lu: retcode=%d", tid, res);
                 }
 
                 proxenet_write(fd, (void*)msg, n);
         } else {
-                static_msg = "Invalid action\n Syntax\n threads (inc|dec)\n";
+                static_msg = "Invalid action: must be in (inc|dec)";
                 proxenet_write(fd, (void*)msg, strlen(msg));
         }
 

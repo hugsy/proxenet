@@ -993,7 +993,7 @@ static void purge_zombies()
 
 
 /**
- *
+ * Kill all the zombies !! Join all zombie threads and consider them as inactive.
  */
 static void kill_zombies()
 {
@@ -1053,13 +1053,30 @@ int get_new_thread_id()
 
 
 /**
- * Force killing the thread pointed by argument.
+ * Force killing the thread pointed by argument. It does so by sending SIGUSR1 to
+ * the designated thread, forcing it to call pthread_exit().
  *
  * @return returns 0; on error, it returns an error number, and no signal is sent.
  */
 int proxenet_kill_thread(pthread_t tid)
 {
-        return pthread_kill(tid, 9);
+        int res = -1;
+        int i;
+
+#ifdef DEBUG
+        xlog(LOG_DEBUG, "Forcefully killing thread=%lu\n", tid);
+#endif
+        for (i=0; i < cfg->nb_threads; i++) {
+                if (tid==threads[i]){
+                        res = pthread_kill(tid, SIGUSR1);
+                        if (res==0)
+                                purge_zombies();
+                        return res;
+                }
+        }
+
+        xlog(LOG_ERROR, "Failed to find ThreadId=%lu\n", tid);
+        return -1;
 }
 
 
@@ -1098,6 +1115,7 @@ void proxenet_xloop(sock_t sock, sock_t ctl_sock)
         sigaddset(&curmask, SIGTERM);
         sigaddset(&curmask, SIGINT);
         sigaddset(&curmask, SIGCHLD);
+        sigaddset(&curmask, SIGUSR1);
         if (pthread_sigmask(SIG_BLOCK, &curmask, &oldmask) < 0) {
                 xlog(LOG_ERROR, "sigprocmask failed : %s\n", strerror(errno));
                 return;
@@ -1105,6 +1123,8 @@ void proxenet_xloop(sock_t sock, sock_t ctl_sock)
 
         /* proxenet is now running :) */
         proxy_state = ACTIVE;
+
+        main_thread_id = pthread_self();
 
         /* big loop  */
         while (proxy_state != INACTIVE) {
@@ -1244,6 +1264,10 @@ void sighandler(int signum)
 
         switch(signum) {
 
+                case SIGUSR1:
+                        pthread_exit(NULL);
+                        break;
+
                 case SIGTERM:
                 case SIGINT:
 			proxy_state = INACTIVE;
@@ -1277,6 +1301,7 @@ void initialize_sigmask(struct sigaction *saction)
         sigaction(SIGINT,  saction, NULL);
         sigaction(SIGTERM, saction, NULL);
         sigaction(SIGCHLD, saction, NULL);
+        sigaction(SIGUSR1, saction, NULL);
 
         saction->sa_handler = SIG_IGN;
         sigaction(SIGPIPE,  saction, NULL);
