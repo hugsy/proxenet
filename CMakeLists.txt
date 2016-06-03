@@ -279,6 +279,7 @@ target_link_libraries(proxenet ${EXTRA_LIBS} ${CMAKE_LINK_HARDEN})
 
 # install
 set (MANDIR /usr/share/man/man1)
+
 if(DEBUG)
   install (TARGETS proxenet DESTINATION bin CONFIGURATIONS Debug)
 else()
@@ -286,11 +287,14 @@ else()
 endif()
 install (DIRECTORY docs
   DESTINATION misc
+  PATTERN "*.md" EXCLUDE
   )
 install (FILES proxenet-control-cli.py proxenet-control-web.py
   PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
   DESTINATION misc
   )
+install (FILES proxenet.1
+  DESTINATION ${MANDIR})
 
 add_custom_target( setup )
 add_custom_command (TARGET setup

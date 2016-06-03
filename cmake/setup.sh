@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 orig=$1
 dest=$2
 progname="proxenet"
@@ -9,8 +11,20 @@ AUTOLOAD_DIR="${dest}/proxenet-plugins/autoload"
 
 echo "* Setup ${progname} environment"
 
-echo "** Building proxenet-plugins tree"
-mkdir -p ${AUTOLOAD_DIR}
+if [ ! -d ${AUTOLOAD_DIR} ]; then
+    echo "!! Would you like to git-clone the proxenet-plugins from GitHub (y/N)? "
+    read i
+    if [ ${i} == "y" ] || [ ${i} == "Y"]; then
+        echo "** Cloning repository in '${dest}'"
+        git clone https://github.com/hugsy/proxenet-plugins.git ${dest}/proxenet-plugins
+    fi
+
+    echo "** Building proxenet-plugins tree"
+    mkdir -p ${AUTOLOAD_DIR}
+
+else
+    echo "** Plugin tree valid is already created"
+fi
 
 if [ ! -d ${KEYS_DIR} ]; then
     echo "** Building SSL CA in '${KEYS_DIR}'"

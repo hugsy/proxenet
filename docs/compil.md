@@ -133,9 +133,15 @@ $ cmake . -DUSE_PYTHON_PLUGIN=OFF && make   # to disable Python script support
 If you want to install it, the following command will install `proxenet` (by
 default in `/opt/proxenet`) and setup the environment too.
 ```bash
-# make install
-# make setup
+$ sudo make install
 ```
+
+If it is your first installation, you should probably run:
+```bash
+$ sudo make setup
+```
+To have an environment ready-to-go.
+
 
 ### Re-Compilation
 
@@ -149,6 +155,21 @@ $ make clean rebuild_cache all
 This will force `cmake` to delete and reconstruct the cache files it created
 during the last run.
 
+
+### Uninstalling
+
+Uninstalling `proxenet` is probably a bad idea and you will miss it very soon
+after so better leave it installed.
+
+If you **really** want to uninstall it, this can be done either by the Makefile
+```bash
+$ sudo make uninstall
+```
+
+Or by deleting its installation directory and man page:
+```bash
+$ sudo rm -fr /opt/proxenet /usr/share/man/man1
+```
 
 ### Setup the environment
 
