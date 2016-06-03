@@ -12,10 +12,12 @@ echo "* Setup ${progname} environment"
 echo "** Building proxenet-plugins tree in '${AUTOLOAD_DIR}'"
 mkdir -p ${AUTOLOAD_DIR}
 
-echo "** Building SSL CA in '${KEYS_DIR}'"
-cp -r ${orig}/keys ${dest}
-chmod a+rx ${KEYS_DIR}
-make -C ${KEYS_DIR} clean keys
+if [ ! -d ${KEYS_DIR} ]; then
+    echo "** Building SSL CA in '${KEYS_DIR}'"
+    cp -r ${orig}/keys ${dest}
+    chmod a+rx ${KEYS_DIR}
+    make -C ${KEYS_DIR} clean keys
+fi
 
 echo "* Success"
 echo "! Run ${dest}/${progname} to start"

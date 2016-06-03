@@ -33,13 +33,18 @@ by {2}
 syntax: {3} [options] args
 """.format(__version__, __licence__, __author__, __file__)
 
-PROXENET_ROOT = os.path.dirname( os.path.realpath(sys.argv[0]) )
-PROXENET_SOCKET_PATH = "/tmp/proxenet-control-socket"
-PROXENET_INI = os.getenv("HOME") + "/.proxenet.ini"
-PROXENET_LOGFILE = None
-PROXENET_DEFAULT_IP = "0.0.0.0"
-PROXENET_DEFAULT_PORT = 8008
-PROXENET_DEFAULT_PLUGINS_DIR = os.getcwd() + "/proxenet-plugins"
+PROXENET_ROOT                    = "/opt/proxenet"
+PROXENET_BIN                     = PROXENET_ROOT + "/bin"
+PROXENET_MISC                    = PROXENET_ROOT + "/misc"
+PROXENET_DOCS                    = PROXENET_MISC + "/docs"
+PROXENET_HTML                    = PROXENET_DOCS + "/html"
+PROXENET_DEFAULT_PLUGINS_DIR     = PROXENET_ROOT + "/proxenet-plugins"
+PROXENET_SOCKET_PATH             = "/tmp/proxenet-control-socket"
+PROXENET_INI                     = os.getenv("HOME") + "/.proxenet.ini"
+PROXENET_LOGFILE                 = None
+PROXENET_DEFAULT_IP              = "0.0.0.0"
+PROXENET_DEFAULT_PORT            = 8008
+
 
 def is_proxenet_running():
     return os.path.exists(PROXENET_SOCKET_PATH)
@@ -70,7 +75,7 @@ def format_result(res):
 
 
 def which(program):
-    for d in os.getenv("PATH").split(":")+[".",]:
+    for d in os.getenv("PATH").split(":")+[".", PROXENET_ROOT, PROXENET_ROOT+"/bin"]:
         path = os.path.realpath(d)
         if not os.access(path, os.R_OK | os.X_OK): continue
         exe_file = os.sep.join([path, program])
@@ -140,22 +145,22 @@ def build_html(**kwargs):
 
 
 @route('/img/logo')
-def logo(): return static_file("/proxenet-logo.png", root=PROXENET_ROOT+"/docs/img")
+def logo(): return static_file("/proxenet-logo.png", root=PROXENET_DOCS+"/img")
 
 @route('/favicon.ico')
-def favicon(): return static_file("/favicon.ico", root=PROXENET_ROOT+"/docs/img")
+def favicon(): return static_file("/favicon.ico", root=PROXENET_DOCS+"/img")
 
 @route('/js/jquery')
-def js_jquery(): return static_file("/jquery-1.11.2.min.js", root=PROXENET_ROOT+"./docs/html/js")
+def js_jquery(): return static_file("/jquery-1.11.2.min.js", root=PROXENET_HTML+"/js")
 
 @route('/js/bootstrap')
-def js_bootstrap(): return static_file("/bootstrap.min.js", root=PROXENET_ROOT+"/docs/html/js")
+def js_bootstrap(): return static_file("/bootstrap.min.js", root=PROXENET_HTML+"/js")
 
 @route('/css/bootstrap')
-def css_boostrap(): return static_file("/bootstrap.min.css", root=PROXENET_ROOT+"/docs/html/css")
+def css_boostrap(): return static_file("/bootstrap.min.css", root=PROXENET_HTML+"/css")
 
 @route('/css/bootstrap-theme')
-def css_boostrap_theme(): return static_file("/bootstrap-theme.min.css", root=PROXENET_ROOT+"/docs/html/css")
+def css_boostrap_theme(): return static_file("/bootstrap-theme.min.css", root=PROXENET_HTML + "/css")
 
 
 @get('/start')
@@ -207,7 +212,7 @@ def do_start():
 
     PROXENET_LOGFILE = logfile
 
-    cmd.append("./proxenet")
+    cmd.append(PROXENET_BIN + "/proxenet")
     cmd.append("--daemon")
     cmd.append("--bind=%s" % addr)
     cmd.append("--port=%d" % port)
