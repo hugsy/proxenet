@@ -1053,6 +1053,17 @@ int get_new_thread_id()
 
 
 /**
+ * Force killing the thread pointed by argument.
+ *
+ * @return returns 0; on error, it returns an error number, and no signal is sent.
+ */
+int proxenet_kill_thread(pthread_t tid)
+{
+        return pthread_kill(tid, 9);
+}
+
+
+/**
  * This function is the main loop for the main thread. It does the following:
  * - prepares the structures, setup the signal handlers and changes the state
  *   of proxenet to active
@@ -1062,7 +1073,7 @@ int get_new_thread_id()
  *   - and starts the new thread with the new fd
  * - listens for incoming events on the control socket
  */
-void xloop(sock_t sock, sock_t ctl_sock)
+void proxenet_xloop(sock_t sock, sock_t ctl_sock)
 {
         fd_set sock_set;
         int retcode;
@@ -1402,7 +1413,7 @@ int proxenet_start()
         init_global_stats();
 
         /* prepare threads and start looping */
-        xloop(listening_socket, control_socket);
+        proxenet_xloop(listening_socket, control_socket);
 
         end_global_stats();
 

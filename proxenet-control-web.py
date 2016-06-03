@@ -441,7 +441,12 @@ def threads():
     for k,v in js[title].iteritems():
         if v.__class__.__name__ == "dict":
             html += "<li>{}:<ol>".format(k)
-            for a,b in v.iteritems(): html += "<li>{} &#8594; {}</li>".format(a,b)
+            for a,b in v.iteritems():
+                html += "<li>"
+                html += "{} &#8594; {}".format(a,b)
+                html += "<a href='/threads/kill?tid={}'>&#x2718;</a>".format(v)
+                html += "</li>"
+
             html += "</li>"
         else:
             html += "<li>{}: {}</li>".format(k, v)
@@ -450,22 +455,28 @@ def threads():
     html += """<div class="col-lg-6"><div class="btn-group" role="group" aria-label="">
     <button type="button" class="btn btn-default" onclick="window.location='/threads/inc'">Increment</button>
     <button type="button" class="btn btn-default" onclick="window.location='/threads/dec'">Decrement</button>
-    </div></div><div class="col-lg-6">
-    <div class="input-group">
-    <form method="GET" action="#">
-    <input type="text" class="form-control" placeholder="Number of threads">
-    <span class="input-group-btn">
-    <button class="btn btn-default" type="button">Apply</button>
-    </span></div></form></div>"""
+    </div></div>"""
     return build_html(body=html, title="Get information on Threads", page="threads")
 
 
 @get('/threads/<word>')
 def threads_set(word):
     if not is_proxenet_running(): return build_html(body=not_running_html())
-    if word not in ("inc", "dec", "set"):
+    if word not in ("inc", "dec", "kill"):
         return build_html(body=error("Invalid parameter"), page="threads")
-    res = sr("threads {}".format(word))
+
+    if not request.params.get("tid"):
+        return build_html(body=error("Invalid ThreadId"), page="threads")
+
+    tid = request.params.get("tid").strip()
+    if not tid.isdigit():
+        return build_html(body=error("Invalid ThreadId"), page="threads")
+
+    if word not in ("inc", "dec"):
+        res = sr("threads {}".format(word))
+    else:
+        res = sr("threads kill {}".format(tid))
+
     redirect("/threads")
     return
 

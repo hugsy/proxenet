@@ -294,8 +294,9 @@ static void reload_cmd(sock_t fd, char *options, unsigned int nb_options)
 static void threads_cmd(sock_t fd, char *options, unsigned int nb_options)
 {
         char msg[BUFSIZE] = {0, };
+        char *static_msg;
         char *ptr;
-        int n;
+        int n, tid, res;
 
         (void) options;
         (void) nb_options;
@@ -308,14 +309,39 @@ static void threads_cmd(sock_t fd, char *options, unsigned int nb_options)
                 return;
         }
 
-        if (strcmp(ptr, "inc")==0 && cfg->nb_threads<MAX_THREADS)
+        if (strcmp(ptr, "inc")==0 && cfg->nb_threads<MAX_THREADS){
                 n = proxenet_xsnprintf(msg, BUFSIZE, "Nb threads level is now %d\n", ++cfg->nb_threads);
-        else if (strcmp(ptr, "dec")==0 && cfg->nb_threads>1)
+                proxenet_write(fd, (void*)msg, n);
+        } else if (strcmp(ptr, "dec")==0 && cfg->nb_threads>1){
                 n = proxenet_xsnprintf(msg, BUFSIZE, "Nb threads level is now %d\n", --cfg->nb_threads);
-        else
-                n = proxenet_xsnprintf(msg, BUFSIZE, "Invalid action\n Syntax\n threads (inc|dec)\n");
+                proxenet_write(fd, (void*)msg, n);
+        } else if (strcmp(ptr, "kill")==0 && cfg->nb_threads>1){
+                ptr = strtok(options, " \n");
+                if (!ptr){
+                        static_msg = "Missing ThreadId\n";
+                        proxenet_write(fd, (void*)msg, strlen(msg));
+                        return;
+                }
 
-        proxenet_write(fd, (void*)msg, n);
+                tid = atoi(ptr);
+                if(tid<=0){
+                        static_msg = "Invalid ThreadId value\n";
+                        proxenet_write(fd, (void*)msg, strlen(msg));
+                        return;
+                }
+
+                res = proxenet_kill_thread((pthread_t)tid);
+                if(res==0){
+                        n = proxenet_xsnprintf(msg, BUFSIZE, "Thread %d killed successfully\n", tid);
+                } else {
+                        n = proxenet_xsnprintf(msg, BUFSIZE, "Failed to kill thread %d: retcode=%d\n", tid, res);
+                }
+
+                proxenet_write(fd, (void*)msg, n);
+        } else {
+                static_msg = "Invalid action\n Syntax\n threads (inc|dec)\n";
+                proxenet_write(fd, (void*)msg, strlen(msg));
+        }
 
         return;
 }
