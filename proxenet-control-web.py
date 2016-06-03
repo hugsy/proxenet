@@ -461,18 +461,20 @@ def threads():
 
 @get('/threads/<word>')
 def threads_set(word):
-    if not is_proxenet_running(): return build_html(body=not_running_html())
-    if word not in ("inc", "dec", "kill"):
-        return build_html(body=error("Invalid parameter"), page="threads")
+    if not is_proxenet_running():
+        return build_html(body=not_running_html())
 
-    if not request.params.get("tid"):
+    if word not in ("inc", "dec", "kill"):
+        return build_html(body=error("Invalid action"), page="threads")
+
+    if word=="kill" and not request.params.get("tid"):
         return build_html(body=error("Invalid ThreadId"), page="threads")
 
     tid = request.params.get("tid").strip()
     if not tid.isdigit():
         return build_html(body=error("Invalid ThreadId"), page="threads")
 
-    if word not in ("inc", "dec"):
+    if word in ("inc", "dec"):
         res = sr("threads {}".format(word))
     else:
         res = sr("threads kill {}".format(tid))
