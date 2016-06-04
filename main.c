@@ -74,7 +74,10 @@ static void usage(int retcode)
                 "\t-v, --verbose\t\t\t\tIncrease verbosity (default: 0)\n"
                 "\t-n, --no-color\t\t\t\tDisable colored output\n"
                 "\t-l, --logfile=/path/to/logfile\t\tLog actions in file (default stdout)\n"
-                "\t-x, --plugins=/path/to/plugins/dir\tSpecify plugins directory\n"
+                "\t-x, --plugins=/path/to/plugins/dir\tSpecify plugins directory (default: '%s')\n"
+                ,
+
+                CFG_DEFAULT_PLUGINS_PATH
                );
 
         /* intercept options */
@@ -190,21 +193,22 @@ static void help()
  * @return the real (no symlink) full path of the file it is valid
  * @return NULL in any other case
  */
-static char* cfg_get_valid_file(char* param)
+static char* cfg_get_valid_file(char* path)
 {
-        char buf[PATH_MAX+1]={0, };
+        char* p;
 
-        if (!realpath(param, buf)){
-                xlog(LOG_CRITICAL, "realpath(%s) failed: %s\n", param, strerror(errno));
+        p = expand_file_path(path);
+        if(!p){
+                xlog(LOG_CRITICAL, "expand_file_path('%s') failed: %s\n", path, strerror(errno));
                 return NULL;
         }
 
-        if ( !is_readable_file(buf) ){
-                xlog(LOG_CRITICAL, "Failed to read private key '%s'\n", param);
+        if ( !is_readable_file(p) ){
+                xlog(LOG_CRITICAL, "Failed to read file '%s'\n", p);
                 return NULL;
         }
 
-        return proxenet_xstrdup2(buf);
+        return p;
 }
 
 

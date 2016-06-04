@@ -12,6 +12,8 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <wordexp.h>
+
 #include "core.h"
 #include "utils.h"
 
@@ -336,9 +338,8 @@ bool is_valid_plugin_path(char* plugin_path, char** plugins_path_ptr, char** aut
         char autoload_path[PATH_MAX] = {0,};
 
         /* check the plugins path */
-        *plugins_path_ptr = realpath(plugin_path, NULL);
+        *plugins_path_ptr = expand_file_path(plugin_path);
 	if (*plugins_path_ptr == NULL){
-		xlog(LOG_CRITICAL, "realpath('%s') failed: %s\n", plugin_path, strerror(errno));
 		return false;
 	}
 
@@ -354,6 +355,37 @@ bool is_valid_plugin_path(char* plugin_path, char** plugins_path_ptr, char** aut
 	}
 
         return true;
+}
+
+
+/**
+ * Expand the file path, including with ~ or other bash characters.
+ *
+ * @return the absolute file path allocated in heap on success, NULL on failure
+ */
+char* expand_file_path(char* file_path)
+{
+        char *p, *p2;
+        wordexp_t expanded_result;
+
+        /* expand the path for bash character */
+        if (wordexp(file_path, &expanded_result, 0)<0){
+                xlog(LOG_CRITICAL, "wordexp('%s') failed: %s\n", file_path, strerror(errno));
+                return NULL;
+        }
+
+        p = expanded_result.we_wordv[0];
+
+        /* check the plugins path */
+        p2 = realpath(p, NULL);
+        wordfree(&expanded_result);
+
+	if (p2 == NULL){
+		xlog(LOG_CRITICAL, "realpath('%s') failed: %s\n", file_path, strerror(errno));
+		return NULL;
+	}
+
+        return p2;
 }
 
 
