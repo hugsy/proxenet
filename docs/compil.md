@@ -5,8 +5,9 @@
 `proxenet` requires:
 
 1. `cmake` as a building engine
-2. `polarssl` (now known as mbed TLS) for the SSL library
+2. `mbedtls` > v2.x for the SSL library
 
+*Note*: `proxenet` does not support `polarssl` or  `mbedtls` < 2.0
 
 #### CMake
 
@@ -36,8 +37,8 @@ $ pkg install cmake
 ```
 
 #### PolarSSL
-`proxenet` requires a recent version of the PolarSSL library (now called mbed
-TLS), version 1.3 or above. Support for version 1.2.x was definitively
+`proxenet` requires a recent version of the `mbedtls` library,
+version 1.3 or above. Support for version 1.2.x was definitively
 abandoned.
 
 The choice for PolarSSL as main SSL development library came because of its
@@ -48,22 +49,18 @@ thoroughly documented) API.
 
 For most distributions, a simple
 ```bash
-$ apt-get install libpolarssl-dev   # for Debian-based Linux
+$ apt-get install libmbedcrypto0 libmbedx509-0 libmbedtls-dev   # for Debian-based Linux
 or
-$ yum install libpolarssl-devel     # for RedHat-based Linux
+$ yum install mbedtls-devel     # for RedHat-based Linux
 or
-$ brew install polarssl             # for Mac OSX
+$ brew install mbedtls             # for Mac OSX
 ```
 will be enough.
-
-*Note*: FreeBSD provides by default an old version of PolarSSL (1.2
-branch). This branch is not supported anymore, so please install from source
-as explained below.
 
 
 ##### From source
 
-Installing the PolarSSL/mbedTLS library from source is pretty straight-forward. Here
+Installing the mbedTLS library from source is pretty straight-forward. Here
 is an example with version 1.3.13:
 ``` bash
 $ curl -fsSL https://github.com/ARMmbed/mbedtls/archive/mbedtls-1.3.13.tar.gz | tar xfz -

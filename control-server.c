@@ -321,14 +321,14 @@ static void threads_cmd(sock_t fd, char *options, unsigned int nb_options)
                 ptr = strtok(NULL, " \n");
                 if (!ptr){
                         static_msg = "Missing ThreadId";
-                        proxenet_write(fd, (void*)msg, strlen(msg));
+                        proxenet_write(fd, (void*)static_msg, strlen(static_msg));
                         return;
                 }
 
                 tid = atoll(ptr);
                 if(tid<=0){
                         static_msg = "Invalid ThreadId value";
-                        proxenet_write(fd, (void*)msg, strlen(msg));
+                        proxenet_write(fd, (void*)static_msg, strlen(static_msg));
                         return;
                 }
 
@@ -342,7 +342,7 @@ static void threads_cmd(sock_t fd, char *options, unsigned int nb_options)
                 proxenet_write(fd, (void*)msg, n);
         } else {
                 static_msg = "Invalid action: must be in (inc|dec)";
-                proxenet_write(fd, (void*)msg, strlen(msg));
+                proxenet_write(fd, (void*)static_msg, strlen(static_msg));
         }
 
         return;
