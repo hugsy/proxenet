@@ -33,15 +33,17 @@ by {2}
 syntax: {3} [options] args
 """.format(__version__, __licence__, __author__, __file__)
 
+HOME                             = os.getenv("HOME")
 PROXENET_ROOT                    = "/opt/proxenet"
 PROXENET_BIN                     = PROXENET_ROOT + "/bin"
 PROXENET_MISC                    = PROXENET_ROOT + "/misc"
 PROXENET_DOCS                    = PROXENET_MISC + "/docs"
 PROXENET_HTML                    = PROXENET_DOCS + "/html"
-PROXENET_PLUGINS_DIR             = PROXENET_ROOT + "/proxenet-plugins"
+PROXENET_PLUGINS_DIR             = HOME + "/.proxenet/plugins"
 PROXENET_AUTOLOAD_DIR            = PROXENET_PLUGINS_DIR + "/autoload"
+PROXENET_KEYS_DIR                = HOME + "/.proxenet/keys"
 PROXENET_SOCKET_PATH             = "/tmp/proxenet-control-socket"
-PROXENET_INI                     = os.getenv("HOME") + "/.proxenet.ini"
+PROXENET_INI                     = HOME + "/.proxenet/proxenet.ini"
 PROXENET_LOGFILE                 = None
 PROXENET_DEFAULT_IP              = "0.0.0.0"
 PROXENET_DEFAULT_PORT            = 8008
@@ -219,6 +221,8 @@ def do_start():
     cmd.append("--port=%d" % port)
     cmd.append("--plugins=%s" % plugins_dir)
     cmd.append("--logfile=%s" % logfile)
+    cmd.append("--certfile=%s" % PROXENET_KEYS_DIR+"/proxenet.crt")
+    cmd.append("--keyfile=%s" % PROXENET_KEYS_DIR+"/proxenet.key")
     cmd.append(use_ipv6)
     if no_ssl_intercept:
         cmd.append("--no-ssl-intercept")
