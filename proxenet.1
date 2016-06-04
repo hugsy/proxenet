@@ -1,13 +1,17 @@
-.TH PROXENET "1" "August 2015" "proxenet v0.4" "User Commands"
+.TH PROXENET "1" "August 2016" "proxenet v0.4" "User Commands"
 
 .SH NAME
 proxenet \- manual page for proxenet
 
 .SH DESCRIPTION
-proxenet is a multi-threaded proxy which allows you to manipulate HTTP requests
+.I proxenet
+is a multi-threaded proxy which allows you to manipulate HTTP requests
 and responses using your favorite scripting language. No need to learn Java
-(like for Burp), or Python (like for mitmproxy). proxenet supports many
-languages (see the section "Language Versions") and more can be easily added.
+(like for Burp), or Python (like for mitmproxy).
+.I proxenet
+supports many languages (see the section "Language Versions") and more can be easily
+added. It can also be used for Man-In-The-Middle attack, to automate the
+interception and manipulation on-the-fly of HTTP/HTTPS requests and responses.
 
 .SH BASIC OPTIONS
 
@@ -31,7 +35,7 @@ Disable colored output
 Log actions in file (default stdout)
 .TP
 \fB\-x\fR, \fB\-\-plugins=\fR/path/to/plugins/dir
-Specify plugins directory (default: './proxenet\-plugins')
+Specify plugins directory
 .PP
 
 .SH INTERCEPT OPTIONS
@@ -102,6 +106,26 @@ Path to the SSL client certificate private key
 \fB\-\-sslcli\-keyfile\-passphrase\fR=\fI\,MyPwd\/\fR
 Specify the password for the SSL client certificate private key (default: '')
 .PP
+
+.SH CONFIGURATION
+To start,
+.I proxenet
+requires to find :
+
+.TP
+- a valid plugin directory, which can be done easily by executing the command:
+
+$ mkdir -p ~/.proxenet/plugins/autoload
+
+.TP
+- and a valid path for the internal Certificate Authority (CA). The script
+.I proxenet-setup-ca.sh
+(by default in /opt/proxenet/misc) will generate it for you.
+
+$ mkdir -p ~/.proxenet/keys && /opt/proxenet/misc/proxenet-setup-ca.sh
+
+.I proxenet
+is now ready to be used.
 
 .SH PLUGINS
 .I proxenet

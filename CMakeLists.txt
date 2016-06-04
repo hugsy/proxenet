@@ -289,17 +289,12 @@ install (DIRECTORY docs
   DESTINATION misc
   PATTERN "*.md" EXCLUDE
   )
-install (FILES proxenet-control-cli.py proxenet-control-web.py
+install (FILES proxenet-control-cli.py proxenet-control-web.py keys/proxenet-setup-ca.sh
   PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
   DESTINATION misc
   )
 install (FILES proxenet.1
   DESTINATION ${MANDIR})
-
-add_custom_target( setup )
-add_custom_command (TARGET setup
-  POST_BUILD
-  COMMAND bash cmake/setup.sh ${CMAKE_SOURCE_DIR} ${CMAKE_INSTALL_PREFIX} ${MANDIR})
 
 add_custom_target( uninstall )
 add_custom_command (TARGET uninstall
