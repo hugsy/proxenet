@@ -124,9 +124,17 @@ def build_html(**kwargs):
     <div class="row"><div class=col-md-12>
     <ul class="nav nav-tabs nav-justified">"""
 
-    tabs = ["info", "plugin", "threads", "config", "keys", "rc"]
+    tabs = []
+    if is_proxenet_running():
+        tabs.append("info")
+        tabs.append("plugin")
+        tabs.append("threads")
+
+    tabs += ["config", "keys", "rc"]
+
     if is_proxenet_running():
         tabs.append("log")
+        tabs.append("version")
 
     for tab in tabs:
         body += """<li {2}><a href="/{0}">{1}</a></li>""".format(tab, tab.capitalize(),
@@ -261,9 +269,12 @@ def restart():
 
 @get('/info')
 def info():
-    if not is_proxenet_running(): return build_html(body=not_running_html())
+    if not is_proxenet_running():
+        return build_html(body=not_running_html())
+
     res = sr("info")
-    info = json.loads( res )['info']
+    info = json.loads(res)['info']
+
     html = ""
     for section in info.keys():
         html += """<div class="panel panel-default">"""
@@ -280,6 +291,35 @@ def info():
         html += "</ul></div></div>"""
 
     return build_html(body=html, title="Info page", page="info")
+
+
+@get('/version')
+def version():
+    if not is_proxenet_running():
+        return build_html(body=not_running_html())
+
+    res = sr("version")
+    version = json.loads(res)
+    print(version)
+    html = ""
+    html += """<div class="panel panel-default">"""
+    html += """<div class="panel-heading"><h3 class="panel-title">Version information</h3></div>"""
+    html += """<div class="panel-body"><ul>"""
+    for k,v in version.iteritems():
+        html += "<li>"
+        if k=="vms":
+            html += "VMs"
+            html += "<ol>"
+            html += ''.join(["<li>{}</li>".format(x.strip()) for x in v if len(x.strip())>0])
+            html += "</ol>"
+        else:
+            html += "{}: {}".format(k.capitalize(), v)
+        html += "</li>"
+
+    html += """</ul></div></div>"""
+
+    return build_html(body=html, title="Version page", page="version")
+
 
 
 @route('/')

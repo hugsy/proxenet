@@ -46,6 +46,7 @@ COMMAND_SIGNATURE(reload);
 COMMAND_SIGNATURE(threads);
 COMMAND_SIGNATURE(plugin);
 COMMAND_SIGNATURE(config);
+COMMAND_SIGNATURE(version);
 
 static struct command_t known_commands[] = {
         COMMAND(quit,     0,   "Make "PROGNAME" leave kindly"),
@@ -56,7 +57,7 @@ static struct command_t known_commands[] = {
         COMMAND(threads,  1,   "Command the threads"),
         COMMAND(plugin,   1,   "Get/Set info about plugin"),
         COMMAND(config,   1,   "Edit configuration at runtime"),
-
+        COMMAND(version,  0,   "Show proxenet version"),
         { NULL, 0, NULL, NULL}
 };
 
@@ -194,6 +195,51 @@ static void help_cmd(sock_t fd, char *options, unsigned int nb_options)
                 proxenet_write(fd, msg, n);
         }
         proxenet_write(fd, "}}", 2);
+        return;
+}
+
+
+/**
+ * Show proxenet version
+ */
+static void version_cmd(sock_t fd, char *options, unsigned int nb_options)
+{
+        char *msg = "{"
+                "\"name\": \""PROGNAME"\", "
+                "\"author\": \""AUTHOR"\", "
+                "\"version\": \""VERSION"\", "
+                "\"compilation\": \""CC" for "SYSTEM" using MBedTLS "_MBEDTLS_VERSION_"\", "
+                "\"vms\": [ "
+#ifdef _C_PLUGIN
+                "\""_C_VERSION_"\","
+#endif
+#ifdef _PYTHON_PLUGIN
+                "\""_PYTHON_VERSION_"\","
+#endif
+#ifdef _RUBY_PLUGIN
+                "\""_RUBY_VERSION_"\","
+#endif
+#ifdef _LUA_PLUGIN
+                "\""_LUA_VERSION_"\","
+#endif
+#ifdef _JAVA_PLUGIN
+                "\""_JAVA_VERSION_"\","
+#endif
+#ifdef _TCL_PLUGIN
+                "\""_TCL_VERSION_"\","
+#endif
+#ifdef _PERL_PLUGIN
+                "\""_PERL_VERSION_"\","
+#endif
+                "\"\"],"
+                "\"license\": \""LICENSE"\" "
+                "}";
+
+        /* happy compiler means karma++ */
+        (void) options;
+        (void) nb_options;
+
+        proxenet_write(fd, (void*)msg, strlen(msg));
         return;
 }
 
