@@ -300,7 +300,6 @@ def version():
 
     res = sr("version")
     version = json.loads(res)
-    print(version)
     html = ""
     html += """<div class="panel panel-default">"""
     html += """<div class="panel-heading"><h3 class="panel-title">Version information</h3></div>"""
