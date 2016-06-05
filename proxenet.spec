@@ -22,7 +22,7 @@ URL:		https://github.com/hugsy/proxenet
 Group: 		Applications/Internet
 BuildRoot: 	%{_tmppath}/%{name}-%{version}-buildroot
 Requires: 	perl, python, ruby, lua, tcl, java-1.8.0-openjdk, mbedtls
-BuildRequires:  perl-devel, python-devel, ruby-devel, tcl-devel, java-1.8.0-openjdk-devel, mbedtls-devel
+BuildRequires:  cmake, perl-devel, python-devel, ruby-devel, tcl-devel, java-1.8.0-openjdk-devel, mbedtls-devel
 
 %description
 Plugin driven proxy for web application penetration tests, or Man-In-The-Middle attacks.
