@@ -283,13 +283,17 @@ set (MANDIR /usr/share/man/man1)
 if(DEBUG)
   install (TARGETS proxenet DESTINATION bin CONFIGURATIONS Debug)
 else()
-  install (TARGETS proxenet DESTINATION bin CONFIGURATIONS Release)
+  install (TARGETS proxenet DESTINATION bin)
 endif()
 install (DIRECTORY docs
   DESTINATION misc
   PATTERN "*.md" EXCLUDE
   )
 install (FILES proxenet-control-cli.py proxenet-control-web.py keys/proxenet-setup-ca.sh
+  PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+  DESTINATION misc
+  )
+install (FILES keys/openssl.cnf
   PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
   DESTINATION misc
   )
