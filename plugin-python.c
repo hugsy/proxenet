@@ -148,8 +148,18 @@ int proxenet_python_initialize_vm(plugin_t* plugin)
 int proxenet_python_destroy_plugin(plugin_t* plugin)
 {
         PyThreadState* oldctx;
+        PyObject *pResult;
 
         proxenet_plugin_set_state(plugin, INACTIVE);
+
+        if (plugin->onleave_function){
+                pResult = PyObject_CallObject(plugin->onleave_function, NULL);
+                if (!pResult || PyErr_Occurred()){
+                        xlog_python(LOG_WARNING, "%s\n", "PyObject_CallObject() failed.");
+                        PyErr_Print();
+                }
+        }
+
         Py_DECREF(plugin->pre_function);
         Py_DECREF(plugin->post_function);
 
@@ -187,29 +197,10 @@ int proxenet_python_destroy_vm(interpreter_t* interpreter)
 /**
  *
  */
-static int proxenet_python_initialize_function(plugin_t* plugin, req_t type)
+static int proxenet_python_initialize_function(plugin_t* plugin, char* function_name, PyObject** pFunc)
 {
         char*	module_name;
-        PyObject *pModStr, *pMod, *pFunc;
-        const char* function_name;
-        bool is_request = (type==REQUEST) ? true : false;
-
-
-        /* checks */
-        if (!plugin->name) {
-                xlog_python(LOG_ERROR, "%s\n", "null plugin name");
-                return -1;
-        }
-
-        if (plugin->pre_function && type == REQUEST) {
-                return 0;
-        }
-
-        if (plugin->post_function && type == RESPONSE) {
-                return 0;
-        }
-
-        function_name = is_request ? CFG_REQUEST_PLUGIN_FUNCTION : CFG_RESPONSE_PLUGIN_FUNCTION;
+        PyObject *pModStr, *pMod;
 
         module_name = plugin->name;
         pModStr = PYTHON_FROMSTRING(module_name);
@@ -232,21 +223,95 @@ static int proxenet_python_initialize_function(plugin_t* plugin, req_t type)
 #endif
 
         /* find reference to function in module */
-        pFunc = PyObject_GetAttrString(pMod, function_name);
-        if (!pFunc) {
+        *pFunc = PyObject_GetAttrString(pMod, function_name);
+        if (!*pFunc) {
                 PyErr_Print();
                 return -1;
         }
 
-        if (!PyCallable_Check(pFunc)) {
+        if (!PyCallable_Check(*pFunc)) {
                 xlog_python(LOG_ERROR, "Object in %s is not callable\n", module_name);
                 return -1;
         }
 
-        if (is_request)
-                plugin->pre_function = pFunc;
-        else
-                plugin->post_function = pFunc;
+        return 0;
+}
+
+
+/**
+ *
+ */
+static int proxenet_python_init_request_function(plugin_t* plugin)
+{
+        PyObject* pFunc;
+
+        if (plugin->pre_function)
+                return 0;
+
+        if (proxenet_python_initialize_function(plugin, CFG_REQUEST_PLUGIN_FUNCTION, &pFunc) < 0)
+                return -1;
+
+        plugin->pre_function = pFunc;
+        return 0;
+}
+
+
+/**
+ *
+ */
+static int proxenet_python_init_response_function(plugin_t* plugin)
+{
+        PyObject* pFunc;
+
+        if (plugin->post_function)
+                return 0;
+
+        if (proxenet_python_initialize_function(plugin, CFG_RESPONSE_PLUGIN_FUNCTION, &pFunc) < 0)
+                return -1;
+
+        plugin->post_function = pFunc;
+        return 0;
+}
+
+
+/**
+ *
+ */
+static int proxenet_python_init_onload_function(plugin_t* plugin)
+{
+        PyObject *pFunc, *pResult;
+
+        if (proxenet_python_initialize_function(plugin, CFG_ONLOAD_PLUGIN_FUNCTION, &pFunc) < 0){
+                xlog_python(LOG_WARNING, "Failed to load '%s()' function\n", CFG_ONLOAD_PLUGIN_FUNCTION);
+                return -1;
+        }
+
+        plugin->onload_function = pFunc;
+
+        pResult = PyObject_CallObject(plugin->onload_function, NULL);
+        if (!pResult || PyErr_Occurred()){
+                xlog_python(LOG_ERROR, "%s\n", "PyObject_CallObject() failed.");
+                PyErr_Print();
+                return -1;
+        }
+
+        return 0;
+}
+
+
+/**
+ *
+ */
+static int proxenet_python_init_onleave_function(plugin_t* plugin)
+{
+        PyObject *pFunc;
+
+        if (proxenet_python_initialize_function(plugin, CFG_ONLEAVE_PLUGIN_FUNCTION, &pFunc) < 0){
+                xlog_python(LOG_WARNING, "Failed to load '%s()' function\n", CFG_ONLEAVE_PLUGIN_FUNCTION);
+                return -1;
+        }
+
+        plugin->onleave_function = pFunc;
 
         return 0;
 }
@@ -268,10 +333,19 @@ int proxenet_python_load_file(plugin_t* plugin)
 
         PyThreadState_Swap( plugin->internal );
 
-        if (proxenet_python_initialize_function(plugin, REQUEST) < 0 || \
-            proxenet_python_initialize_function(plugin, RESPONSE) < 0) {
-                xlog_python(LOG_ERROR, "Failed to initialize '%s.%s'\n", plugin->name,
-                            REQUEST ? CFG_REQUEST_PLUGIN_FUNCTION : CFG_RESPONSE_PLUGIN_FUNCTION);
+        proxenet_python_init_onload_function(plugin);
+        proxenet_python_init_onleave_function(plugin);
+
+
+        if (proxenet_python_init_request_function(plugin) < 0){
+                xlog_python(LOG_ERROR, "Failed to initialize '%s.%s'\n",
+                            plugin->name, CFG_REQUEST_PLUGIN_FUNCTION);
+                retcode = -1;
+        }
+
+        if (proxenet_python_init_response_function(plugin) < 0) {
+                xlog_python(LOG_ERROR, "Failed to initialize '%s.%s'\n",
+                            plugin->name, CFG_RESPONSE_PLUGIN_FUNCTION);
                 retcode = -1;
         }
 

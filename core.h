@@ -45,7 +45,7 @@ proxenet_state    proxy_state;
 unsigned long     active_threads_bitmask;
 plugin_t*         plugins_list;  /* points to first plugin */
 pthread_t         threads[MAX_THREADS];
-
+pthread_t         main_thread_id;
 
 int              proxenet_start();
 unsigned int     get_active_threads_size();
@@ -54,6 +54,7 @@ int              proxenet_toggle_plugin(int);
 void             proxenet_destroy_plugins_vm();
 int              proxenet_initialize_plugins_list();
 void             proxenet_initialize_plugins();
-void             xloop(sock_t, sock_t);
+void             proxenet_xloop(sock_t, sock_t);
+int              proxenet_kill_thread(pthread_t);
 
 #endif /* _CORE_H */

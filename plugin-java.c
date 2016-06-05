@@ -26,13 +26,99 @@
 /**
  *
  */
+static int proxenet_java_get_class(JNIEnv *env, char *name, void **res)
+{
+        jclass jcls;
+
+        jcls = (*env)->FindClass(env, name);
+        if(!jcls){
+                xlog_java(LOG_ERROR, "Java class '%s' not found\n", name);
+                return -1;
+        }
+
+        *res = (void*)jcls;
+
+#ifdef DEBUG
+        xlog_java(LOG_DEBUG, "Class '%s' jcls=%#lx\n", name, jcls);
+#endif
+
+        return 0;
+}
+
+
+/**
+ *
+ */
+static int proxenet_java_get_method(JNIEnv *env, jclass jcls, char* name, char *proto, void **res)
+{
+        jmethodID jmid;
+
+        jmid = (*env)->GetStaticMethodID(env, jcls, name, proto);
+        if(!jmid){
+                xlog_java(LOG_ERROR, "Method '%s()' not found\n", name);
+                return -1;
+        }
+
+#ifdef DEBUG
+        xlog_java(LOG_DEBUG, "'%s()' jmid=%#lx\n", name, jmid);
+#endif
+
+        *res = (void*)jmid;
+
+        return 0;
+}
+
+
+/**
+ *
+ */
+static inline int proxenet_execute_plugin_method(plugin_t* plugin, jmethodID jmid)
+{
+        JavaVM* jvm;
+        JNIEnv *env;
+        jclass jcls;
+
+        jvm = ((proxenet_jvm_t*)plugin->interpreter->vm)->jvm;
+        jcls = (jclass)plugin->internal;
+
+        if (!jcls || !jmid)
+                return -1;
+
+        (*jvm)->AttachCurrentThread(jvm, (void**)&env, NULL);
+        (*env)->CallStaticObjectMethod(env, jcls, jmid);
+        (*jvm)->DetachCurrentThread(jvm);
+        return 0;
+
+}
+
+
+/**
+ *
+ */
+static int proxenet_execute_onload_method(plugin_t* plugin)
+{
+        return proxenet_execute_plugin_method(plugin, plugin->onload_function);
+}
+
+
+/**
+ *
+ */
+static int proxenet_execute_onleave_method(plugin_t* plugin)
+{
+        return proxenet_execute_plugin_method(plugin, plugin->onleave_function);
+}
+
+
+/**
+ * Loads a compiled Java file (.class), allocates the structure, and execute the onload()
+ * function.
+ */
 int proxenet_java_load_file(plugin_t* plugin)
 {
         proxenet_jvm_t* pxnt_jvm;
         JavaVM *jvm;
         JNIEnv *env;
-        jclass jcls;
-        jmethodID jmid;
 
         if(plugin->state != INACTIVE){
 #ifdef DEBUG
@@ -51,44 +137,31 @@ int proxenet_java_load_file(plugin_t* plugin)
 #endif
 
         /* check that Class can be found */
-        jcls = (*env)->FindClass(env, plugin->name);
-        if(!jcls){
-                xlog_java(LOG_ERROR, "Java class '%s' not found\n", plugin->name);
-                return -1;
-        }
-
-        plugin->internal = (void*)jcls;
-
-#ifdef DEBUG
-        xlog_java(LOG_DEBUG, "Class '%s' jcls=%#lx\n", plugin->name, jcls);
-#endif
+        if(proxenet_java_get_class(env, plugin->name, &plugin->internal) < 0)
+                goto detach_vm;
 
         /* check that Methods can be found in Class */
-        /* check request hook */
-        jmid = (*env)->GetStaticMethodID(env, jcls, CFG_REQUEST_PLUGIN_FUNCTION, JAVA_METHOD_PROTOTYPE);
-        if(!jmid){
-                xlog_java(LOG_ERROR, "Method '%s.%s()' not found\n", plugin->name, CFG_REQUEST_PLUGIN_FUNCTION);
-                return -1;
-        }
-#ifdef DEBUG
-        xlog_java(LOG_DEBUG, "'%s.%s()' jmid=%#lx\n", plugin->name, CFG_REQUEST_PLUGIN_FUNCTION, jmid);
-#endif
-        plugin->pre_function = (void*)jmid;
+        if(proxenet_java_get_method(env, plugin->internal, CFG_REQUEST_PLUGIN_FUNCTION, JAVA_PLUGIN_METHOD_SIGNATURE, &plugin->pre_function) < 0)
+                goto detach_vm;
 
-        /* check response hook */
-        jmid = (*env)->GetStaticMethodID(env, jcls, CFG_RESPONSE_PLUGIN_FUNCTION, JAVA_METHOD_PROTOTYPE);
-        if(!jmid){
-                xlog_java(LOG_ERROR, "Method '%s.%s()' not found\n", plugin->name, CFG_RESPONSE_PLUGIN_FUNCTION);
-                return -1;
-        }
-#ifdef DEBUG
-        xlog_java(LOG_DEBUG, "'%s.%s()' jmid=%#lx\n", plugin->name, CFG_RESPONSE_PLUGIN_FUNCTION, jmid);
-#endif
-        plugin->post_function = (void*)jmid;
+        if(proxenet_java_get_method(env, plugin->internal, CFG_RESPONSE_PLUGIN_FUNCTION, JAVA_PLUGIN_METHOD_SIGNATURE, &plugin->post_function) < 0)
+                goto detach_vm;
+
+        proxenet_java_get_method(env, plugin->internal, CFG_ONLOAD_PLUGIN_FUNCTION, JAVA_VOID_METHOD_SIGNATURE, &plugin->onload_function);
+        proxenet_java_get_method(env, plugin->internal, CFG_ONLEAVE_PLUGIN_FUNCTION, JAVA_VOID_METHOD_SIGNATURE, &plugin->onleave_function);
 
         (*jvm)->DetachCurrentThread(jvm);
 
-	return 0;
+        if(plugin->onload_function)
+                if (proxenet_execute_onload_method(plugin) < 0){
+                        xlog_java(LOG_ERROR, "An error occured on %s.onload()\n", plugin->name);
+                }
+
+        return 0;
+
+detach_vm:
+        (*jvm)->DetachCurrentThread(jvm);
+	return -1;
 }
 
 
@@ -109,7 +182,7 @@ int proxenet_java_initialize_vm(plugin_t* plugin)
         pxnt_jvm = proxenet_xmalloc(sizeof(proxenet_jvm_t));
 
         ret = proxenet_xsnprintf(java_classpath_option, sizeof(java_classpath_option),
-                       "-Djava.class.path=%s", cfg->plugins_path);
+                                 "-Djava.class.path=%s", cfg->plugins_path);
         if (ret < 0)
                 return -1;
 
@@ -145,13 +218,22 @@ int proxenet_java_initialize_vm(plugin_t* plugin)
 
 
 /**
- *
+ * Disable the Java plugin, invoke onleave() function (if any), and deallocate
+ * plugin structures.
  */
 int proxenet_java_destroy_plugin(plugin_t* plugin)
 {
         proxenet_plugin_set_state(plugin, INACTIVE);
+
+        if (plugin->onleave_function)
+                if (proxenet_execute_onleave_method(plugin) < 0){
+                        xlog_java(LOG_ERROR, "An error occured on %s.onleave()\n", plugin->name);
+                }
+
         plugin->pre_function = NULL;
         plugin->post_function = NULL;
+        plugin->onload_function = NULL;
+        plugin->onleave_function = NULL;
 
         return 0;
 }
@@ -181,7 +263,7 @@ int proxenet_java_destroy_vm(interpreter_t* interpreter)
 /**
  *
  */
-static char* proxenet_java_execute_function(plugin_t* plugin, request_t *request)
+static char* proxenet_java_execute_plugin_function(plugin_t* plugin, request_t *request)
 {
 	char *buf, *uri, *meth;
         proxenet_jvm_t* pxnt_jvm;
@@ -264,7 +346,7 @@ end:
 /**
  *
  */
-static void proxenet_java_lock_vm(interpreter_t *interpreter)
+static inline void proxenet_java_lock_vm(interpreter_t *interpreter)
 {
 	pthread_mutex_lock(&interpreter->mutex);
 }
@@ -273,7 +355,7 @@ static void proxenet_java_lock_vm(interpreter_t *interpreter)
 /**
  *
  */
-static void proxenet_java_unlock_vm(interpreter_t *interpreter)
+static inline void proxenet_java_unlock_vm(interpreter_t *interpreter)
 {
 	pthread_mutex_unlock(&interpreter->mutex);
 }
@@ -288,7 +370,7 @@ char* proxenet_java_plugin(plugin_t* plugin, request_t *request)
 	interpreter_t *interpreter = plugin->interpreter;
 
 	proxenet_java_lock_vm(interpreter);
-	buf = proxenet_java_execute_function(plugin, request);
+	buf = proxenet_java_execute_plugin_function(plugin, request);
 	proxenet_java_unlock_vm(interpreter);
 
 	return buf;

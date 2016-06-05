@@ -46,6 +46,7 @@ COMMAND_SIGNATURE(reload);
 COMMAND_SIGNATURE(threads);
 COMMAND_SIGNATURE(plugin);
 COMMAND_SIGNATURE(config);
+COMMAND_SIGNATURE(version);
 
 static struct command_t known_commands[] = {
         COMMAND(quit,     0,   "Make "PROGNAME" leave kindly"),
@@ -53,10 +54,10 @@ static struct command_t known_commands[] = {
         COMMAND(help,     0,   "Show this menu"),
         COMMAND(info,     0,   "Display information about environment"),
         COMMAND(reload,   0,   "Reload the plugins"),
-        COMMAND(threads,  0,   "Show info about threads"),
+        COMMAND(threads,  1,   "Command the threads"),
         COMMAND(plugin,   1,   "Get/Set info about plugin"),
         COMMAND(config,   1,   "Edit configuration at runtime"),
-
+        COMMAND(version,  0,   "Show proxenet version"),
         { NULL, 0, NULL, NULL}
 };
 
@@ -199,6 +200,51 @@ static void help_cmd(sock_t fd, char *options, unsigned int nb_options)
 
 
 /**
+ * Show proxenet version
+ */
+static void version_cmd(sock_t fd, char *options, unsigned int nb_options)
+{
+        char *msg = "{"
+                "\"name\": \""PROGNAME"\", "
+                "\"author\": \""AUTHOR"\", "
+                "\"version\": \""VERSION"\", "
+                "\"compilation\": \""CC" for "SYSTEM" using MBedTLS "_MBEDTLS_VERSION_"\", "
+                "\"vms\": [ "
+#ifdef _C_PLUGIN
+                "\""_C_VERSION_"\","
+#endif
+#ifdef _PYTHON_PLUGIN
+                "\""_PYTHON_VERSION_"\","
+#endif
+#ifdef _RUBY_PLUGIN
+                "\""_RUBY_VERSION_"\","
+#endif
+#ifdef _LUA_PLUGIN
+                "\""_LUA_VERSION_"\","
+#endif
+#ifdef _JAVA_PLUGIN
+                "\""_JAVA_VERSION_"\","
+#endif
+#ifdef _TCL_PLUGIN
+                "\""_TCL_VERSION_"\","
+#endif
+#ifdef _PERL_PLUGIN
+                "\""_PERL_VERSION_"\","
+#endif
+                "\"\"],"
+                "\"license\": \""LICENSE"\" "
+                "}";
+
+        /* happy compiler means karma++ */
+        (void) options;
+        (void) nb_options;
+
+        proxenet_write(fd, (void*)msg, strlen(msg));
+        return;
+}
+
+
+/**
  * Get information about proxenet state.
  */
 static void info_cmd(sock_t fd, char *options, unsigned int nb_options)
@@ -294,8 +340,11 @@ static void reload_cmd(sock_t fd, char *options, unsigned int nb_options)
 static void threads_cmd(sock_t fd, char *options, unsigned int nb_options)
 {
         char msg[BUFSIZE] = {0, };
+        char *static_msg;
         char *ptr;
-        int n;
+        int n, res;
+        long long tid;
+
 
         (void) options;
         (void) nb_options;
@@ -308,14 +357,39 @@ static void threads_cmd(sock_t fd, char *options, unsigned int nb_options)
                 return;
         }
 
-        if (strcmp(ptr, "inc")==0 && cfg->nb_threads<MAX_THREADS)
-                n = proxenet_xsnprintf(msg, BUFSIZE, "Nb threads level is now %d\n", ++cfg->nb_threads);
-        else if (strcmp(ptr, "dec")==0 && cfg->nb_threads>1)
-                n = proxenet_xsnprintf(msg, BUFSIZE, "Nb threads level is now %d\n", --cfg->nb_threads);
-        else
-                n = proxenet_xsnprintf(msg, BUFSIZE, "Invalid action\n Syntax\n threads (inc|dec)\n");
+        if (strcmp(ptr, "inc")==0 && cfg->nb_threads<MAX_THREADS){
+                n = proxenet_xsnprintf(msg, BUFSIZE, "Nb threads level is now %d", ++cfg->nb_threads);
+                proxenet_write(fd, (void*)msg, n);
+        } else if (strcmp(ptr, "dec")==0 && cfg->nb_threads>1){
+                n = proxenet_xsnprintf(msg, BUFSIZE, "Nb threads level is now %d", --cfg->nb_threads);
+                proxenet_write(fd, (void*)msg, n);
+        } else if (strcmp(ptr, "kill")==0){
+                ptr = strtok(NULL, " \n");
+                if (!ptr){
+                        static_msg = "Missing ThreadId";
+                        proxenet_write(fd, (void*)static_msg, strlen(static_msg));
+                        return;
+                }
 
-        proxenet_write(fd, (void*)msg, n);
+                tid = atoll(ptr);
+                if(tid<=0){
+                        static_msg = "Invalid ThreadId value";
+                        proxenet_write(fd, (void*)static_msg, strlen(static_msg));
+                        return;
+                }
+
+                res = proxenet_kill_thread((pthread_t)tid);
+                if(res==0){
+                        n = proxenet_xsnprintf(msg, BUFSIZE, "Thread %lu killed successfully", tid);
+                } else {
+                        n = proxenet_xsnprintf(msg, BUFSIZE, "Failed to kill thread %lu: retcode=%d", tid, res);
+                }
+
+                proxenet_write(fd, (void*)msg, n);
+        } else {
+                static_msg = "Invalid action: must be in (inc|dec)";
+                proxenet_write(fd, (void*)static_msg, strlen(static_msg));
+        }
 
         return;
 }

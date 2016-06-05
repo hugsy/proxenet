@@ -29,6 +29,7 @@ int proxenet_tcl_load_file(plugin_t* plugin)
 {
 	char* pathname;
 	Tcl_Interp* tcl_interpreter;
+        Tcl_Obj* tcl_cmds_ptr;
 
         if(plugin->state != INACTIVE){
 #ifdef DEBUG
@@ -45,6 +46,20 @@ int proxenet_tcl_load_file(plugin_t* plugin)
 		xlog_tcl(LOG_ERROR, "Failed to load '%s'\n", pathname);
 		return -1;
 	}
+
+        plugin->interpreter->vm = tcl_interpreter;
+	plugin->interpreter->ready = true;
+
+
+        tcl_cmds_ptr = Tcl_NewListObj (0, NULL);
+        Tcl_IncrRefCount(tcl_cmds_ptr);
+        Tcl_ListObjAppendElement(tcl_interpreter, tcl_cmds_ptr, Tcl_NewStringObj(CFG_ONLEAVE_PLUGIN_FUNCTION, -1));
+
+        if (Tcl_EvalObjEx(tcl_interpreter, tcl_cmds_ptr, TCL_EVAL_DIRECT) != TCL_OK) {
+                xlog_tcl(LOG_WARNING, "%s() failed to execute properly\n", CFG_ONLOAD_PLUGIN_FUNCTION);
+        }
+
+        Tcl_DecrRefCount(tcl_cmds_ptr);
 
 	return 0;
 }
@@ -69,9 +84,6 @@ int proxenet_tcl_initialize_vm(plugin_t* plugin)
 
         Tcl_Init(tcl_interpreter);
 
-	plugin->interpreter->vm = tcl_interpreter;
-	plugin->interpreter->ready = true;
-
 	return 0;
 }
 
@@ -81,7 +93,23 @@ int proxenet_tcl_initialize_vm(plugin_t* plugin)
  */
 int proxenet_tcl_destroy_plugin(plugin_t* plugin)
 {
+        Tcl_Interp* tcl_interpreter;
+        Tcl_Obj* tcl_cmds_ptr;
+
+	tcl_interpreter = (Tcl_Interp*)plugin->interpreter->vm;
+
         proxenet_plugin_set_state(plugin, INACTIVE);
+
+        tcl_cmds_ptr = Tcl_NewListObj (0, NULL);
+        Tcl_IncrRefCount(tcl_cmds_ptr);
+        Tcl_ListObjAppendElement(tcl_interpreter, tcl_cmds_ptr, Tcl_NewStringObj(CFG_ONLEAVE_PLUGIN_FUNCTION, -1));
+
+        if (Tcl_EvalObjEx(tcl_interpreter, tcl_cmds_ptr, TCL_EVAL_DIRECT) != TCL_OK) {
+                xlog_tcl(LOG_WARNING, "%s() failed to execute properly\n", CFG_ONLEAVE_PLUGIN_FUNCTION);
+        }
+
+        Tcl_DecrRefCount(tcl_cmds_ptr);
+
         plugin->pre_function = NULL;
         plugin->post_function = NULL;
         return 0;

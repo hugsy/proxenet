@@ -149,12 +149,12 @@ static void help()
         version(false);
         printf("Written by %s\n"
                "Released under: %s\n"
-               "Using library: PolarSSL %s\n"
+               "Using library: mbedTLS %s\n"
                "Compiled by %s (%s) with support for :\n"
                ,
                AUTHOR,
                LICENSE,
-               _POLARSSL_VERSION_,
+               _MBEDTLS_VERSION_,
                CC, SYSTEM);
 
         i = 0;
@@ -177,7 +177,7 @@ static void help()
 #endif
 
 #ifdef DEBUG_SSL
-        printf("\t[+] "BLUE"PolarSSL DEBUG symbols"NOCOLOR"\n");
+        printf("\t[+] "BLUE"mbedTLS DEBUG symbols"NOCOLOR"\n");
 #endif
 
         usage(EXIT_SUCCESS);
@@ -193,21 +193,22 @@ static void help()
  * @return the real (no symlink) full path of the file it is valid
  * @return NULL in any other case
  */
-static char* cfg_get_valid_file(char* param)
+static char* cfg_get_valid_file(char* path)
 {
-        char buf[PATH_MAX+1]={0, };
+        char* p;
 
-        if (!realpath(param, buf)){
-                xlog(LOG_CRITICAL, "realpath(%s) failed: %s\n", param, strerror(errno));
+        p = expand_file_path(path);
+        if(!p){
+                xlog(LOG_CRITICAL, "expand_file_path('%s') failed: %s\n", path, strerror(errno));
                 return NULL;
         }
 
-        if ( !is_readable_file(buf) ){
-                xlog(LOG_CRITICAL, "Failed to read private key '%s'\n", param);
+        if ( !is_readable_file(p) ){
+                xlog(LOG_CRITICAL, "Failed to read file '%s'\n", p);
                 return NULL;
         }
 
-        return proxenet_xstrdup2(buf);
+        return p;
 }
 
 
@@ -366,6 +367,9 @@ static int parse_options (int argc, char** argv)
                                 return -1;
                         }
                 }
+
+                /* disable color to avoid tty color code in file */
+                cfg->use_color = false;
         }
 
         /* check if nb of threads is in boundaries */

@@ -18,7 +18,10 @@
 #include <netinet/in.h>
 #endif
 
-#define MAX_THREADS                           50                        // maximum number of threads
+#define CFG_DEFAULT_LOCATION                  "@CMAKE_INSTALL_PREFIX@"
+#define PROXENET_HOME_DIR                     "~/.proxenet"
+
+#define MAX_THREADS                           100                       // maximum number of threads
 #define CFG_DEFAULT_BIND_ADDR                 "localhost"               // default binding address
 #define CFG_DEFAULT_BIND_PORT                 "8008"                    // default binding port
 #define CFG_DEFAULT_PROXY_PORT                "8080"                    // if relay is enabled, use this port as default
@@ -26,17 +29,19 @@
 #define CFG_DEFAULT_TRY_EXIT_MAX              3                         // default number for attempting to kill the process gently
 #define CFG_DEFAULT_PLUGIN_PRIORITY           5                         // default priority for plugins
 #define CFG_DEFAULT_OUTPUT                    stdout                    // default output file stream
-#define CFG_DEFAULT_PLUGINS_PATH              "./proxenet-plugins"      // default location of plugins
-#define CFG_DEFAULT_PLUGINS_AUTOLOAD_PATH     "/autoload"               // default name of autoload dir (*Must* start with a '/')
-#define CFG_DEFAULT_SSL_CERTFILE              "./keys/proxenet.crt"     // default path of SSL private certificate
-#define CFG_DEFAULT_SSL_KEYFILE               "./keys/proxenet.key"     // default path of SSL private key
+#define CFG_DEFAULT_PLUGINS_PATH              PROXENET_HOME_DIR"/plugins"     // default location of plugins
+#define CFG_DEFAULT_PLUGINS_AUTOLOAD_PATHNAME     "autoload"            // default name of autoload dir (*Must* start with a '/')
+#define CFG_DEFAULT_SSL_CERTFILE              PROXENET_HOME_DIR"/keys/proxenet.crt"     // default path of SSL private certificate
+#define CFG_DEFAULT_SSL_KEYFILE               PROXENET_HOME_DIR"/keys/proxenet.key"     // default path of SSL private key
 #define CFG_DEFAULT_SSL_KEYFILE_PWD           ""                        // default password for the SSL private key
-#define CFG_DEFAULT_SSL_CERTSDIR              "./keys/certs"            // default path of stored certificates
-#define CFG_DEFAULT_SSL_CERTSKEY              "./keys/certs/generic.key"      // default path of stored certificates private key
+#define CFG_DEFAULT_SSL_CERTSDIR              PROXENET_HOME_DIR"/keys/certs"            // default path of stored certificates
+#define CFG_DEFAULT_SSL_CERTSKEY              PROXENET_HOME_DIR"/keys/certs/generic.key"      // default path of stored certificates private key
 #define CFG_DEFAULT_SSL_CERTSPWD              ""                        // default password for stored certificates private key
 #define CFG_DEFAULT_IP_VERSION                AF_INET                   // IP version (AF_INET for IPv6 or AF_INET6 for IPv6)
 #define CFG_REQUEST_PLUGIN_FUNCTION          "proxenet_request_hook"    // default name for hooking request function
 #define CFG_RESPONSE_PLUGIN_FUNCTION         "proxenet_response_hook"   // default name for hooking response function
+#define CFG_ONLOAD_PLUGIN_FUNCTION           "proxenet_on_load"         // default name for on-load trigger function
+#define CFG_ONLEAVE_PLUGIN_FUNCTION          "proxenet_on_leave"        // default name for on-leave trigger function
 #define CFG_DEFAULT_SSL_CLIENT_DOMAIN        "*"                        // default domain to use the SSL client certificate (* means any)
 #define CFG_DEFAULT_INTERCEPT_PATTERN        "*"                        // default pattern to intercept (all)
 #define CFG_CONTROL_SOCK_PATH                "/tmp/proxenet-control-socket"
@@ -68,7 +73,7 @@
 #define CC              "@CMAKE_C_COMPILER_ID@"
 
 
-#cmakedefine _POLARSSL_VERSION_ "@POLARSSL_VERSION@"
+#cmakedefine _MBEDTLS_VERSION_ "@MBEDTLS_VERSION@"
 
 #cmakedefine _C_PLUGIN
 #cmakedefine _C_VERSION_       "C"

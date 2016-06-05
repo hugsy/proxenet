@@ -6,7 +6,8 @@
 
 #include <jni.h>
 
-#define JAVA_METHOD_PROTOTYPE   "(I[BLjava/lang/String;)[B"          // Signature extracted using `javap -s -p <ClassName>`
+#define JAVA_PLUGIN_METHOD_SIGNATURE   "(I[BLjava/lang/String;)[B"          // Signature extracted using `javap -s -p <ClassName>`
+#define JAVA_VOID_METHOD_SIGNATURE   "()V"
 
 typedef struct {
                 JavaVM* jvm;

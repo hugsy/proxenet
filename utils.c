@@ -12,6 +12,8 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <wordexp.h>
+
 #include "core.h"
 #include "utils.h"
 
@@ -25,40 +27,59 @@ static pthread_mutex_t tty_mutex;
 void _xlog(int type, const char* fmt, ...)
 {
 	va_list ap;
+        time_t t = time(NULL);
+        struct tm tm = *localtime(&t);
 
 	/* lock tty before printing */
         pthread_mutex_lock(&tty_mutex);
 
+#ifdef DEBUG
+        fprintf(cfg->logfile_fd,
+                "%.4d/%.2d/%.2d ",
+                tm.tm_year + 1900,
+                tm.tm_mon + 1,
+                tm.tm_mday);
+#endif
+
+        fprintf(cfg->logfile_fd,
+                "%.2d:%.2d:%.2d-",
+                tm.tm_hour, tm.tm_min,
+                tm.tm_sec);
+
+
 	switch (type) {
 		case LOG_CRITICAL:
 			if (cfg->use_color) fprintf(cfg->logfile_fd, DARK);
-			fprintf(cfg->logfile_fd, "CRITICAL: ");
+			fprintf(cfg->logfile_fd, "CRITICAL");
 			break;
 
 		case LOG_ERROR:
 			if (cfg->use_color) fprintf(cfg->logfile_fd, RED);
-			fprintf(cfg->logfile_fd, "ERROR: ");
+			fprintf(cfg->logfile_fd, "ERROR");
 			break;
 
 		case LOG_WARNING:
 			if (cfg->use_color) fprintf(cfg->logfile_fd, YELLOW);
-			fprintf(cfg->logfile_fd, "WARNING: ");
+			fprintf(cfg->logfile_fd, "WARNING");
 			break;
 
 		case LOG_DEBUG:
 			if (cfg->use_color) fprintf(cfg->logfile_fd, BLUE);
-			fprintf(cfg->logfile_fd, "DEBUG: ");
+			fprintf(cfg->logfile_fd, "DEBUG");
 			break;
 
 		case LOG_INFO:
 		default:
 			if (cfg->use_color) fprintf(cfg->logfile_fd, GREEN);
-			fprintf(cfg->logfile_fd, "INFO: ");
+			fprintf(cfg->logfile_fd, "INFO");
 			break;
 	}
 
-	if (cfg->use_color) fprintf(cfg->logfile_fd, NOCOLOR);
 
+        if (cfg->use_color)
+                fprintf(cfg->logfile_fd, NOCOLOR);
+
+        fprintf(cfg->logfile_fd, "-");
 
 #ifdef DEBUG
 #if defined __LINUX__
@@ -195,7 +216,7 @@ char* proxenet_xstrdup(const char *data, size_t len)
 	if (!memcpy(s, data, len)) {
 		xlog(LOG_CRITICAL, "proxenet_xstrdup() failed in memcpy: %s\n", strerror(errno));
 		proxenet_xfree(s);
-		return NULL;
+		abort();
 	}
 
 	return s;
@@ -211,6 +232,73 @@ char* proxenet_xstrdup(const char *data, size_t len)
 char* proxenet_xstrdup2(const char *data)
 {
         return proxenet_xstrdup(data, strlen(data));
+}
+
+
+/**
+ * Remove tabs and spaces at the beginning of a string. The characters
+ * are overwritten with NULL bytes.
+ *
+ * @param str : the buffer to strip from the left (beginning)
+ */
+void proxenet_lstrip(char* str)
+{
+        size_t i, j, d;
+        size_t len = strlen(str);
+
+        if (!len)
+                return;
+
+        for(i=0; i<=len-1 && (str[i]=='\t' || str[i]=='\n' || str[i]==' '); i++);
+        if(i == len-1)
+                return;
+
+        d = len-i;
+        for(j=0; j<d; j++, i++)
+                str[j] = str[i];
+
+        for(j=i-1; j<len; j++)
+                str[j] = '\x00';
+
+        return;
+}
+
+
+/**
+ * Remove tabs and spaces at the end of the string by overwriting them with
+ * NULL byte.
+ *
+ * @param str : the buffer to strip from the right (end)
+ */
+void proxenet_rstrip(char* str)
+{
+        size_t i, j;
+        size_t len = strlen(str);
+
+        if (!len)
+                return;
+
+        for(i=len-1; i && (str[i]=='\t' || str[i]=='\n' || str[i]==' '); i--);
+        if(i == len-1)
+                return;
+
+        for(j=i; j<len; j++)
+                str[j] = '\x00';
+
+        return;
+}
+
+
+/**
+ * Remove tabs and spaces at the beginning and the end of the string.
+ *
+ * @param str : the buffer to strip
+ */
+void proxenet_strip(char* str)
+{
+        proxenet_lstrip(str);
+        proxenet_rstrip(str);
+        return;
 }
 
 
@@ -250,14 +338,13 @@ bool is_valid_plugin_path(char* plugin_path, char** plugins_path_ptr, char** aut
         char autoload_path[PATH_MAX] = {0,};
 
         /* check the plugins path */
-        *plugins_path_ptr = realpath(plugin_path, NULL);
+        *plugins_path_ptr = expand_file_path(plugin_path);
 	if (*plugins_path_ptr == NULL){
-		xlog(LOG_CRITICAL, "realpath('%s') failed: %s\n", plugin_path, strerror(errno));
 		return false;
 	}
 
         /* check the autoload path inside plugin path */
-        proxenet_xsnprintf(autoload_path, PATH_MAX-1, "%s/%s", *plugins_path_ptr, CFG_DEFAULT_PLUGINS_AUTOLOAD_PATH);
+        proxenet_xsnprintf(autoload_path, PATH_MAX-1, "%s/%s", *plugins_path_ptr, CFG_DEFAULT_PLUGINS_AUTOLOAD_PATHNAME);
 
         *autoload_path_ptr = realpath(autoload_path, NULL);
 	if (*autoload_path_ptr == NULL){
@@ -268,6 +355,37 @@ bool is_valid_plugin_path(char* plugin_path, char** plugins_path_ptr, char** aut
 	}
 
         return true;
+}
+
+
+/**
+ * Expand the file path, including with ~ or other bash characters.
+ *
+ * @return the absolute file path allocated in heap on success, NULL on failure
+ */
+char* expand_file_path(char* file_path)
+{
+        char *p, *p2;
+        wordexp_t expanded_result;
+
+        /* expand the path for bash character */
+        if (wordexp(file_path, &expanded_result, 0)<0){
+                xlog(LOG_CRITICAL, "wordexp('%s') failed: %s\n", file_path, strerror(errno));
+                return NULL;
+        }
+
+        p = expanded_result.we_wordv[0];
+
+        /* check the plugins path */
+        p2 = realpath(p, NULL);
+        wordfree(&expanded_result);
+
+	if (p2 == NULL){
+		xlog(LOG_CRITICAL, "realpath('%s') failed: %s\n", file_path, strerror(errno));
+		return NULL;
+	}
+
+        return p2;
 }
 
 

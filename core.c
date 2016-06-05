@@ -444,6 +444,8 @@ static int proxenet_apply_plugins(request_t *request)
  */
 void proxenet_process_http_request(sock_t server_socket)
 {
+        unsigned char server_socket_ip[128];
+        int server_socket_port;
         sock_t client_socket;
         request_t req;
         int retcode, n;
@@ -457,6 +459,16 @@ void proxenet_process_http_request(sock_t server_socket)
         client_socket = retcode = n = -1;
         proxenet_xzero(&req, sizeof(request_t));
         proxenet_xzero(&ssl_context, sizeof(ssl_context_t));
+        proxenet_xzero(server_socket_ip, sizeof(server_socket_ip));
+
+        if (get_ip_address_from_fd(server_socket_ip, sizeof(server_socket_ip), server_socket) < 0)
+                return;
+
+        if ((server_socket_port = get_port_from_fd(server_socket)) < 0)
+                return;
+
+        if(cfg->verbose)
+                xlog(LOG_INFO, "Processing new HTTP request on sock=#%d for %s:%d\n", server_socket, server_socket_ip, server_socket_port);
 
         /* wait for any event on sockets */
         while(proxy_state == ACTIVE) {
@@ -509,7 +521,6 @@ void proxenet_process_http_request(sock_t server_socket)
 #endif
 
                         if (n < 0) {
-                                xlog(LOG_ERROR, "%s\n", "read() failed, end thread");
                                 break;
                         }
 
@@ -540,7 +551,7 @@ void proxenet_process_http_request(sock_t server_socket)
 
                                 free_http_infos(&(req.http_infos));
 
-                                if (update_http_infos(&req) < 0){
+                                if (parse_http_request(&req) < 0){
                                         xlog(LOG_ERROR, "Failed to update HTTP information for request %d\n", req.id);
                                         proxenet_xfree( host );
                                         proxenet_xfree( old_req );
@@ -612,13 +623,13 @@ void proxenet_process_http_request(sock_t server_socket)
 
                                 if (is_new_http_connection) {
 
-                                        if (is_ssl) {
+                                        if (req.http_infos.proto_type==HTTPS) {
                                                 /*
                                                  * SSL request fields still have the values gathered in the CONNECT
                                                  * Those values must be updated to reflect the real request
                                                  */
                                                 free_http_infos(&(req.http_infos));
-                                                retcode = update_http_infos(&req);
+                                                retcode = parse_http_request(&req);
                                         } else {
                                                 /*
                                                  * Format requests
@@ -626,7 +637,7 @@ void proxenet_process_http_request(sock_t server_socket)
                                                  * into
                                                  * GET /bar.blah HTTP/1.1 ...
                                                  */
-                                                retcode = format_http_request(&req.data, &req.size);
+                                                retcode = format_http_request(&req);
                                         }
                                 } else {
                                         /* if here, at least 1 request has been to server */
@@ -636,7 +647,7 @@ void proxenet_process_http_request(sock_t server_socket)
                                         xlog(LOG_DEBUG, "Resuming stream '%d'->'%d'\n", client_socket, server_socket);
 #endif
                                         free_http_infos(&(req.http_infos));
-                                        retcode = update_http_infos(&req);
+                                        retcode = parse_http_request(&req);
                                 }
 
                                 if (retcode < 0){
@@ -982,7 +993,7 @@ static void purge_zombies()
 
 
 /**
- *
+ * Kill all the zombies !! Join all zombie threads and consider them as inactive.
  */
 static void kill_zombies()
 {
@@ -1042,6 +1053,34 @@ int get_new_thread_id()
 
 
 /**
+ * Force killing the thread pointed by argument. It does so by sending SIGUSR1 to
+ * the designated thread, forcing it to call pthread_exit().
+ *
+ * @return returns 0; on error, it returns an error number, and no signal is sent.
+ */
+int proxenet_kill_thread(pthread_t tid)
+{
+        int res = -1;
+        int i;
+
+#ifdef DEBUG
+        xlog(LOG_DEBUG, "Forcefully killing thread=%lu\n", tid);
+#endif
+        for (i=0; i < cfg->nb_threads; i++) {
+                if (tid==threads[i]){
+                        res = pthread_kill(tid, SIGUSR1);
+                        if (res==0)
+                                purge_zombies();
+                        return res;
+                }
+        }
+
+        xlog(LOG_ERROR, "Failed to find ThreadId=%lu\n", tid);
+        return -1;
+}
+
+
+/**
  * This function is the main loop for the main thread. It does the following:
  * - prepares the structures, setup the signal handlers and changes the state
  *   of proxenet to active
@@ -1051,7 +1090,7 @@ int get_new_thread_id()
  *   - and starts the new thread with the new fd
  * - listens for incoming events on the control socket
  */
-void xloop(sock_t sock, sock_t ctl_sock)
+void proxenet_xloop(sock_t sock, sock_t ctl_sock)
 {
         fd_set sock_set;
         int retcode;
@@ -1076,6 +1115,7 @@ void xloop(sock_t sock, sock_t ctl_sock)
         sigaddset(&curmask, SIGTERM);
         sigaddset(&curmask, SIGINT);
         sigaddset(&curmask, SIGCHLD);
+        sigaddset(&curmask, SIGUSR1);
         if (pthread_sigmask(SIG_BLOCK, &curmask, &oldmask) < 0) {
                 xlog(LOG_ERROR, "sigprocmask failed : %s\n", strerror(errno));
                 return;
@@ -1083,6 +1123,8 @@ void xloop(sock_t sock, sock_t ctl_sock)
 
         /* proxenet is now running :) */
         proxy_state = ACTIVE;
+
+        main_thread_id = pthread_self();
 
         /* big loop  */
         while (proxy_state != INACTIVE) {
@@ -1222,6 +1264,10 @@ void sighandler(int signum)
 
         switch(signum) {
 
+                case SIGUSR1:
+                        pthread_exit(NULL);
+                        break;
+
                 case SIGTERM:
                 case SIGINT:
 			proxy_state = INACTIVE;
@@ -1255,6 +1301,7 @@ void initialize_sigmask(struct sigaction *saction)
         sigaction(SIGINT,  saction, NULL);
         sigaction(SIGTERM, saction, NULL);
         sigaction(SIGCHLD, saction, NULL);
+        sigaction(SIGUSR1, saction, NULL);
 
         saction->sa_handler = SIG_IGN;
         sigaction(SIGPIPE,  saction, NULL);
@@ -1391,7 +1438,7 @@ int proxenet_start()
         init_global_stats();
 
         /* prepare threads and start looping */
-        xloop(listening_socket, control_socket);
+        proxenet_xloop(listening_socket, control_socket);
 
         end_global_stats();
 

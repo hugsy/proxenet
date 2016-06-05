@@ -14,6 +14,7 @@ browser.
 ``` bash
 $ git clone https://github.com/hugsy/proxenet.git
 $ cd proxenet && cmake . && make
+$ sudo make install setup
 ```
 
 

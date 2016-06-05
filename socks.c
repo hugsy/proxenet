@@ -11,6 +11,8 @@
 #include "utils.h"
 #include "socks.h"
 
+#define xlog_socks(t, ...)  xlog(t, "[SOCKS4] " __VA_ARGS__)
+
 /*
  * SOCKS4(a) support for proxenet
  * Following the specifications from
@@ -45,7 +47,7 @@ static int send_socks4_connect(sock_t socks_fd, char *ip_str, int port)
         /* DSTIP */
         retcode = sscanf(ip_str, "%hhu.%hhu.%hhu.%hhu", &ip[0],&ip[1],&ip[2],&ip[3]);
         if(retcode!=4){
-                xlog(LOG_ERROR, "IP '%s' does not have a valid IPv4 format\n", ip_str);
+                xlog_socks(LOG_ERROR, "IP '%s' does not have a valid IPv4 format\n", ip_str);
                 return -1;
         }
 
@@ -98,7 +100,7 @@ static int send_socks4a_connect(sock_t socks_fd, char *hostname, int port)
         /* HOSTNAME */
         n = strlen(hostname);
         if( (n+len+1) >= sizeof(socks_request)){
-                xlog(LOG_ERROR, "%s\n", "SOCKS4a hostname length too large");
+                xlog_socks(LOG_ERROR, "%s\n", "Hostname length provided is too large.");
                 return -1;
         }
         memcpy(&socks_request[len], hostname, n);
@@ -117,7 +119,7 @@ static int parse_sock4_reponse(sock_t socks_fd)
 
         int retcode = proxenet_read_all(socks_fd, &socks_response, NULL);
         if (retcode < 0){
-                xlog(LOG_ERROR, "sock4 read() failed: %s\n", strerror(errno));
+                xlog_socks(LOG_ERROR, "proxenet_read_all() failed: %s\n", strerror(errno));
                 return -1;
         }
 
@@ -143,6 +145,11 @@ int proxenet_socks_connect(sock_t socks_fd, char *hostname, int port, bool is_so
         int retcode;
         char *ip_str;
 
+#ifdef DEBUG
+        xlog_socks(LOG_DEBUG, "Initiating SOCKS4%s to '%s:%d (sockfd=#%d)'.\n",
+                   is_socks4a?"a":"", hostname, port, socks_fd);
+#endif
+
         if(! is_socks4a){
                 ip_str = proxenet_resolve_hostname(hostname, AF_INET);
                 if(!ip_str)
@@ -155,7 +162,7 @@ int proxenet_socks_connect(sock_t socks_fd, char *hostname, int port, bool is_so
         }
 
         if(retcode < 0){
-                xlog(LOG_ERROR, "[SOCKS4] CONNECT to '%s:%d' failed\n", hostname, port);
+                xlog_socks(LOG_ERROR, "CONNECT to '%s:%d' failed\n", hostname, port);
                 return -1;
         }
 
@@ -163,28 +170,30 @@ int proxenet_socks_connect(sock_t socks_fd, char *hostname, int port, bool is_so
         switch(retcode){
                 case SOCKS_RESPONSE_GRANTED:
 #ifdef DEBUG
-                        xlog(LOG_DEBUG, "[SOCKS4] CONNECT to '%s:%d' success via fd=%d\n",
-                             hostname, port, socks_fd);
+                        xlog_socks(LOG_DEBUG, "CONNECT to '%s:%d' success via fd=#%d.\n",
+                                   hostname, port, socks_fd);
 #endif
                         break;
 
                 case SOCKS_RESPONSE_REJECTED_FAILED:
-                        xlog(LOG_ERROR, "[SOCKS4] %s\n",
-                             "Request rejected or failed");
+                        xlog_socks(LOG_ERROR, "%s\n", "Request rejected or failed.");
                         return -1;
 
                 case SOCKS_RESPONSE_REJECTED_CLIENT_FAILED:
-                        xlog(LOG_ERROR, "[SOCKS4] %s\n",
-                             "Request rejected because SOCKS server cannot connect to identd on the clientRequest rejected or failed");
+                        xlog_socks(LOG_ERROR, "%s\n",
+                                   "Request rejected because SOCKS server cannot connect to "
+                                   " identd on the clientRequest rejected or failed");
                         return -1;
 
                 case SOCKS_RESPONSE_REJECTED_USERID_FAILED:
-                        xlog(LOG_ERROR, "[SOCKS4] %s\n",
-                             "Request rejected because the client program and identd report different user-ids.");
+                        xlog_socks(LOG_ERROR, "[SOCKS4] %s\n",
+                                   "Request rejected because the client program and identd "
+                                   "report different user-ids.");
                         return -1;
 
                 default:
-                        xlog(LOG_ERROR, "[SOCKS4] Request rejected or failed (ret=%#x)\n", retcode);
+                        xlog_socks(LOG_ERROR, "Request rejected or failed (ret=%#x)\n",
+                                   retcode);
                         return -1;
         }
 

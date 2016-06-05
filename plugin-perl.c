@@ -33,18 +33,51 @@ static PerlInterpreter *my_perl;
 
 
 /**
+ * Allocates a buffer with the full function path in the path.
+ * The buffer *must* be free-ed by the caller.
+ */
+static char* proxenet_perl_get_function_path(char *funcname)
+{
+        char *path;
+        char *required  = NULL;
+	char *package_name = NULL;
+	size_t package_len, len = 0;
+        SV* package_sv = NULL;
+
+        /* Get the package name from the package (which should follow the convention...) */
+        package_sv = get_sv("package", 0);
+        if (!SvPOK(package_sv)) {
+                xlog_perl(LOG_ERROR, "Invalid convention for '%s': the package should return a string\n", funcname);
+                return NULL;
+        }
+
+        required = (char*) SvPV_nolen(package_sv);
+        package_len = strlen(required);
+        package_name = (char*) alloca(package_len+1);
+        proxenet_xzero(package_name, package_len+1);
+        memcpy(package_name, required, package_len);
+
+        len = package_len + 2 + strlen(funcname) + 1;
+        path = proxenet_xmalloc(len);
+        proxenet_xsnprintf(path, len, "%s::%s", package_name, funcname);
+
+#ifdef DEBUG
+        xlog_perl(LOG_DEBUG, "Loaded '%s'\n", path);
+#endif
+
+        return path;
+}
+
+
+/**
  *
  */
 int proxenet_perl_load_file(plugin_t* plugin)
 {
-	char *pathname = NULL;
 	SV* sv = NULL;
 	int nb_res = -1;
-	SV* package_sv = NULL;
-	char *required  = NULL;
-	char *package_name = NULL;
-	size_t package_len, len = 0;
-	int ret = -1;
+	int ret = 0;
+        char *pathname;
 
         if(plugin->state != INACTIVE){
 #ifdef DEBUG
@@ -81,47 +114,33 @@ int proxenet_perl_load_file(plugin_t* plugin)
 		xlog_perl(LOG_ERROR, "Eval error for '%s': %s\n", pathname, SvPV_nolen(ERRSV));
 
 	} else {
-		/* Get the package name from the package (which should follow the convention...) */
-		package_sv = get_sv("package", 0);
+                plugin->pre_function = proxenet_perl_get_function_path(CFG_REQUEST_PLUGIN_FUNCTION);
+                if(!plugin->pre_function){
+                        ret = -1;
+                        goto perl_epilog;
+                }
 
-		/* Check if the SV* stores a string */
-		if (!SvPOK(package_sv)) {
-			xlog_perl(LOG_ERROR, "Invalid convention for '%s': the package should return a string\n", pathname);
-		} else {
+                plugin->post_function = proxenet_perl_get_function_path(CFG_RESPONSE_PLUGIN_FUNCTION);
+                if(!plugin->post_function){
+                        ret = -1;
+                        goto perl_epilog;
+                }
 
-			required = (char*) SvPV_nolen(package_sv);
-			package_len = strlen(required);
-			package_name = (char*) alloca(package_len+1);
-			proxenet_xzero(package_name, package_len+1);
-			memcpy(package_name, required, package_len);
+                plugin->onload_function = proxenet_perl_get_function_path(CFG_ONLOAD_PLUGIN_FUNCTION);
+                plugin->onleave_function = proxenet_perl_get_function_path(CFG_ONLEAVE_PLUGIN_FUNCTION);
 
-			/* Save the request function path */
-			len = package_len + 2 + strlen(CFG_REQUEST_PLUGIN_FUNCTION) + 1;
-			plugin->pre_function = proxenet_xmalloc(len);
-			proxenet_xsnprintf(plugin->pre_function, len, "%s::%s",
-                                 package_name, CFG_REQUEST_PLUGIN_FUNCTION);
-#ifdef DEBUG
-                        xlog_perl(LOG_DEBUG, "Loaded '%s'\n", plugin->pre_function);
-#endif
+                if (cfg->verbose > 2)
+                        xlog_perl(LOG_INFO, "Package '%s' loaded\n", plugin->name);
 
-                        /* Save the reponse function path */
-			len = package_len + 2 + strlen(CFG_RESPONSE_PLUGIN_FUNCTION) + 1;
-			plugin->post_function = proxenet_xmalloc(len);
-			proxenet_xsnprintf(plugin->post_function, len, "%s::%s",
-                                 package_name, CFG_RESPONSE_PLUGIN_FUNCTION);
-#ifdef DEBUG
-                        xlog_perl(LOG_DEBUG, "Loaded '%s'\n", plugin->post_function);
-#endif
+                if (plugin->onload_function){
+                        call_pv(plugin->onload_function, G_EVAL);
+                }
 
-                        if (cfg->verbose > 2)
-                                xlog_perl(LOG_INFO, "Package '%s' loaded\n", package_name);
-
-			ret = 0;
-		}
 	}
 
-	SPAGAIN;
+perl_epilog:
 
+	SPAGAIN;
 	PUTBACK;
 	FREETMPS;
 	LEAVE;
@@ -186,9 +205,28 @@ int proxenet_perl_initialize_vm(plugin_t* plugin)
 int proxenet_perl_destroy_plugin(plugin_t* plugin)
 {
         proxenet_plugin_set_state(plugin, INACTIVE);
+
+        if (plugin->onleave_function){
+                dSP;
+                ENTER;
+                SAVETMPS;
+                PUSHMARK(SP);
+                PUTBACK;
+
+                call_pv(plugin->onleave_function, G_EVAL);
+
+                SPAGAIN;
+                PUTBACK;
+                FREETMPS;
+                LEAVE;
+        }
+
         proxenet_xfree(plugin->pre_function);
         proxenet_xfree(plugin->post_function);
-
+        if (plugin->onload_function)
+                proxenet_xfree(plugin->onload_function);
+        if (plugin->onleave_function)
+                proxenet_xfree(plugin->onleave_function);
         return 0;
 }
 

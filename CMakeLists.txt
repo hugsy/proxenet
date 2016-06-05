@@ -64,16 +64,18 @@ option(DEBUG_SSL              "Enable SSL debug"                       OFF)
 option(DEBUG_LEAK             "Enable memleak checks"                  OFF)
 
 if (DEBUG)
+  message("-- Compiling as debug mode")
   set(CMAKE_BUILD_TYPE Debug)
   set(CMAKE_C_FLAGS_DEBUG "-ggdb -DDEBUG -O0")
   set(CMAKE_VERBOSE_MAKEFILE ON)
 
   if(DEBUG_LEAK)
-
-    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG}")
+    message("-- Compiling with sanitizers")
+    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -fsanitize=address")
   endif(DEBUG_LEAK)
 
   if (DEBUG_SSL)
+    message("-- Compiling with SSL debug informations")
     set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -DDEBUG_SSL")
   endif(DEBUG_SSL)
 
@@ -120,17 +122,18 @@ set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 set(EXTRA_LIBS "-lpthread")
 
 
-# check for polarssl (*REQUIRED*)
-find_package(PolarSSL REQUIRED)
-if(POLARSSL_FOUND  AND  POLARSSL_INCLUDE_DIR  AND  POLARSSL_LIBRARIES)
-  add_definitions(-DHAVE_POLARSSL)
-  include_directories(${POLARSSL_INCLUDE_DIR})
-  set(EXTRA_LIBS ${EXTRA_LIBS} ${POLARSSL_LIBRARIES})
-  set(_POLARSSL_VERSION_ ${POLARSSL_VERSION})
-  message("-- PolarSSL ${POLARSSL_VERSION} found!")
+# check for mbedtls (*REQUIRED*)
+find_package(MbedTLS REQUIRED)
+if(MBEDTLS_FOUND  AND  MBEDTLS_INCLUDE_DIR  AND  MBEDTLS_LIBRARIES)
+  add_definitions(-DHAVE_MBEDTLS)
+  include_directories(${MBEDTLS_INCLUDE_DIR})
+  set(EXTRA_LIBS ${EXTRA_LIBS} ${MBEDTLS_LIBRARIES})
+  set(_MBEDTLS_VERSION_ ${MBEDTLS_VERSION})
+  message("-- mbedTLS ${MBEDTLS_VERSION} found!")
 else()
   return()
 endif()
+
 
 # prepare compilation
 set(ALL_FILES ${CORE_FILES})
@@ -276,16 +279,25 @@ target_link_libraries(proxenet ${EXTRA_LIBS} ${CMAKE_LINK_HARDEN})
 
 # install
 set (MANDIR /usr/share/man/man1)
-install (TARGETS proxenet DESTINATION bin)
 
-add_custom_target( setup )
-add_custom_command (TARGET setup
-  POST_BUILD
-  COMMAND bash cmake/setup.sh ${CMAKE_SOURCE_DIR} ${CMAKE_INSTALL_PREFIX} ${MANDIR})
+if(DEBUG)
+  install (TARGETS proxenet DESTINATION bin CONFIGURATIONS Debug)
+else()
+  install (TARGETS proxenet DESTINATION bin CONFIGURATIONS Release)
+endif()
+install (DIRECTORY docs
+  DESTINATION misc
+  PATTERN "*.md" EXCLUDE
+  )
+install (FILES proxenet-control-cli.py proxenet-control-web.py keys/proxenet-setup-ca.sh
+  PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+  DESTINATION misc
+  )
+install (FILES proxenet.1
+  DESTINATION ${MANDIR})
 
 add_custom_target( uninstall )
 add_custom_command (TARGET uninstall
-  POST_BUILD
   COMMAND echo "* Deleting ${PROGNAME} tree"
   COMMAND rm -fr "${CMAKE_INSTALL_PREFIX}" "${MANDIR}/${PROGNAME}.1.gz"
   )
