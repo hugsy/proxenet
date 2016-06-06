@@ -280,11 +280,7 @@ target_link_libraries(proxenet ${EXTRA_LIBS} ${CMAKE_LINK_HARDEN})
 # install
 set (MANDIR /usr/share/man/man1)
 
-if(DEBUG)
-  install (TARGETS proxenet DESTINATION bin CONFIGURATIONS Debug)
-else()
-  install (TARGETS proxenet DESTINATION bin)
-endif()
+install (TARGETS proxenet DESTINATION bin)
 install (DIRECTORY docs
   DESTINATION misc
   PATTERN "*.md" EXCLUDE
