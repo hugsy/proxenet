@@ -3,6 +3,7 @@
 # -*- mode: python -*-
 
 import argparse, socket, datetime, os, json, rlcompleter, readline, pprint
+import logging, sys
 
 
 __author__    =   "hugsy"
@@ -15,27 +16,53 @@ by {2}
 syntax: {3} [options] args
 """.format(__version__, __licence__, __author__, __file__)
 
+FORMAT = '%(asctime)-15s - %(levelname)s - %(message)s'
+logging.basicConfig(level=logging.INFO,format=FORMAT)
+
 # the socket path can be modified in config.h.in
 PROXENET_SOCKET_PATH = "/tmp/proxenet-control-socket"
 
-def now():
-    return datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S")
 
-def _log(p,s):
-    print "[%s] %s: %s" % (p, now(), s)
-    return
+class ProxenetClientCompleter(object):
 
-def ok(msg):
-    return _log('+', msg)
+    def __init__(self, options):
+        self.options = sorted(options)
+        return
 
-def info(msg):
-    return _log('*', msg)
+    def complete(self, text, state):
+        response = None
+        if state == 0:
+            if text:
+                self.matches = [s for s in self.options if s and s.startswith(text)]
+                logging.debug('{:s} matches: {:s}'.format(repr(text), self.matches))
+            else:
+                self.matches = self.options[:]
+                logging.debug('(empty input) matches: {:s}'.format(self.matches))
 
-def warn(msg):
-    return _log('!', msg)
+        try:
+            response = self.matches[state]
+        except IndexError:
+            response = None
 
-def err(msg):
-    return _log('-', msg)
+        return response
+
+
+def connect(sock_path):
+    if not os.path.exists(sock_path):
+        logging.critical("Socket does not exist.")
+        logging.error("Is proxenet started?")
+        return None
+
+    try:
+        sock = socket.socket( socket.AF_UNIX, socket.SOCK_STREAM )
+        sock.settimeout(5)
+        sock.connect(sock_path)
+    except socket.error as se:
+        logging.error("Failed to connect: %s" % se)
+        return None
+
+    logging.info("Connected")
+    return sock
 
 
 def recv_until(sock, pattern=">>> "):
@@ -47,30 +74,21 @@ def recv_until(sock, pattern=">>> "):
     return data
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(usage = __usage__,
-                                     description = __desc__)
+def list_commands(sock):
+    banner = recv_until(sock)
+    sock.send("help\n")
+    res = recv_until(sock)
+    data, prompt = res[:-4], res[-4:]
+    js = json.loads( data )
+    cmds = js["Command list"].keys()
+    sock.send("\n")
+    return cmds
 
-    parser.add_argument("-v", "--verbose", default=False,
-                        action="store_true", dest="verbose",
-                        help="increments verbosity")
 
-    args = parser.parse_args()
+def input_loop(cli):
+    if not cli:
+        return
 
-    if not os.path.exists(PROXENET_SOCKET_PATH):
-        err("Socket does not exist.")
-        warn("Is proxenet started?")
-        exit(1)
-
-    try:
-        cli = socket.socket( socket.AF_UNIX, socket.SOCK_STREAM )
-        cli.settimeout(5)
-        cli.connect(PROXENET_SOCKET_PATH)
-    except socket.error as se:
-        err("Failed to connect: %s" % se)
-        exit(1)
-
-    info("Connected")
     do_loop = True
 
     try:
@@ -97,10 +115,37 @@ if __name__ == "__main__":
                 do_loop = False
 
     except KeyboardInterrupt:
-        info("Exiting client")
+        logging.info("Exiting client")
     except EOFError:
-        info("End of stream")
+        logging.info("End of stream")
     except Exception as e:
-        err("Unexpected exception: %s" % e)
+        logging.error("Unexpected exception: %s" % e)
     finally:
         cli.close()
+
+    return
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(usage = __usage__,
+                                     description = __desc__)
+
+    parser.add_argument("-v", "--verbose", default=False,
+                        action="store_true", dest="verbose",
+                        help="increments verbosity")
+
+    parser.add_argument("-s", "--socket-path", default=PROXENET_SOCKET_PATH, dest="sock_path",
+                        help="path to proxenet control Unix socket")
+
+    args = parser.parse_args()
+
+    sock = connect(args.sock_path)
+    if sock is None:
+        sys.exit(1)
+
+    command_list = list_commands(sock)
+    logging.info("Loaded %d commands" % len(command_list))
+    readline.parse_and_bind("tab: complete")
+    readline.set_completer(ProxenetClientCompleter(command_list).complete)
+    input_loop(sock)
+    sys.exit(0)
