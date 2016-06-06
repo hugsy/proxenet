@@ -128,6 +128,37 @@ $ mkdir -p ~/.proxenet/keys && cd ~/.proxenet/keys &&
 .I proxenet
 is now ready to be used.
 
+.SH COMMAND INTERFACES
+.I proxenet
+can be controlled via a command line interface, or a web interface. Both tools
+can be found in the misc/ directory (by default, /opt/proxenet/misc).
+
+The command line tool will directly communicate with
+.I proxenet
+Unix socket automatically created when it starts.
+
+$  /opt/proxenet/misc/proxenet-control-cli.py
+ [*] 2016/06/06 10:16:41: Connected
+ Welcome on proxenet control interface
+ Type `help` to list available commands
+
+>>> help
+Command list
+    info -> Command 'info':Display information about environment
+    quit -> Command 'quit':Make proxenet leave kindly
+    help -> Command 'help':Show this menu
+    plugin -> Command 'plugin':Get/Set info about plugin
+
+>>> plugin load 1RemoveAcceptEncodingHeader.py
+ Plugin '1RemoveAcceptEncodingHeader.py' successfully added
+
+.I proxenet
+web interface tool will spawn a web server binding by default on
+localhost:8009/tcp and allow you to control it directly from your web
+browser. The web server is based on `bottle` Python package so make sure it is
+installed.
+
+
 .SH PLUGINS
 .I proxenet
 was purposely made to be extremely extensible, and as such, it is easy

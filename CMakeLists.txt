@@ -298,6 +298,7 @@ install (FILES proxenet.1
 
 add_custom_target( uninstall )
 add_custom_command (TARGET uninstall
-  COMMAND echo "* Deleting ${PROGNAME} tree"
-  COMMAND rm -fr "${CMAKE_INSTALL_PREFIX}" "${MANDIR}/${PROGNAME}.1.gz"
+  POST_BUILD
+  COMMAND @echo "* Deleting ${PROGNAME} tree"
+  COMMAND @rm -fr "${CMAKE_INSTALL_PREFIX}" "${MANDIR}/${PROGNAME}.1.gz"
   )
