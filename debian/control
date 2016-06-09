@@ -1,0 +1,37 @@
+Source: proxenet  
+Maintainer: hugsy <hugsy@blah.cat>
+Homepage: https://github.com/hugsy/proxenet
+Standards-Version: 3.9.3
+Section: net
+Priority: optional
+Architecture: any
+Build-Depends:
+    debhelper (>= 8.0.0),
+    cmake, pkg-config,
+    debhelper (>= 9),
+    dh-exec,
+    cmake, pkg-config,
+    python-dev, libpython2.7-dev,
+    libruby2.3, ruby-dev,
+    libperl-dev,
+    liblua5.1-0-dev,
+    tcl8.6-dev,
+    openjdk-8-jre-headless,
+    libmbedtls-dev (>= 2.2.0)
+
+Package: proxenet
+Architecture: amd64
+Depends: ${shlibs:Depends}, ${misc:Depends}  
+Description: Lightweight, fast, hacker-friendly proxy tool for penetration tests
+ Plugin driven proxy for web application penetration tests, or Man-In-The-Middle attacks.
+ proxenet is a multi-threaded proxy which allows you to manipulate HTTP requests and responses
+ using your favorite scripting language (currently supports Python, Ruby, Java, Tcl, Lua, Perl).
+
+Package: proxenet-dbg
+Section: debug
+Priority: extra
+Architecture: amd64
+Depends: ${misc:Depends}, proxenet (= ${binary:Version}) 
+Description: The debug information for proxenet package
+ This package contains GDB debugging symbols for the proxenet packages.
+

@@ -242,7 +242,7 @@ endif(USE_JAVA_PLUGIN)
 # generate config file
 add_definitions(-DHAVE_CONFIG_H)
 configure_file ("config.h.in" "config.h")
-include_directories (".")
+include_directories("." "..")
 
 
 # wrap-up message

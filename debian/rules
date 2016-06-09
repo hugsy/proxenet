@@ -1,0 +1,26 @@
+#!/usr/bin/make -f  
+
+BUILDDIR = .
+
+$(BUILDDIR)/Makefile:
+	cmake . \
+		-DDEBUG=ON \
+		-DUSE_C_PLUGIN=ON \
+		-DUSE_PYTHON_PLUGIN=ON \
+		-DUSE_JAVA_PLUGIN=ON \
+		-DUSE_PERL_PLUGIN=ON \
+		-DUSE_LUA_PLUGIN=ON \
+		-DUSE_RUBY_PLUGIN=ON
+
+override_dh_auto_build: $(BUILDDIR)/Makefile
+	dh_auto_build
+
+override_dh_auto_configure:
+	echo
+
+override_dh_strip:
+	dh_strip --dbg-package=proxenet-dbg
+
+%:
+	dh $@ --parallel --builddirectory=$(BUILDDIR)
+
