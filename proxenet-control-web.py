@@ -369,7 +369,7 @@ def plugin():
             html += """<input type="checkbox" onclick="window.location='/plugin/load/{}'"/>""".format(k)
         html += "</td>"
         html += "<td>"
-        fpath = os.path.abspath(PROXENET_ROOT + "/proxenet-plugins/autoload/" + k)
+        fpath = os.path.abspath(PROXENET_AUTOLOAD_DIR + "/" + k)
 
         if os.path.islink(fpath):
             html += """<button type="button" class="btn btn-default btn-xs" data-toggle="button" aria-pressed="true" disabled='true'">Added</button>"""
@@ -449,7 +449,7 @@ def plugin_view(fname):
     if not is_proxenet_running():
         return build_html(body=not_running_html())
     fname = cgi.escape(fname)
-    fpath = os.path.realpath(PROXENET_ROOT + "/proxenet-plugins/" + fname)
+    fpath = os.path.realpath(PROXENET_PLUGINS_DIR + "/" + fname)
     if not os.path.isfile(fpath):
         return build_html(body=error("""<b>{}</b> is not a valid plugin""".format(fname)))
 
