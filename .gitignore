@@ -35,3 +35,4 @@ keys/certs
 proxenet-plugins
 keys/proxenet.p12
 keys/proxenet.p7b
+install_manifest.txt
