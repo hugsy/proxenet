@@ -6,5 +6,3 @@ endif()
 if(LUA_LIBRARIES)
   find_library(LUA_LIBRARY NAMES ${LUA_LIBRARIES})
 endif()
-
-message("${LUA_LIBRARY}  ${LUA_LIRBARIES}")
