@@ -106,6 +106,8 @@ utils.c utils.h
 plugin.c plugin.h
 )
 
+set(EXTRA_LIBS "")
+
 # adding OS specific info
 if( ${CMAKE_SYSTEM_NAME} MATCHES "Linux" )
   add_definitions(-D__LINUX__)
@@ -113,13 +115,14 @@ elseif( ${CMAKE_SYSTEM_NAME} MATCHES "Darwin" )
   add_definitions(-D__DARWIN__)
 elseif( ${CMAKE_SYSTEM_NAME} MATCHES "FreeBSD" )
   add_definitions(-D__FREESBD__)
+  set(EXTRA_LIBS ${EXTRA_LIBS} "-lthr -lm -lutil")
 endif()
 
 # adding cmake directory
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
 # additional link libs
-set(EXTRA_LIBS "-lpthread")
+set(EXTRA_LIBS ${EXTRA_LIBS} "-lpthread")
 
 
 # check for mbedtls (*REQUIRED*)
