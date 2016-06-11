@@ -17,6 +17,7 @@ $ cd proxenet && cmake . && make
 $ sudo make install
 ```
 
+### Status
 
 | Branch | Build status | Documentation |
 | ------ |:------------:| -------------:|
