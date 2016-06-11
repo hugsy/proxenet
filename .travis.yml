@@ -9,13 +9,15 @@ matrix:
       - os: linux
         dist: trusty
         sudo: required
-        compiler:
-            - clang
-            - gcc
-
-      - os: osx
-        osx_image: xcode7.3
         compiler: clang
+        
+    - os: linux
+        dist: trusty
+        sudo: required
+        compiler: gcc
+        
+    - os: osx
+        osx_image: xcode7.3
 
     allow_failures:
       - os: osx
