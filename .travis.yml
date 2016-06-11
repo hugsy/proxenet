@@ -6,18 +6,18 @@ os:
 
 matrix:
     include:
-    - os: linux
-        dist: trusty
-        sudo: required
-        compiler: clang
+        - os: linux
+          dist: trusty
+          sudo: required
+          compiler: clang
         
-    - os: linux
-        dist: trusty
-        sudo: required
-        compiler: gcc
+        - os: linux
+          dist: trusty
+          sudo: required
+          compiler: gcc
         
-    - os: osx
-        osx_image: xcode7.3
+        - os: osx
+          osx_image: xcode7.3
 
 
 addons:
