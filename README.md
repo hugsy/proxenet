@@ -14,7 +14,7 @@ browser.
 ``` bash
 $ git clone https://github.com/hugsy/proxenet.git
 $ cd proxenet && cmake . && make
-$ sudo make install setup
+$ sudo make install
 ```
 
 
@@ -24,9 +24,4 @@ $ sudo make install setup
 | Dev | [![Continuous Integration status (dev)](https://secure.travis-ci.org/hugsy/proxenet.png?branch=dev)](https://travis-ci.org/hugsy/proxenet?branch=dev) | [![Documentation Status (dev)](https://readthedocs.org/projects/proxenet/badge/?version=dev)](https://proxenet.readthedocs.org/en/dev/)  |
 
 ### Authors
-`proxenet` was developed by [hugsy](https://github.com/hugsy) with contributions
-from
-
-- [Aorimn](https://github.com/Aorimn)
-- [thorgul](https://github.com/thorgul)
-- [lukejahnke](https://github.com/lukejahnke)
+`proxenet` was developed by [hugsy](https://github.com/hugsy) with the help of the following [contributors(https://github.com/hugsy/proxenet/graphs/contributors).
