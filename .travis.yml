@@ -38,8 +38,7 @@ before_script:
 # - gem install package_cloud
 
 script:
-- cmake . -DDEBUG=on   && make && make clean
-- cmake . -DDEBUG=off  && make && sudo make install
+- cmake . -DDEBUG=on  && make && sudo make install
 
 after_script:
 - /opt/proxenet/bin/proxenet --help
