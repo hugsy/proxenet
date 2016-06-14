@@ -133,6 +133,8 @@ static int ca_generate_csr(mbedtls_ctr_drbg_context *ctr_drbg, char* hostname, u
 
         /* set the key */
         mbedtls_pk_init( &key );
+        xlog(LOG_DEBUG, "cert=%s pwd=%s\n", cfg->certskey, cfg->certskey_pwd);
+
         retcode = mbedtls_pk_parse_keyfile(&key, cfg->certskey, cfg->certskey_pwd);
         if(retcode < 0) {
                 xlog(LOG_ERROR, "pk_parse_keyfile() returned %#x\n", retcode);
@@ -422,62 +424,45 @@ exit:
 int proxenet_lookup_crt(char* hostname, char** crtpath)
 {
         int retcode, n;
-        char buf[PATH_MAX];
+        char path[PATH_MAX];
         char *crt_realpath;
 
-        n = proxenet_xsnprintf(buf, PATH_MAX, "%s/%s.crt", cfg->certsdir, hostname);
+        n = proxenet_xsnprintf(path, PATH_MAX, "%s/%s.crt", cfg->certsdir, hostname);
         if (n<0){
                 *crtpath = NULL;
                 return -1;
         }
 
 #ifdef DEBUG
-        xlog(LOG_DEBUG, "Solving '%s'\n", buf);
+        xlog(LOG_DEBUG, "Solving '%s'\n", path);
 #endif
-        crt_realpath = realpath(buf, NULL);
-        if (crt_realpath) {
+
+        crt_realpath = proxenet_xstrdup2(path);
+
+
+        /* Was the certificate already generated? */
+        if (is_readable_file(crt_realpath)){
 #ifdef DEBUG
-                xlog(LOG_DEBUG, "realpath() found CRT at '%s'\n", crt_realpath);
-#endif
-                if (!is_readable_file(crt_realpath)){
-                        xlog(LOG_ERROR, "'%s' exists but is not readable\n", crt_realpath);
-                        *crtpath = NULL;
-                        return -1;
-                }
-#ifdef DEBUG
-                xlog(LOG_DEBUG, "Hit cache for CRT '%s'\n", crt_realpath);
+                xlog(LOG_DEBUG, "Certificate hit: hostname='%s' path='%s'\n", hostname, crt_realpath);
 #endif
                 *crtpath = crt_realpath;
                 return 0;
         }
 
-
-        /* if here, realpath() failed, check the errno */
-        switch(errno){
-                case ENOENT:
-                        if (cfg->verbose)
-                                xlog(LOG_INFO, "Could not find CRT for '%s'. Generating...\n", hostname);
-                        crt_realpath = proxenet_xstrdup2(buf);
-                        break;
-
-                default:
-                        xlog(LOG_ERROR, "realpath() failed for '%s': %s\n", buf, strerror(errno));
-                        *crtpath = NULL;
-                        return -1;
-        }
+        /* if not, the certificate will be generated here after */
 
         /* critical section to avoid race conditions on crt creation */
 #ifdef DEBUG
-        xlog(LOG_DEBUG, "Getting crt create lock at %p\n", &certificate_mutex);
+        xlog(LOG_DEBUG, "Acquiring cert_lock at %p\n", &certificate_mutex);
 #endif
         pthread_mutex_lock(&certificate_mutex);
 
-        /**
-         * To avoid TOC-TOU race, we check another time if CRT can be found
-         */
+
+        /* To avoid TOC-TOU race, we need to re-check time if the certificate path */
+
         if (is_readable_file(crt_realpath)){
 #ifdef DEBUG
-                xlog(LOG_DEBUG, "'%s' cache hit (second check)\n", crt_realpath);
+                xlog(LOG_DEBUG, "Certificate hit (second check): hostname='%s' path='%s'\n", hostname, crt_realpath);
 #endif
                 *crtpath = crt_realpath;
                 pthread_mutex_unlock(&certificate_mutex);
@@ -498,7 +483,7 @@ int proxenet_lookup_crt(char* hostname, char** crtpath)
         pthread_mutex_unlock(&certificate_mutex);
 
 #ifdef DEBUG
-        xlog(LOG_DEBUG, "'%s' created\n", *crtpath);
+        xlog(LOG_DEBUG, "Certificate created: hostname='%s' path='%s'\n", hostname, crt_realpath);
 #endif
         /* end of critical section */
 

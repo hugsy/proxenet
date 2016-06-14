@@ -343,15 +343,17 @@ int parse_http_request(request_t *req)
                  * - the connection uses HTTPS
                  * - the client tries to upgrade to WebSocket/Secure WebSocket
                  */
-                char *ptr2 = get_header_by_name(buf, "Upgrade:");
-
-                if (strcmp(ptr, "WebSocket")==0){
-                        xlog(LOG_INFO, "%s\n", "Upgrading to WebSocket");
-                        req->http_infos.proto_type = WS;
-                        req->is_ssl = false;
-                        req->http_infos.proto = WS_STRING;
-                        req->http_infos.port = HTTP_DEFAULT_PORT;
-                        req->http_infos.proto_type = WS;
+                char *upgrade_header = get_header_by_name(buf, "Upgrade:");
+                if (upgrade_header){
+                        if (strcmp(upgrade_header, "WebSocket")==0){
+                                xlog(LOG_INFO, "%s\n", "Upgrading to WebSocket");
+                                req->http_infos.proto_type = WS;
+                                req->is_ssl = false;
+                                req->http_infos.proto = WS_STRING;
+                                req->http_infos.port = HTTP_DEFAULT_PORT;
+                                req->http_infos.proto_type = WS;
+                        }
+                        proxenet_xfree(upgrade_header);
                 } else {
                         req->is_ssl = true;
                         req->http_infos.proto = HTTPS_STRING;
@@ -359,7 +361,6 @@ int parse_http_request(request_t *req)
                         req->http_infos.proto_type = HTTPS;
                 }
 
-                proxenet_xfree(ptr2);
                 offset = ptr - buf + 1;
 
                 if( get_hostname_from_uri(req, offset) < 0 ){

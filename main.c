@@ -190,7 +190,7 @@ static void help()
  * - ensuring result is read accessible
  *
  * @param param is the parameter to validate
- * @return the real (no symlink) full path of the file it is valid
+ * @return the real (no symlink) full path of the file it is valid. The result *MUST* be free-ed by caller.
  * @return NULL in any other case
  */
 static char* cfg_get_valid_file(char* path)
@@ -404,11 +404,23 @@ static int parse_options (int argc, char** argv)
         xlog(LOG_DEBUG, "Valid plugin tree for '%s' and '%s'\n", cfg->plugins_path, cfg->autoload_path);
 #endif
 
+        /* check the certificate directory */
+        cfg->certsdir = expand_file_path(cfg->certsdir);
+        if(!cfg->certsdir || is_dir(cfg->certsdir)==false){
+                xlog(LOG_CRITICAL, "Invalid parameter for certificate_directory: %s\n", cfg->certsdir);
+                return -1;
+        }
+
+
         /* validate proxenet SSL configuration for interception */
         /* check ssl certificate */
         cfg->cafile = cfg_get_valid_file(certfile);
         if (!cfg->cafile)
                 return -1;
+        cfg->certskey = cfg_get_valid_file(cfg->certskey);
+        if (!cfg->certskey)
+                return -1;
+
         /* check ssl key */
         cfg->keyfile = cfg_get_valid_file(keyfile);
         if (!cfg->cafile)
@@ -417,6 +429,7 @@ static int parse_options (int argc, char** argv)
         cfg->keyfile_pwd = proxenet_xstrdup2(keyfile_pwd);
         if (!cfg->keyfile_pwd)
                 return -1;
+
 
         /* validate proxenet client certificate paramaters */
         /* check ssl client certificate if provided */
@@ -519,6 +532,9 @@ void proxenet_free_config()
                 proxenet_xfree(cfg->autoload_path);
         }
 
+        if (cfg->certsdir)
+                proxenet_xfree(cfg->certsdir);
+
         if (cfg->cafile)
                 proxenet_xfree(cfg->cafile);
 
@@ -534,6 +550,9 @@ void proxenet_free_config()
                 proxenet_xfree(cfg->proxy.host);
                 proxenet_xfree(cfg->proxy.port);
         }
+
+        if (cfg->certskey)
+                proxenet_xfree(cfg->certskey);
 
         return;
 }

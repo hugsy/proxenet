@@ -389,6 +389,7 @@ char* expand_file_path(char* file_path)
 }
 
 
+
 /**
  * Check if the argument provided is a regular file
  *
@@ -423,6 +424,19 @@ bool is_readable_file(char* path)
 bool is_writable_file(char* path)
 {
 	return is_file(path) && access(path, W_OK)==0;
+}
+
+
+/**
+ * Check if the argument provided is a regular file
+ *
+ * @param path to the file to check
+ * @return true is it's a regular, false otherwise
+ */
+bool is_dir(char* path)
+{
+	struct stat buf;
+	return (stat(path, &buf) || !S_ISDIR(buf.st_mode)) ?  false : true;
 }
 
 
