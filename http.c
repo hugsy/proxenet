@@ -263,7 +263,7 @@ int format_http_request(request_t* req)
                         break;
 
                 case HTTPS:
-                        ptr = strstr(*request, HTTP_PROTO_STRING);
+                        ptr = strstr(*request, HTTPS_PROTO_STRING);
                         offlen = sizeof(HTTPS_PROTO_STRING)-1;
                         break;
 
@@ -335,6 +335,8 @@ int parse_http_request(request_t *req)
         }
 
         *ptr = c;
+
+        req->http_infos.proto_type = HTTP;
         if (!strcmp(req->http_infos.method, "CONNECT")){
                 /*
                  * We can receive a CONNECT if
@@ -349,13 +351,15 @@ int parse_http_request(request_t *req)
                         req->is_ssl = false;
                         req->http_infos.proto = WS_STRING;
                         req->http_infos.port = HTTP_DEFAULT_PORT;
-                        proxenet_xfree(ptr2);
+                        req->http_infos.proto_type = WS;
                 } else {
                         req->is_ssl = true;
                         req->http_infos.proto = HTTPS_STRING;
                         req->http_infos.port = HTTPS_DEFAULT_PORT;
+                        req->http_infos.proto_type = HTTPS;
                 }
 
+                proxenet_xfree(ptr2);
                 offset = ptr - buf + 1;
 
                 if( get_hostname_from_uri(req, offset) < 0 ){
