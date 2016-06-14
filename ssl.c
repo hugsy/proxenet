@@ -47,7 +47,7 @@ static char errbuf[4096] = {0, };
 /**
  *
  */
-static void proxenet_ssl_debug(void *who, int level, const char *str )
+static void proxenet_ssl_debug( void *who, int level, const char *file, int line, const char *str)
 {
         size_t l = strlen(str);
         size_t k = strlen(errbuf);
@@ -55,7 +55,7 @@ static void proxenet_ssl_debug(void *who, int level, const char *str )
         strncpy(errbuf+k, str, l);
 
         if (str[l-1] == '\n') {
-                xlog(LOG_DEBUG, "%s[%d] - %s", (char*)who, level, errbuf);
+                xlog(LOG_DEBUG, "%s[%d] - File:%s+%d - %s", (char*)who, level, file, line, errbuf);
                 proxenet_xzero(errbuf, 2048);
         }
 }
@@ -145,7 +145,7 @@ static int ssl_init_context(ssl_atom_t* ssl_atom, int type, char* hostname)
 #endif
 #ifdef DEBUG_SSL
                 proxenet_xzero(errbuf, sizeof(errbuf));
-                retcode = x509_crt_info( errbuf, sizeof(errbuf)-1, "\t", &(ssl_atom->cert) );
+                retcode = mbedtls_x509_crt_info( errbuf, sizeof(errbuf)-1, "\t", &(ssl_atom->cert) );
                 if(retcode < 0){
                         xlog(LOG_DEBUG, "Failed to get %s certificate information : %d\n", type_str, retcode);
                 } else {
@@ -207,7 +207,7 @@ static int ssl_init_context(ssl_atom_t* ssl_atom, int type, char* hostname)
 
 
 #ifdef DEBUG_SSL
-        mbedtls_ssl_conf_dbg(context, proxenet_ssl_debug, stderr);
+        mbedtls_ssl_conf_dbg(conf, proxenet_ssl_debug, stderr);
 #endif
 
         ssl_atom->is_valid = true;
@@ -321,31 +321,31 @@ int proxenet_ssl_handshake(proxenet_ssl_context_t* ctx)
                 /* check certificate */
                 proxenet_xzero(errbuf, sizeof(errbuf));
                 strncat(errbuf, "Verify X509 cert: ", sizeof(errbuf)-strlen(errbuf)-1);
-                ret = ssl_get_verify_result( ctx );
+                ret = mbedtls_ssl_get_verify_result( ctx );
                 if( ret != 0 ) {
                         proxenet_xsnprintf(errbuf+strlen(errbuf), sizeof(errbuf)-strlen(errbuf)-1, RED"failed"NOCOLOR" [%d]\n", ret);
-                        if( ret & BADCERT_EXPIRED )
+                        if( ret & MBEDTLS_X509_BADCERT_EXPIRED )
                                 strncat(errbuf, RED"\t[-]"NOCOLOR" certificate expired\n", sizeof(errbuf)-strlen(errbuf)-1);
-                        if( ret & BADCERT_REVOKED )
+                        if( ret & MBEDTLS_X509_BADCERT_REVOKED )
                                 strncat(errbuf, RED"\t[-]"NOCOLOR" certificate revoked\n", sizeof(errbuf)-strlen(errbuf)-1);
-                        if( ret & BADCERT_CN_MISMATCH )
+                        if( ret & MBEDTLS_X509_BADCERT_CN_MISMATCH )
                                 strncat(errbuf, RED"\t[-]"NOCOLOR" CN mismatch\n", sizeof(errbuf)-strlen(errbuf)-1);
-                        if( ret & BADCERT_NOT_TRUSTED )
+                        if( ret & MBEDTLS_X509_BADCERT_NOT_TRUSTED )
                                 strncat(errbuf, RED"\t[-]"NOCOLOR" self-signed or not signed by a trusted CA\n", sizeof(errbuf)-strlen(errbuf)-1);
-                        if( ret & BADCERT_MISSING )
+                        if( ret & MBEDTLS_X509_BADCERT_MISSING )
                                 strncat(errbuf, RED"\t[-]"NOCOLOR" certificate missing\n", sizeof(errbuf)-strlen(errbuf)-1);
-                        if( ret & BADCERT_SKIP_VERIFY )
+                        if( ret & MBEDTLS_X509_BADCERT_SKIP_VERIFY )
                                 strncat(errbuf, RED"\t[-]"NOCOLOR" certificate check is skipped\n", sizeof(errbuf)-strlen(errbuf)-1);
-                        if( ret & BADCERT_OTHER )
+                        if( ret & MBEDTLS_X509_BADCERT_OTHER )
                                 strncat(errbuf, RED"\t[-]"NOCOLOR" other reason\n", sizeof(errbuf)-strlen(errbuf)-1);
-                        if( ret & BADCERT_FUTURE )
+                        if( ret & MBEDTLS_X509_BADCERT_FUTURE )
                                 strncat(errbuf, RED"\t[-]"NOCOLOR" certificate validity is in the future\n", sizeof(errbuf)-strlen(errbuf)-1);
 
-                        if( ret & BADCRL_EXPIRED )
+                        if( ret & MBEDTLS_X509_BADCRL_EXPIRED )
                                 strncat(errbuf, RED"\t[-]"NOCOLOR" CRL expired\n", sizeof(errbuf)-strlen(errbuf)-1);
-                        if( ret & BADCRL_NOT_TRUSTED )
+                        if( ret & MBEDTLS_X509_BADCRL_NOT_TRUSTED )
                                 strncat(errbuf, RED"\t[-]"NOCOLOR" CRL is not correctly signed by trusted CA\n", sizeof(errbuf)-strlen(errbuf)-1);
-                        if( ret & BADCRL_FUTURE )
+                        if( ret & MBEDTLS_X509_BADCRL_FUTURE )
                                 strncat(errbuf, RED"\t[-]"NOCOLOR" CRL validity is in the future\n", sizeof(errbuf)-strlen(errbuf)-1);
 
                 } else {

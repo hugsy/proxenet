@@ -50,7 +50,7 @@ int proxenet_lua_load_file(plugin_t* plugin)
 	}
 
         lua_getglobal(lua_interpreter, CFG_ONLOAD_PLUGIN_FUNCTION);
-	lua_call(lua_interpreter, 0, 0);
+        lua_call(lua_interpreter, 0, 0);
 
 	return 0;
 }
@@ -93,7 +93,7 @@ int proxenet_lua_destroy_plugin(plugin_t* plugin)
         proxenet_plugin_set_state(plugin, INACTIVE);
 
         lua_getglobal(lua_interpreter, CFG_ONLEAVE_PLUGIN_FUNCTION);
-	lua_call(lua_interpreter, 0, 0);
+        lua_call(lua_interpreter, 0, 0);
 
         plugin->pre_function = NULL;
         plugin->post_function = NULL;
