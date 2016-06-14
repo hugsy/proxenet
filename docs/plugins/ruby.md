@@ -13,7 +13,15 @@ module MyPlugin
     $PLUGIN_NAME = ""
 
     module_function
-    
+
+    def proxenet_on_load()
+        return
+    end
+
+    def proxenet_on_leave()
+        return
+    end
+
     def proxenet_request_hook(request_id, request, uri)
         return request
     end
@@ -40,7 +48,15 @@ module AddHeader
     $PLUGIN_NAME = "AddHeader"
 
     module_function
-    
+
+    def proxenet_on_load()
+        return
+    end
+
+    def proxenet_on_leave()
+        return
+    end
+
     def proxenet_request_hook(request_id, request, uri)
         @CRLF = "\r\n"
         @header = "X-Powered-By: ruby-proxenet"

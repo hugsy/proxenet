@@ -9,6 +9,14 @@ This page will explain how to write a Tcl plugin for `proxenet`.
 AUTHOR = ""
 PLUGIN_NAME = ""
 
+proc proxenet_on_load {} {
+    return
+}
+
+proc proxenet_on_leave {} {
+    return
+}
+
 proc proxenet_request_hook {request_id request uri} {
     return $request
 }
@@ -26,6 +34,14 @@ proc proxenet_response_hook {response_id response uri} {
 ```tcl
 AUTHOR = "hugsy"
 PLUGIN_NAME = "AddHeader"
+
+proc proxenet_on_load {} {
+    return
+}
+
+proc proxenet_on_leave {} {
+    return
+}
 
 proc proxenet_request_hook {request_id request uri} {
     regsub -all "\r\n\r\n" $request "\r\nX-Powered-By: tcl-proxenet\r\n\r\n" request

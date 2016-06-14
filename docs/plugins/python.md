@@ -10,6 +10,11 @@ This page will explain how to write a Python plugin for `proxenet`.
 AUTHOR = ""
 PLUGIN_NAME = ""
 
+def proxenet_on_load():
+    return request
+
+def proxenet_on_leave():
+    return
 
 def proxenet_request_hook(request_id, request, uri):
     return request
@@ -30,6 +35,11 @@ if __name__ == "__main__":
 AUTHOR = "hugsy"
 PLUGIN_NAME = "AddHeader"
 
+def proxenet_on_load():
+    return request
+
+def proxenet_on_leave():
+    return
 
 def proxenet_request_hook(request_id, request, uri):
     header = "X-Powered-By: python-proxenet"

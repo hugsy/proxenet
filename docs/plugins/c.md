@@ -20,6 +20,16 @@ c_plugin_info_t MyPlugin = {
 };
 
 
+int proxenet_request_on_load()
+{
+    return 0;
+}
+
+int proxenet_request_on_leave()
+{
+    return 0;
+}
+
 char* proxenet_request_hook(unsigned long request_id, char *request, char* uri, size_t* buflen)
 {
 	return request;
@@ -70,6 +80,17 @@ c_plugin_info_t MyPlugin = {
     .AUTHOR = "hugsy",
     .PLUGIN_NAME = "AddHeader"
 };
+
+
+int proxenet_request_on_load()
+{
+    return 0;
+}
+
+int proxenet_request_on_leave()
+{
+    return 0;
+}
 
 
 char* proxenet_request_hook(unsigned long request_id, char *request, char* uri, size_t* buflen)

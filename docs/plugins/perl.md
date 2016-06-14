@@ -11,6 +11,14 @@ package MyPlugin;
 our $AUTHOR = "";
 our $PLUGIN_NAME = "";
 
+sub proxenet_on_load {
+    return;
+}
+
+sub proxenet_on_leave {
+    return;
+}
+
 sub proxenet_request_hook {
     my ($request_id, $request, $uri) = @_;
     return $request;
@@ -36,6 +44,14 @@ package AddHeader;
 
 our $AUTHOR = "hugsy";
 our $PLUGIN_NAME = "AddHeader";
+
+sub proxenet_on_load {
+    return;
+}
+
+sub proxenet_on_leave {
+    return;
+}
 
 sub proxenet_request_hook {
     my ($rid, $req, $uri) = @_;

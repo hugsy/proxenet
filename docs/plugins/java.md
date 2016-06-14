@@ -13,6 +13,13 @@ public class MyPlugin
     public static String AUTHOR = "";
     public static String PLUGIN_NAME = "";
 
+    public void proxenet_on_load(){
+        return;
+    }
+
+    public void proxenet_on_leave(){
+        return;
+    }
 
     public static byte[] proxenet_request_hook(int request_id, byte[] request, String uri){
         return request;
@@ -46,6 +53,13 @@ public class AddHeader
     public static String AUTHOR = "hugsy";
     public static String PLUGIN_NAME = "AddHeader";
 
+    public void proxenet_on_load(){
+        return;
+    }
+
+    public void proxenet_on_leave(){
+        return;
+    }
 
     public static byte[] proxenet_request_hook(int request_id, byte[] request, String uri){
         String myReq = new String( request );
