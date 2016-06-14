@@ -415,6 +415,18 @@ bool is_readable_file(char* path)
 
 
 /**
+ * Check if the argument provided is a (regular) file and is writable by user calling
+ *
+ * @param path to the file to check
+ * @return true is it's a regular and is writable, false otherwise
+ */
+bool is_writable_file(char* path)
+{
+	return is_file(path) && access(path, W_OK)==0;
+}
+
+
+/**
  * Prints a hexdump like version the buffer pointed by argument
  *
  * @param buf is a pointer to dump memory from

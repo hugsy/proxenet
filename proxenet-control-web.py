@@ -225,6 +225,7 @@ def do_start():
 
     cmd.append(PROXENET_BIN + "/proxenet")
     cmd.append("--daemon")
+    cmd.append("--no-color")
     cmd.append("--bind=%s" % addr)
     cmd.append("--port=%d" % port)
     cmd.append("--plugins=%s" % plugins_dir)

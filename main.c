@@ -359,7 +359,7 @@ static int parse_options (int argc, char** argv)
                         xlog(LOG_CRITICAL, "realpath(logfile) failed: %s\n", strerror(errno));
                         return -1;
                 }
-                if(is_readable_file(cfg->logfile)) {
+                if(is_writable_file(cfg->logfile)) {
                         cfg->logfile_fd = fopen(cfg->logfile, "w");
                         if(!cfg->logfile_fd) {
                                 cfg->logfile_fd = stderr;
@@ -368,8 +368,9 @@ static int parse_options (int argc, char** argv)
                         }
                 }
 
-                /* disable color to avoid tty color code in file */
-                cfg->use_color = false;
+                /* disable color to avoid tty color code in file + make sure that file is not in /dev */
+                if(strncmp(cfg->logfile, "/dev", 4)!=0)
+                        cfg->use_color = false;
         }
 
         /* check if nb of threads is in boundaries */

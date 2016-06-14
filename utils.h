@@ -61,6 +61,7 @@ int       proxenet_xsnprintf(char *str, size_t size, const char *format, ...);
 bool      is_valid_plugin_path(char*, char**, char**);
 bool      is_file(char*);
 bool      is_readable_file(char*);
+bool      is_writable_file(char*);
 char*     expand_file_path(char*);
 void      proxenet_hexdump(char*, int);
 
