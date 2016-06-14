@@ -41,7 +41,7 @@ extern int daemon(int, int);
  */
 static void version(bool end)
 {
-        printf("%s v%s\n", PROGNAME, VERSION);
+        printf("%s v%s\nCodename: %s\n", PROGNAME, VERSION, CODENAME);
         if (end) {
                 proxenet_free_config();
                 exit(EXIT_SUCCESS);

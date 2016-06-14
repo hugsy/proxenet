@@ -63,6 +63,7 @@
 #define PROGNAME        "@PROGNAME@"
 #define AUTHOR          "@AUTHOR@"
 #define LICENSE         "@LICENSE@"
+#define CODENAME        "@CODENAME@"
 
 #define VERSION_MAJOR   @VERSION_MAJOR@
 #define VERSION_MINOR   @VERSION_MINOR@
