@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python
 #
 #
 # proxenet web command control interface
@@ -282,10 +282,13 @@ def info():
         html += """<div class="panel-heading"><h3 class="panel-title">{}</h3></div>""".format(section)
 
         html += """<div class="panel-body"><ul>"""
-        for k,v in info[section].iteritems():
+        for k in info[section].keys():
+            v = info[section][k]
             if type(v).__name__ == "dict":
                 html += "<li>{}: <ol>".format(k)
-                for a,b in v.iteritems(): html += "<li>{}: {}</li>".format(a,b)
+                for a in v.keys():
+                    b = v[a]
+                    html += "<li>{}: {}</li>".format(a,b)
                 html += "</ol></li>"
             else:
                 html += "<li>{}: {}</li>".format(k, v)
@@ -305,7 +308,8 @@ def version():
     html += """<div class="panel panel-default">"""
     html += """<div class="panel-heading"><h3 class="panel-title">Version information</h3></div>"""
     html += """<div class="panel-body"><ul>"""
-    for k,v in version.iteritems():
+    for k in version.keys():
+        v = version[k]
         html += "<li>"
         if k=="vms":
             html += "VMs"
@@ -360,7 +364,8 @@ def plugin():
     html += """<div class="panel-heading"><h3 class="panel-title">{}</h3></div>""".format(title)
     html += """<table class="table table-hover table-condensed">"""
     html += "<tr><th>Name</th><th>Type</th><th>Enabled</th><th>Autoload?</th></tr>"
-    for k,v in js[title].iteritems():
+    for k in js[title].keys():
+        v = js[title][k]
         _type, _is_loaded = v
         html += "<tr><td><a href=\"/plugin/view/{0}\">{0}</a></td><td>{1}</td>".format(k, _type)
         html += "<td>"
@@ -490,10 +495,12 @@ def threads():
     html += """<div class="panel panel-default">"""
     html += """<div class="panel-heading"><h3 class="panel-title">{}</h3></div>""".format(title)
     html += """<div class="panel-body"><ul>"""
-    for k,v in js[title].iteritems():
+    for k in js[title].keys():
+        v = js[title][k]
         if v.__class__.__name__ == "dict":
             html += "<li>{}:<ol>".format(k)
-            for a,b in v.iteritems():
+            for a in v.keys():
+                b = v[a]
                 html += "<li>"
                 html += "{} &#8594; {}".format(a,b)
                 html += "<a href='/threads/kill?tid={}'>&#x2718;</a>".format(b)
@@ -551,8 +558,17 @@ def keys():
 
 @route('/keys/proxenet.<fmt>')
 def key(fmt):
-    if fmt in ("crt", "key", "p12", "p7b"):
-        return static_file("/proxenet.%s" % fmt, root=PROXENET_ROOT + "/keys")
+    if not is_proxenet_running():
+        return build_html(body=not_running_html())
+
+    if fmt not in ("crt", "key", "p12", "p7b"):
+        return build_html(body=error("Invalid format"), page="keys")
+
+    res = sr("info")
+    info = json.loads(res)['info']['Information']
+    keyfile = info['SSL private key']
+    fpath = keyfile.replace(".key", "."+fmt)
+    return static_file(fpath, root="/")
 
 
 @route('/config')
@@ -569,7 +585,8 @@ def config():
     html += """<div class="panel-body">"""
     html += """<table class="table table-hover table-condensed">"""
     html += """<tr><th>Setting</th><th>Value</th><th>Type</th></tr>"""
-    for k,v in values.iteritems():
+    for k in values.keys():
+        v = values[k]
         _val, _type = v["value"], v["type"]
         html += "<tr><td><code>{}</code></td><td>{}</td><td>{}</td></tr>".format(k,_val,_type)
     html += "</table></div></div>"""
@@ -579,7 +596,8 @@ def config():
     html += """<div class="panel-heading"><h3 class="panel-title">Change Value</h3></div>"""
     html += """<div class="panel-body"><form class="form-inline" action="/config/set" method="get">"""
     html += """<div class="form-group"><select class="form-control" name="setting">"""
-    for k,v in values.iteritems():
+    for k in values.keys():
+        v = values[k]
         html += """<option>{}</option>""".format( k )
     html += """</select></div><div class="form-group"><label class="sr-only">Value</label><input class="form-control" name="value" placeholder="Value"></div><button type="submit" class="btn btn-default">Change Value</button>"""
     html += """</form></div></div>"""
