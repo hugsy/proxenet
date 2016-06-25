@@ -133,8 +133,9 @@ static int ca_generate_csr(mbedtls_ctr_drbg_context *ctr_drbg, char* hostname, u
 
         /* set the key */
         mbedtls_pk_init( &key );
+#ifdef DEBUG
         xlog(LOG_DEBUG, "cert=%s pwd=%s\n", cfg->certskey, cfg->certskey_pwd);
-
+#endif
         retcode = mbedtls_pk_parse_keyfile(&key, cfg->certskey, cfg->certskey_pwd);
         if(retcode < 0) {
                 xlog(LOG_ERROR, "pk_parse_keyfile() returned %#x\n", retcode);
