@@ -325,12 +325,11 @@ ssize_t proxenet_write(sock_t sock, void *buf, size_t count)
  */
 int proxenet_read_all(sock_t sock, char** ptr, proxenet_ssl_context_t* ssl)
 {
-	int ret;
-	unsigned int total_bytes_read;
+	int ret = 0;
+	unsigned int total_bytes_read = 0;
 	size_t malloced_size = sizeof(char) * MAX_READ_SIZE;
 	char *data, *current_offset;
 
-	total_bytes_read = 0;
 	current_offset = NULL;
 	*ptr = NULL;
 
@@ -349,7 +348,7 @@ int proxenet_read_all(sock_t sock, char** ptr, proxenet_ssl_context_t* ssl)
 		if (ret < 0) {
 			proxenet_xfree(data);
                         xlog(LOG_ERROR, "read(%d) = %d\n", sock, ret);
-			return -1;
+			return ret;
 		}
 
 		total_bytes_read += ret;

@@ -491,3 +491,22 @@ void proxenet_hexdump(char *data, int size)
 
         return;
 }
+
+
+/**
+ * Provide a quick function to display an `xlog` error message (based on errno).
+ *
+ * @param level : the `xlog` error level
+ * @param errno : the error number to describe
+ */
+void proxenet_perror(int level, int errnum)
+{
+        char buffer[4096] = {0, };
+        char *ret;
+
+        ret = strerror_r(errnum, (char*)buffer, sizeof(buffer));
+        if (ret){
+                xlog(level, "%s\n", buffer);
+        }
+        return;
+}

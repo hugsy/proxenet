@@ -508,17 +508,19 @@ void free_http_infos(http_infos_t *hi)
 /**
  *
  */
-int create_https_socket(request_t *req, sock_t *cli_sock, sock_t *srv_sock, ssl_context_t* ctx, bool use_http_proxy)
+int create_https_socket(request_t *req, sock_t *cli_sock, sock_t *srv_sock, ssl_context_t* ctx, bool use_proxy)
 {
         char *connect_buf = NULL;
         http_infos_t* http_infos = &req->http_infos;
         int retcode = -1;
+        bool use_http_proxy = use_proxy && cfg->is_socks_proxy==false;
 
 
         /* disable all interception if ssl intercept was explicitely disabled by config */
         if (cfg->ssl_intercept == false)
                 req->do_intercept = false;
 
+        /* if an HTTP proxy is used, expect CONNECT request */
         if (use_http_proxy) {
 
                 /* 0. set up proxy->proxy ssl session (i.e. forward CONNECT request) */
@@ -531,14 +533,14 @@ int create_https_socket(request_t *req, sock_t *cli_sock, sock_t *srv_sock, ssl_
                 /* read response */
                 retcode = proxenet_read_all(*cli_sock, &connect_buf, NULL);
                 if (retcode < 0) {
-                        xlog(LOG_ERROR, "%s failed to read from proxy\n", PROGNAME);
+                        xlog(LOG_ERROR, "%s failed to read from proxy (retcode=%#x)\n", PROGNAME);
 
                         if (retcode==-ENODATA && cfg->verbose){
-                                xlog(LOG_ERROR, "Expected data but none received (ret=%#x)\n", retcode);
+                                xlog(LOG_ERROR, "%s\n", "Data expected but none received");
                         }
+
                         return -1;
                 }
-                xlog(LOG_DEBUG, "connect_buf='%s'\n", connect_buf);
 
                 /* expect HTTP 200 */
                 if (   (strncmp(connect_buf, "HTTP/1.0 200", 12) != 0)

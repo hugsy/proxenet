@@ -65,5 +65,6 @@ bool      is_readable_file(char*);
 bool      is_writable_file(char*);
 char*     expand_file_path(char*);
 void      proxenet_hexdump(char*, int);
+void      proxenet_perror(int level, int errnum);
 
 #endif /* _UTILS_H */
