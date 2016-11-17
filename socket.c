@@ -369,7 +369,7 @@ int proxenet_read_all(sock_t sock, char** ptr, proxenet_ssl_context_t* ssl)
 
 	if (total_bytes_read == 0) {
 		proxenet_xfree(data);
-		return 0;
+		return -ENODATA;
 	}
 
 	*ptr = data;

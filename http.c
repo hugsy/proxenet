@@ -531,10 +531,14 @@ int create_https_socket(request_t *req, sock_t *cli_sock, sock_t *srv_sock, ssl_
                 /* read response */
                 retcode = proxenet_read_all(*cli_sock, &connect_buf, NULL);
                 if (retcode < 0) {
-                        xlog(LOG_ERROR, "%s Failed to read from proxy\n", PROGNAME);
-                        proxenet_xfree(connect_buf);
+                        xlog(LOG_ERROR, "%s failed to read from proxy\n", PROGNAME);
+
+                        if (retcode==-ENODATA && cfg->verbose){
+                                xlog(LOG_ERROR, "Expected data but none received (ret=%#x)\n", retcode);
+                        }
                         return -1;
                 }
+                xlog(LOG_DEBUG, "connect_buf='%s'\n", connect_buf);
 
                 /* expect HTTP 200 */
                 if (   (strncmp(connect_buf, "HTTP/1.0 200", 12) != 0)
