@@ -70,7 +70,7 @@ Here's a sample of features already supported by `proxenet`:
     - Full SSL/TLS interception (internal CA)
     - SSL/TLS client certificate authentication
 - IPv4/IPv6
-- HTTP Proxy forwarding
+- HTTP(s)/SOCKS4(a) Proxy forwarding
 - White-list/Black-list host filtering
 - Command interface out-of-band
 - Nice TTY colors :D

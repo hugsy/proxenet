@@ -101,12 +101,7 @@ def input_loop(cli):
             data, prompt = res[:-4], res[-4:]
             try:
                 js = json.loads( data )
-                for k,v in js.iteritems():
-                    if v.__class__.__name__ == "dict":
-                        print("{}".format(k))
-                        for a,b in v.iteritems(): print("\t{} -> {}".format(a,b))
-                    else:
-                        print("{} -> {}".format(k,v))
+                print( json.dumps(js, sort_keys=True, indent=4, separators=(',', ': ')) )
             except:
                 print(data)
             cmd = raw_input( prompt )

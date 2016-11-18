@@ -5,35 +5,55 @@
 Simply invoke help !
 
 ```
-$ ./proxenet --help
-proxenet v0.2
-Written by hugsy < @__hugsy__>
+$ proxenet --help                                                                                                                                                                                       13:58
+proxenet v0.4-master:e3d9e27
+Codename: Tartiflette - 2nd fournée
+Written by hugsy
 Released under: GPLv2
+Using library: mbedTLS 2.4.0
+Compiled by Clang (Linux-4.7.0-1-amd64) with support for :
+        [+] 0x00   C               (.so)
+        [+] 0x01   Python2.7.12    (.py)
+        [+] 0x02   Ruby2.2.0       (.rb)
+        [+] 0x03   Perl5.24.1      (.pl)
+        [+] 0x04   Lua5.3.1        (.lua)
+        [+] 0x05   Java1.8.0_91    (.class)
 
-Compiled with support for :
-        [+] 0x00   Python     (.py)
-        [+] 0x01   C          (.so)
-        [+] 0x02   Perl       (.pl)
-
-SYNTAX :
+SYNTAX:
         proxenet [OPTIONS+]
 
 OPTIONS:
-	-t, --nb-threads=N			Number of threads (default: 10)
-	-b, --lbind=bindaddr			Bind local address (default: localhost)
-	-p, --lport=N				Bind local port file (default: 8008)
-	-l, --logfile=/path/to/logfile		Log actions in file
-	-x, --plugins=/path/to/plugins/dir	Specify plugins directory (default: ./plugins)
-	-X, --proxy-host=proxyhost				Forward to proxy
-	-P  --proxy-port=proxyport				Specify port for proxy (default: 8080)
-	-k, --key=/path/to/ssl.key		Specify SSL key to use (default: ./keys/proxenet.key)
-	-c, --cert=/path/to/ssl.crt		Specify SSL cert to use (default: ./keys/proxenet.crt)
-	-v, --verbose				Increase verbosity (default: 0)
-	-n, --no-color				Disable colored output
-	-4, 					IPv4 only (default)
-	-6, 					IPv6 only (default: IPv4)
-	-h, --help				Show help
-	-V, --version				Show version
+General:
+        -h, --help                              Show help
+        -V, --version                           Show version
+        -d, --daemon                            Start as daemon
+        -v, --verbose                           Increase verbosity (default: 0)
+        -n, --no-color                          Disable colored output
+        -l, --logfile=/path/to/logfile          Log actions in file (default stdout)
+        -x, --plugins=/path/to/plugins/dir      Specify plugins directory (default: '~/.proxenet/plugins')
+Intercept mode:
+        -I, --intercept-only                    Intercept only hostnames matching pattern (default mode)
+        -E, --intercept-except                  Intercept everything except hostnames matching pattern
+        -m, --pattern=PATTERN                   Specify a hostname matching pattern (default: '*')
+        -N, --no-ssl-intercept                  Do not intercept any SSL traffic
+        -i, --ie-compatibility                  Toggle old IE compatibility mode (default: on)
+Network:
+        -4                                      IPv4 only (default)
+        -6                                      IPv6 only (default: IPv4)
+        -t, --nb-threads=N                      Number of threads (default: 20)
+        -b, --bind=bindaddr                     Bind local address (default: 'localhost')
+        -p, --port=N                            Bind local port file (default: '8008')
+        -X, --proxy-host=proxyhost              Forward to proxy
+        -P  --proxy-port=proxyport              Specify port for proxy (default: '8080')
+        -D, --use-socks                         The proxy to connect to is supports SOCKS4 (default: 'HTTP')
+SSL:
+        -c, --certfile=/path/to/ssl.crt         Specify SSL cert to use (default: '~/.proxenet/keys/proxenet.crt')
+        -k, --keyfile=/path/to/ssl.key          Specify SSL private key file to use (default: '~/.proxenet/keys/proxenet.key')
+        --keyfile-passphrase=MyPwd              Specify the password for this SSL key (default: '')
+        --sslcli-certfile=/path/to/ssl.crt      Path to the SSL client certificate to use
+        --sslcli-domain=my.ssl.domain.com       Domain to use for invoking the client certificate (default: '*')
+        --sslcli-keyfile=/path/to/key.crt       Path to the SSL client certificate private key
+        --sslcli-keyfile-passphrase=MyPwd       Specify the password for the SSL client certificate private key (default: '')
 
 ```
 
