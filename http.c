@@ -568,9 +568,10 @@ int create_https_socket(request_t *req, sock_t *cli_sock, sock_t *srv_sock, ssl_
 
                 retcode = proxenet_ssl_handshake(&(ctx->client.context));
                 if (retcode < 0) {
-                        xlog(LOG_ERROR, "handshake %s->server failed [code: %#x]\n", PROGNAME, retcode);
-                        xlog(LOG_ERROR, "Client SSL handshake failed for '%s:%d'.\n",
-                             http_infos->hostname, http_infos->port, retcode);
+                        char handshake_error_desc[256] = {0, };
+                        proxenet_ssl_strerror(retcode, handshake_error_desc, sizeof(handshake_error_desc));
+                        xlog(LOG_ERROR, "handshake %s->server failed '%s:%d' [code: %#x, reason: %s]\n",
+                             PROGNAME, http_infos->hostname, http_infos->port, retcode);
                         return -1;
                 }
 
@@ -595,9 +596,10 @@ int create_https_socket(request_t *req, sock_t *cli_sock, sock_t *srv_sock, ssl_
 
                 retcode = proxenet_ssl_handshake(&(ctx->server.context));
                 if (retcode < 0) {
-                        xlog(LOG_ERROR, "handshake %s->client failed [code: %#x]\n", PROGNAME, retcode);
-                        xlog(LOG_ERROR, "Server SSL handshake failed for '%s:%d'.\n",
-                             http_infos->hostname, http_infos->port, retcode);
+                        char handshake_error_desc[256] = {0, };
+                        proxenet_ssl_strerror(retcode, handshake_error_desc, sizeof(handshake_error_desc));
+                        xlog(LOG_ERROR, "handshake %s->client failed for '%s:%d' [code: %#x, reason: %s]\n",
+                             PROGNAME, http_infos->hostname, http_infos->port, retcode, handshake_error_desc);
                         return -1;
                 }
 

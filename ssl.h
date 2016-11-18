@@ -44,4 +44,6 @@ void proxenet_ssl_free_structs(ssl_atom_t* ssl);
 ssize_t proxenet_ssl_read(proxenet_ssl_context_t *s, void *n, size_t l);
 ssize_t proxenet_ssl_write(proxenet_ssl_context_t *s, void *n, size_t l);
 
+void proxenet_ssl_strerror(int r, char* b, size_t l);
+
 #endif /* _SSL_H */

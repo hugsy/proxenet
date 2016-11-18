@@ -251,6 +251,16 @@ void proxenet_ssl_wrap_socket(proxenet_ssl_context_t* ctx, sock_t* sock)
 /**
  *
  */
+void proxenet_ssl_strerror(int retcode, char* handshake_error_desc, size_t handshake_error_desc_len)
+{
+        mbedtls_strerror(retcode, handshake_error_desc, handshake_error_desc_len);
+        return;
+}
+
+
+/**
+ *
+ */
 int proxenet_ssl_handshake(proxenet_ssl_context_t* ctx)
 {
         int retcode = -1;
@@ -263,15 +273,6 @@ int proxenet_ssl_handshake(proxenet_ssl_context_t* ctx)
 
                 if(retcode!=MBEDTLS_ERR_SSL_WANT_READ && \
                    retcode!=MBEDTLS_ERR_SSL_WANT_WRITE) {
-
-                        if (retcode == MBEDTLS_ERR_NET_CONN_RESET)
-                                xlog(LOG_WARNING,
-                                     "Peer has reset the SSL connection during handshake (error "
-                                     "%#x).To remove this warning, make sure to add proxenet "
-                                     "CA certificate as a Trusted CA for websites.\n",
-                                     -retcode);
-                        else
-                                xlog(LOG_ERROR, "SSL handshake failed (returns %#x)\n", -retcode);
                         break;
                 }
 
