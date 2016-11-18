@@ -734,7 +734,7 @@ void proxenet_process_http_request(sock_t server_socket)
                                 n = proxenet_read_all(client_socket, &req.data, NULL);
                         }
 
-                        if (n==0 || n==ENODATA){
+                        if (n==0 || n==-ENODATA){
 #ifdef DEBUG
                                 xlog(LOG_DEBUG, "Socket EOF from server (cli_sock=#%d)\n",
                                      client_socket);
