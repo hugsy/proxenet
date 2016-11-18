@@ -734,18 +734,18 @@ void proxenet_process_http_request(sock_t server_socket)
                                 n = proxenet_read_all(client_socket, &req.data, NULL);
                         }
 
-                        if (n < 0){
-                                xlog(LOG_ERROR, "read() %s on cli_sock=#%d failed: %d\n",
-                                     is_ssl?"SSL":"PLAIN",
-                                     client_socket, n);
-                                break;
-                        }
-
-                        if (n==0){
+                        if (n==0 || n==ENODATA){
 #ifdef DEBUG
                                 xlog(LOG_DEBUG, "Socket EOF from server (cli_sock=#%d)\n",
                                      client_socket);
 #endif
+                                break;
+                        }
+
+                        if (n < 0){
+                                xlog(LOG_ERROR, "read() %s on cli_sock=#%d failed: %d\n",
+                                     is_ssl?"SSL":"PLAIN",
+                                     client_socket, n);
                                 break;
                         }
 
