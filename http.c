@@ -569,7 +569,13 @@ int create_https_socket(request_t *req, sock_t *cli_sock, sock_t *srv_sock, ssl_
                 retcode = proxenet_ssl_handshake(&(ctx->client.context));
                 if (retcode < 0) {
                         char handshake_error_desc[256] = {0, };
-                        proxenet_ssl_strerror(retcode, handshake_error_desc, sizeof(handshake_error_desc));
+                        char *res;
+
+                        if (retcode & 0x00006000) // if mbedtls error
+                                proxenet_ssl_strerror(retcode, handshake_error_desc, sizeof(handshake_error_desc));
+                        else
+                                res = strerror_r(retcode, handshake_error_desc, sizeof(handshake_error_desc));
+
                         xlog(LOG_ERROR, "handshake %s->server failed '%s:%d' [code: %#x, reason: %s]\n",
                              PROGNAME, http_infos->hostname, http_infos->port, retcode);
                         return -1;
@@ -597,7 +603,13 @@ int create_https_socket(request_t *req, sock_t *cli_sock, sock_t *srv_sock, ssl_
                 retcode = proxenet_ssl_handshake(&(ctx->server.context));
                 if (retcode < 0) {
                         char handshake_error_desc[256] = {0, };
-                        proxenet_ssl_strerror(retcode, handshake_error_desc, sizeof(handshake_error_desc));
+                        char *res;
+
+                        if (retcode & 0x00006000) // if mbedtls error
+                                proxenet_ssl_strerror(retcode, handshake_error_desc, sizeof(handshake_error_desc));
+                        else
+                                res = strerror_r(retcode, handshake_error_desc, sizeof(handshake_error_desc));
+
                         xlog(LOG_ERROR, "handshake %s->client failed for '%s:%d' [code: %#x, reason: %s]\n",
                              PROGNAME, http_infos->hostname, http_infos->port, retcode, handshake_error_desc);
                         return -1;
