@@ -410,7 +410,7 @@ def plugin_load(fname):
 def plugin_remove_from_autoload(fname):
     if not is_proxenet_running(): return build_html(body=not_running_html())
     fname = cgi.escape(fname)
-    flink = os.path.realpath( PROXENET_AUTOLOAD_DIR + '/' + fname)
+    flink = PROXENET_AUTOLOAD_DIR + '/' + fname
     html = ""
     if not os.path.islink(flink):
         html += error("Failed to remove '<b>{}</b>' from autoload directory".format(fname))
