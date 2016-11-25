@@ -57,68 +57,39 @@ void generic_http_error_page(sock_t sock, char* msg)
 static char* get_request_full_uri(request_t* req)
 {
         char* uri;
-        http_infos_t* http_infos = &req->http_infos;
+        http_infos_t* hi = &req->http_infos;
         size_t len;
 
-        if (!req || !http_infos)
-                return NULL;
-
-        len = sizeof(HTTPS_PROTO_STRING) + strlen(http_infos->hostname) + sizeof(":") + sizeof("65535");
-        len+= strlen(http_infos->path);
+        len = sizeof(HTTPS_PROTO_STRING) + strlen(hi->hostname) + sizeof(":") + sizeof("65535");
+        len+= strlen(hi->path);
         uri = (char*)proxenet_xmalloc(len+1);
 
-        proxenet_xsnprintf(uri, len, "%s%s:%d%s",
-                 req->is_ssl?HTTPS_PROTO_STRING:HTTP_PROTO_STRING,
-                 http_infos->hostname,
-                 http_infos->port,
-                 http_infos->path);
+        proxenet_xsnprintf(uri, len, "%s://%s:%d%s",
+                           hi->proto,
+                           hi->hostname,
+                           hi->port,
+                           hi->path);
 
         return uri;
 }
 
 
 /**
- * This function defines the request type with the hostname and port based on the URI gathered
- * from the buffer.
  *
- * This is for example used for
- * CONNECT IP:PORT HTTP/1.0
- * types of requests.
- *
- * If :PORT is not found, then req.http_infos.port is left untouched (must be defined priorly).
- *
- * @return 0 on success, -1 if error
  */
-static int get_hostname_from_uri(request_t* req, int offset)
+static bool update_http_infos_uri(request_t* req)
 {
-        char *ptr, *buf;
 
-        buf = req->data + offset;
-
-        /* isolate the whole block 'IP:PORT' */
-        ptr = strchr(buf, ' ');
-        if (!ptr){
-                xlog(LOG_ERROR, "%s\n", "Invalid URI block");
+        if (!req )
                 return -1;
-        }
 
-        *ptr = '\0';
-        buf = proxenet_xstrdup2(buf);
+        if (req->http_infos.uri)
+                proxenet_xfree(req->http_infos.uri);
 
-        /* host and port */
-        ptr = strchr(buf, ':');
-        if (ptr){
-                /* explicit port */
-                req->http_infos.port = (unsigned short)atoi(ptr+1);
-                *ptr = '\0';
-        }
+        req->http_infos.uri = get_request_full_uri(req);
 
-        req->http_infos.hostname = proxenet_xstrdup2(buf);
-
-        proxenet_xfree(buf);
-        return 0;
+        return req->http_infos.uri != NULL ? true : false;
 }
-
 
 /**
  * Look up for a header in a request. If found, this function will allocate a buffer containing
@@ -176,7 +147,11 @@ static int get_hostname_from_header(request_t *req)
                 req->http_infos.port = (unsigned short)atoi(ptr+1);
         } else {
                 req->http_infos.hostname = proxenet_xstrdup2(header);
+                req->http_infos.port = (req->is_ssl) ? HTTPS_DEFAULT_PORT : HTTP_DEFAULT_PORT;
         }
+
+        req->http_infos.proto_type = (req->is_ssl) ? HTTPS : HTTP;
+        req->http_infos.proto = (req->is_ssl) ? HTTPS_STRING : HTTP_STRING;
 
         proxenet_xfree(header);
 
@@ -220,16 +195,20 @@ static int get_http_protocol(request_t *req)
                 return HTTPS;
 
         } else if( strncmp(ptr, WS_PROTO_STRING, sizeof(WS_PROTO_STRING)-1)==0 ){
-                /* Check if the requested URL starts with 'WS://' */
+                /* Check if the requested URL starts with 'ws://' */
                 req->http_infos.proto_type = WS;
                 return WS;
+        } else if( strncmp(ptr, WSS_PROTO_STRING, sizeof(WSS_PROTO_STRING)-1)==0 ){
+                /* Check if the requested URL starts with 'ws://' */
+                req->http_infos.proto_type = WSS;
+                return WSS;
         }
 
 
 invalid_http_protocol:
         xlog(LOG_ERROR, "%s\n", "Request is not a valid HTTP(S)/WS(S) request");
-        if (cfg->verbose > 1)
-                xlog(LOG_ERROR, "The invalid request is:\n%s\n", req);
+        if (cfg->verbose)
+                xlog(LOG_ERROR, "The invalid request is:\n%s\n", req->data);
 
         return -1;
 }
@@ -255,7 +234,7 @@ int format_http_request(request_t* req)
 
         switch(get_http_protocol(req)){
                 case HTTP:
-                        /* check that !NULL is done by get_http_protocol */
+                        /* check that !NULL is done by get_http_protocol() */
                         ptr = strstr(*request, HTTP_PROTO_STRING);
 
                         /* -1 because of \x00 added by sizeof */
@@ -270,6 +249,11 @@ int format_http_request(request_t* req)
                 case WS:
                         ptr = strstr(*request, WS_PROTO_STRING);
                         offlen = sizeof(WS_PROTO_STRING)-1;
+                        break;
+
+                case WSS:
+                        ptr = strstr(*request, WSS_PROTO_STRING);
+                        offlen = sizeof(WSS_PROTO_STRING)-1;
                         break;
 
                 case TRANSPARENT:
@@ -304,6 +288,18 @@ int format_http_request(request_t* req)
 
 
 /**
+ *
+ */
+int format_ws_request(request_t* req)
+{
+        req->http_infos.proto_type = (req->is_ssl) ? WSS : WS;
+        req->http_infos.proto = (req->is_ssl) ? WSS_STRING : WS_STRING;
+        update_http_infos_uri(req);
+        return 0;
+}
+
+
+/**
  * This function updates all the fields of the current request_t with the new values found in the
  * request. Since those values will be useful many times, they are strdup-ed in a specific structure
  * (http_infos_t). Those values *must* be free-ed later on.
@@ -313,7 +309,14 @@ int format_http_request(request_t* req)
 int parse_http_request(request_t *req)
 {
         char *ptr, *buf, c;
-        int offset;
+
+        if (req->http_infos.proto_type == WS || req->http_infos.proto_type == WSS){
+                /*
+                 * if the connection is in a WebSocket, the request properties are already populated
+                 * meaning that there is no need for (re)parsing.
+                 */
+                return 0;
+        }
 
         buf = req->data;
 
@@ -336,62 +339,16 @@ int parse_http_request(request_t *req)
 
         *ptr = c;
 
-        req->http_infos.proto_type = HTTP;
-        if (!strcmp(req->http_infos.method, "CONNECT")){
-                /*
-                 * We can receive a CONNECT if
-                 * - the connection uses HTTPS
-                 * - the client tries to upgrade to WebSocket/Secure WebSocket
-                 */
-                char *upgrade_header = get_header_by_name(buf, "Upgrade:");
-                if (upgrade_header){
-                        if (strcmp(upgrade_header, "WebSocket")==0){
-                                xlog(LOG_INFO, "%s\n", "Upgrading to WebSocket");
-                                req->http_infos.proto_type = WS;
-                                req->is_ssl = false;
-                                req->http_infos.proto = WS_STRING;
-                                req->http_infos.port = HTTP_DEFAULT_PORT;
-                                req->http_infos.proto_type = WS;
-                        }
-                        proxenet_xfree(upgrade_header);
-                } else {
-                        req->is_ssl = true;
-                        req->http_infos.proto = HTTPS_STRING;
-                        req->http_infos.port = HTTPS_DEFAULT_PORT;
-                        req->http_infos.proto_type = HTTPS;
-                }
-
-                offset = ptr - buf + 1;
-
-                if( get_hostname_from_uri(req, offset) < 0 ){
-                        xlog(LOG_ERROR, "%s\n", "Failed to get hostname (URI)");
-                        goto failed_hostname;
-                }
-
-                req->http_infos.path = proxenet_xstrdup2("/");
-                req->http_infos.version = proxenet_xstrdup2("HTTP/1.0");
-
-                req->http_infos.uri = get_request_full_uri(req);
-                if(!req->http_infos.uri){
-                        xlog(LOG_ERROR, "%s\n", "get_request_full_uri() failed");
-                        goto failed_uri;
-                }
-
-                return 0;
+        /* by default, we assume that the connection is plain HTTP */
+        if (req->http_infos.proto_type == 0){
+                req->http_infos.proto_type  = HTTP;
+                req->http_infos.port        = HTTP_DEFAULT_PORT;
+                req->http_infos.proto       = HTTP_STRING;
         }
 
-
-        /* hostname and port */
-        if (req->is_ssl){
-                req->http_infos.port = HTTPS_DEFAULT_PORT;
-                req->http_infos.proto = HTTPS_STRING;
-        } else {
-                req->http_infos.port = HTTP_DEFAULT_PORT;
-                req->http_infos.proto = HTTP_STRING;
-        }
-
+        /* populate hostname and port fields of `request` */
         if( get_hostname_from_header(req) < 0 ){
-                xlog(LOG_ERROR, "%s\n", "Failed to get hostname (Host header)");
+                xlog(LOG_ERROR, "Failed to get hostname: reason '%s'\n", "Invalid HTTP/1.1 request (missing Host header)");
                 goto failed_hostname;
         }
 
@@ -411,7 +368,12 @@ int parse_http_request(request_t *req)
 
         c = *ptr;
         *ptr = '\0';
-        req->http_infos.path = proxenet_xstrdup2(buf);
+
+        if (strcmp(req->http_infos.method, "CONNECT")==0){
+                req->http_infos.path = proxenet_xstrdup2("/");
+        } else {
+                req->http_infos.path = proxenet_xstrdup2(buf);
+        }
         if (!req->http_infos.path){
                 xlog(LOG_ERROR, "%s\n", "strdup(path) failed, cannot pursue...");
                 goto failed_path;
@@ -440,7 +402,7 @@ int parse_http_request(request_t *req)
 
         /* refresh uri */
         req->http_infos.uri = get_request_full_uri(req);
-        if(!req->http_infos.uri){
+        if( !update_http_infos_uri(req) ){
                 xlog(LOG_ERROR, "%s\n", "get_request_full_uri() failed");
                 goto failed_uri;
         }
@@ -506,15 +468,17 @@ void free_http_infos(http_infos_t *hi)
 
 
 /**
- *
+ * This function does the same as `create_http_socket()`, except that it performs SSL/TLS
+ * interception (if asked by configuration).
  */
-int create_https_socket(request_t *req, sock_t *cli_sock, sock_t *srv_sock, ssl_context_t* ctx, bool use_proxy)
+int create_https_socket(request_t *req, sock_t *cli_sock, sock_t *srv_sock, ssl_context_t* ctx)
 {
         char *connect_buf = NULL;
         http_infos_t* http_infos = &req->http_infos;
         int retcode = -1;
-        bool use_http_proxy = use_proxy && cfg->is_socks_proxy==false;
-
+        bool use_proxy = (cfg->proxy.host != NULL);
+        bool use_http_proxy = use_proxy && (cfg->is_socks_proxy==false);
+        // bool use_socks_proxy = use_proxy && (cfg->is_socks_proxy==true);
 
         /* disable all interception if ssl intercept was explicitely disabled by config */
         if (cfg->ssl_intercept == false)
@@ -557,68 +521,61 @@ int create_https_socket(request_t *req, sock_t *cli_sock, sock_t *srv_sock, ssl_
                 proxenet_xfree(connect_buf);
         }
 
-        if (req->do_intercept){
+        if (!req->do_intercept)
+                return 0;
 
-                /* 1. set up proxy->server ssl session with hostname */
-                if(proxenet_ssl_init_client_context(&(ctx->client), http_infos->hostname) < 0) {
-                        return -1;
-                }
 
-                proxenet_ssl_wrap_socket(&(ctx->client.context), cli_sock);
-
-                retcode = proxenet_ssl_handshake(&(ctx->client.context));
-                if (retcode < 0) {
-                        char handshake_error_desc[256] = {0, };
-                        char *res;
-
-                        if (retcode & 0x00006000) // if mbedtls error
-                                proxenet_ssl_strerror(retcode, handshake_error_desc, sizeof(handshake_error_desc));
-                        else
-                                res = strerror_r(retcode, handshake_error_desc, sizeof(handshake_error_desc));
-
-                        xlog(LOG_ERROR, "handshake %s->server failed '%s:%d' [code: %#x, reason: %s]\n",
-                             PROGNAME, http_infos->hostname, http_infos->port, retcode);
-                        return -1;
-                }
-
-#ifdef DEBUG
-                xlog(LOG_DEBUG, "SSL handshake with %s done, cli_sock=%d\n",
-                     use_http_proxy?"proxy":"server", *cli_sock);
-#endif
-        }
-
-        if (proxenet_write(*srv_sock, "HTTP/1.0 200 Connection established\r\n\r\n", 39) < 0){
+        /* 1. set up proxy->server ssl session with hostname */
+        if(proxenet_ssl_init_client_context(&(ctx->client), http_infos->hostname) < 0) {
                 return -1;
         }
 
-        if (req->do_intercept) {
+        proxenet_ssl_wrap_socket(&(ctx->client.context), cli_sock);
 
-                /* 2. set up proxy->browser ssl session with hostname */
-                if(proxenet_ssl_init_server_context(&(ctx->server), http_infos->hostname) < 0) {
-                        return -1;
-                }
+        retcode = proxenet_ssl_handshake(&(ctx->client.context));
+        if (retcode < 0) {
+                char handshake_error_desc[256] = {0, };
+                char *res;
 
-                proxenet_ssl_wrap_socket(&(ctx->server.context), srv_sock);
+                if (retcode & 0x00006000) // if mbedtls error
+                        proxenet_ssl_strerror(retcode, handshake_error_desc, sizeof(handshake_error_desc));
+                else
+                        res = strerror_r(retcode, handshake_error_desc, sizeof(handshake_error_desc));
 
-                retcode = proxenet_ssl_handshake(&(ctx->server.context));
-                if (retcode < 0) {
-                        char handshake_error_desc[256] = {0, };
-                        char *res;
-
-                        if (retcode & 0x00006000) // if mbedtls error
-                                proxenet_ssl_strerror(retcode, handshake_error_desc, sizeof(handshake_error_desc));
-                        else
-                                res = strerror_r(retcode, handshake_error_desc, sizeof(handshake_error_desc));
-
-                        xlog(LOG_ERROR, "handshake %s->client failed for '%s:%d' [code: %#x, reason: %s]\n",
-                             PROGNAME, http_infos->hostname, http_infos->port, retcode, handshake_error_desc);
-                        return -1;
-                }
+                xlog(LOG_ERROR, "handshake %s->server failed '%s:%d' [code: %#x, reason: %s]\n",
+                     PROGNAME, http_infos->hostname, http_infos->port, retcode);
+                return -1;
+        }
 
 #ifdef DEBUG
-                xlog(LOG_DEBUG, "SSL handshake with client done, srv_sock=%d\n", *srv_sock);
+        xlog(LOG_DEBUG, "SSL handshake with %s done, cli_sock=%d\n", use_http_proxy?"proxy":"server", *cli_sock);
 #endif
+
+        /* 2. set up proxy->browser ssl session with hostname */
+        if(proxenet_ssl_init_server_context(&(ctx->server), http_infos->hostname) < 0) {
+                return -1;
         }
+
+        proxenet_ssl_wrap_socket(&(ctx->server.context), srv_sock);
+
+        retcode = proxenet_ssl_handshake(&(ctx->server.context));
+        if (retcode < 0) {
+                char handshake_error_desc[256] = {0, };
+                char *res;
+
+                if (retcode & 0x00006000) // if mbedtls error
+                        proxenet_ssl_strerror(retcode, handshake_error_desc, sizeof(handshake_error_desc));
+                else
+                        res = strerror_r(retcode, handshake_error_desc, sizeof(handshake_error_desc));
+
+                xlog(LOG_ERROR, "handshake %s->client failed for '%s:%d' [code: %#x, reason: %s]\n",
+                     PROGNAME, http_infos->hostname, http_infos->port, retcode, handshake_error_desc);
+                return -1;
+        }
+
+#ifdef DEBUG
+        xlog(LOG_DEBUG, "SSL handshake with client done, srv_sock=%d\n", *srv_sock);
+#endif
 
         return 0;
 }
@@ -674,7 +631,7 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
                 return -1;
         }
 
-        ssl_ctx->use_ssl = req->is_ssl;
+        /* ssl_ctx->use_ssl = req->is_ssl; */
         proxenet_xsnprintf(sport, sizeof(sport), "%hu", http_infos->port);
 
         /* do we forward to another proxy ? */
@@ -726,7 +683,7 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
                 retcode = proxenet_socks_connect(*client_sock, rhost, rport, true);
                 if( retcode<0 ){
                         proxenet_xsnprintf(errmsg, sizeof(errmsg), "Failed to open SOCKS4 tunnel to %s:%s.\n",
-                                 host, port);
+                                           host, port);
                         generic_http_error_page(*server_sock, errmsg);
                         xlog(LOG_ERROR, "%s", errmsg);
                         return -1;
@@ -734,16 +691,49 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
         }
 
         /* set up specific sockets */
-        switch (http_infos->proto_type){
-                case HTTPS:
-                        if(cfg->verbose > 2)
-                                xlog(LOG_INFO, "Creating a new HTTPS socket: %d/%d proxy=%s\n", client_sock, server_sock, use_socks_proxy?"true":"false");
-                        return create_https_socket(req, client_sock, server_sock, ssl_ctx, use_socks_proxy);
+        if (strcmp(http_infos->method, "CONNECT")==0){
+                /*
+                 * We can receive a CONNECT if the connection uses
+                 * - HTTPS
+                 * - WebSocket/Secure WebSocket (https://tools.ietf.org/html/rfc6455#section-4.1)
+                 *
+                 * In both case, we need to continue the handshake to see if the traffic is encrypted
+                 */
+                if (proxenet_write(*server_sock, "HTTP/1.0 200 Connection established\r\n\r\n", 39) < 0){
+                        return -1;
+                }
 
-                default:
-                        break;
+                /*
+                 * And then peek into the socket to determine if the data type if plaintext.
+                 */
+                char peek_read[4] = {0,};
+                retcode = recv(*server_sock, peek_read, 3, MSG_PEEK);
+                if(retcode<0){
+                        xlog(LOG_ERROR, "recv() failed with ret=%d, reason: %s\n", retcode, strerror(errno));
+                        return -1;
+                }
+
+                /* From WebSocket RFC (6455):
+                 * "The method of the request MUST be GET, and the HTTP version MUST
+                 * be at least 1.1."
+                 */
+                if(strcmp(peek_read, "GET")!=0){
+                        ssl_ctx->use_ssl = req->is_ssl = true;
+                        http_infos->proto_type = HTTPS;
+                        return create_https_socket(req, client_sock, server_sock, ssl_ctx);
+                }
+
+                xlog(LOG_INFO, "%s\n", "Upgrading to WebSocket");
+                if(http_infos->port != HTTP_DEFAULT_PORT){
+                        req->http_infos.proto_type = WSS;
+                        req->http_infos.proto = WSS_STRING;
+                        req->http_infos.port = WSS_DEFAULT_PORT;
+                } else {
+                        req->http_infos.proto_type = WS;
+                        req->http_infos.proto = WS_STRING;
+                        req->http_infos.port = WS_DEFAULT_PORT;
+                }
         }
-
         return 0;
 }
 

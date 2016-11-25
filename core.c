@@ -543,34 +543,36 @@ void proxenet_process_http_request(sock_t server_socket)
                                 goto send_to_server;
                         }
 
-                        /* proxy keep-alive */
-                        if (req.id > 0){
-                                request_t* old_req = (request_t*)proxenet_xmalloc(sizeof(request_t));
-                                memcpy(old_req, &req, sizeof(request_t));
-                                char* host = proxenet_xstrdup2( req.http_infos.hostname );
+                        /* Handle HTTP proxy Keep-Alive */
+                        if (req.http_infos.proto_type == HTTP || req.http_infos.proto_type == HTTPS){
+                                if (req.id > 0){
+                                        request_t* old_req = (request_t*)proxenet_xmalloc(sizeof(request_t));
+                                        memcpy(old_req, &req, sizeof(request_t));
+                                        char* host = proxenet_xstrdup2( req.http_infos.hostname );
 
-                                free_http_infos(&(req.http_infos));
-
-                                if (parse_http_request(&req) < 0){
-                                        xlog(LOG_ERROR, "Failed to update HTTP information for request %d\n", req.id);
-                                        proxenet_xfree( host );
-                                        proxenet_xfree( old_req );
-                                        req.id = 0;
-                                        break;
-                                }
-
-                                if (strcmp( host, req.http_infos.hostname )){
-                                        /* reset the client connection parameters */
-                                        if (cfg->verbose)
-                                                xlog(LOG_INFO, "Reusing sock=%d (old request=%d, old sock=%d) %s/%s\n",
-                                                     server_socket, req.id, client_socket, host, req.http_infos.hostname );
-                                        proxenet_close_socket(client_socket, &(ssl_context.client));
                                         free_http_infos(&(req.http_infos));
-                                        client_socket = -1;
-                                }
 
-                                proxenet_xclean( old_req, sizeof(request_t) );
-                                proxenet_xfree( host );
+                                        if (parse_http_request(&req) < 0){
+                                                xlog(LOG_ERROR, "Failed to update HTTP information for request %d\n", req.id);
+                                                proxenet_xfree( host );
+                                                proxenet_xfree( old_req );
+                                                req.id = 0;
+                                                break;
+                                        }
+
+                                        if (strcmp( host, req.http_infos.hostname )){
+                                                /* reset the client connection parameters */
+                                                if (cfg->verbose)
+                                                        xlog(LOG_INFO, "Reusing sock=%d (old request=%d, old sock=%d) %s/%s\n",
+                                                             server_socket, req.id, client_socket, host, req.http_infos.hostname );
+                                                proxenet_close_socket(client_socket, &(ssl_context.client));
+                                                free_http_infos(&(req.http_infos));
+                                                client_socket = -1;
+                                        }
+
+                                        proxenet_xclean( old_req, sizeof(request_t) );
+                                        proxenet_xfree( host );
+                                }
                         }
 
                         req.type = REQUEST;
@@ -586,8 +588,15 @@ void proxenet_process_http_request(sock_t server_socket)
                                         break;
                                 }
 
+                                /* is it WebSocket? */
+                                if(req.http_infos.proto_type == WS || req.http_infos.proto_type == WSS) {
+                                        proxenet_xfree(req.data);
+                                        is_new_http_connection = true;
+                                        continue;
+                                }
 
-                                if (ssl_context.use_ssl) {
+                                /* is the new request for HTTPS? */
+                                if (req.http_infos.proto_type == HTTPS) {
                                         req.is_ssl = true;
 
                                         if (req.do_intercept == false) {
@@ -617,27 +626,38 @@ void proxenet_process_http_request(sock_t server_socket)
                         }
 
 
-
                         /* if proxenet does not relay to another proxy */
                         if (!cfg->proxy.host) {
 
                                 if (is_new_http_connection) {
 
-                                        if (req.http_infos.proto_type==HTTPS) {
-                                                /*
-                                                 * SSL request fields still have the values gathered in the CONNECT
-                                                 * Those values must be updated to reflect the real request
-                                                 */
-                                                free_http_infos(&(req.http_infos));
-                                                retcode = parse_http_request(&req);
-                                        } else {
-                                                /*
-                                                 * Format requests
-                                                 * GET http://foo/bar.blah HTTP/1.1 ...
-                                                 * into
-                                                 * GET /bar.blah HTTP/1.1 ...
-                                                 */
-                                                retcode = format_http_request(&req);
+                                        switch (req.http_infos.proto_type) {
+                                                case HTTPS:
+                                                        /*
+                                                         * SSL request fields still have the values gathered in the CONNECT
+                                                         * Those values must be updated to reflect the real request
+                                                         */
+                                                        free_http_infos(&(req.http_infos));
+                                                        retcode = parse_http_request(&req);
+                                                        break;
+
+                                                case HTTP:
+                                                        /*
+                                                         * Format requests
+                                                         * GET http://foo/bar.blah HTTP/1.1 ...
+                                                         * into
+                                                         * GET /bar.blah HTTP/1.1 ...
+                                                         */
+                                                        retcode = format_http_request(&req);
+                                                        break;
+
+                                                case WS:
+                                                case WSS:
+                                                        retcode = format_ws_request(&req);
+                                                        break;
+
+                                                default:
+                                                        break;
                                         }
                                 } else {
                                         /* if here, at least 1 request has been to server */
@@ -659,16 +679,14 @@ void proxenet_process_http_request(sock_t server_socket)
                         }
 
 
-                        if(cfg->ie_compat){
-                                if (is_ssl)
-                                        retcode = ie_compat_read_post_body(server_socket, &req, &(ssl_context.server.context));
-                                else
-                                        retcode = ie_compat_read_post_body(server_socket, &req, NULL);
-                                if (retcode < 0){
-                                        xlog(LOG_ERROR, "%s\n", "Extending IE POST: failed");
-                                        proxenet_xfree(req.data);
-                                        break;
-                                }
+                        if (is_ssl)
+                                retcode = ie_compat_read_post_body(server_socket, &req, &(ssl_context.server.context));
+                        else
+                                retcode = ie_compat_read_post_body(server_socket, &req, NULL);
+                        if (retcode < 0){
+                                xlog(LOG_ERROR, "%s\n", "Extending IE POST: failed");
+                                proxenet_xfree(req.data);
+                                break;
                         }
 
 
@@ -693,11 +711,12 @@ void proxenet_process_http_request(sock_t server_socket)
                                 break;
                         }
 #ifdef DEBUG
-                        xlog(LOG_DEBUG, "Request %d post-plugins: buflen:%lu\n",
-                             req.id, req.size);
+                        xlog(LOG_DEBUG, "Request %d to '%s' post-plugins: buflen:%lu\n",
+                             req.id, req.http_infos.uri, req.size);
 
-                        if(cfg->verbose > 2)
+                        if(cfg->verbose > 2){
                                 proxenet_hexdump(req.data, req.size);
+                        }
 #endif
 
                 send_to_server:
