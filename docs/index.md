@@ -10,12 +10,16 @@ From Ancient Greek, *πρόξενος* (*próksenos*, "public guest").
 
 ## What is proxenet ?
 
->
+
 > `proxenet` is a **hacker** friendly proxy for web application
 > penetration tests.
->
 
-![capture1](img/proxenet-capture1.png)
+![proxenet-webui](img/proxenet-web-interface.png)
+![proxenet-tui](img/proxenet-capture1.png)
+
+Simply put, `proxenet` will allow you to make fine grain plugins to manipulate HTTP requests 
+and/or responses in the language of your choice; that other existing tools (`Burp`, `ZAP`, 
+etc.) can by design **never** allow you to do.
 
 `proxenet` is a multi-threaded proxy which allows you to manipulate HTTP
 requests and responses using your favorite scripting language. No need to learn
