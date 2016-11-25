@@ -121,7 +121,7 @@ To make things fair, both are written in Java. ;)
 
 ## Presentation
 
- - Ruxmon Melbourne Aug-2015 (https://blah.cat:8000/public/Ruxmon.2015-08.-.proxenet.pdf)
+ - [Ruxmon Melbourne August 2015](http://christophe.alladoum.free.fr/public/ruxmon-08-15/)
 
 ## Contributing
 
