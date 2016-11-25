@@ -596,8 +596,7 @@ void proxenet_process_http_request(sock_t server_socket)
                                 }
 
                                 /* is the new request for HTTPS? */
-                                if (req.http_infos.proto_type == HTTPS) {
-                                        req.is_ssl = true;
+                                if (req.is_ssl) {
 
                                         if (req.do_intercept == false) {
 #ifdef DEBUG
@@ -672,7 +671,7 @@ void proxenet_process_http_request(sock_t server_socket)
 
                                 if (retcode < 0){
                                         xlog(LOG_ERROR, "Failed to update %s information in request %d\n",
-                                             is_ssl?"HTTPS":"HTTP", req.id);
+                                             req.http_infos.proto, req.id);
                                         proxenet_xfree(req.data);
                                         break;
                                 }

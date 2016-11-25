@@ -431,6 +431,11 @@ int parse_http_request(request_t *req)
                 }
         }
 
+        /* char *upgrade_header = get_header_by_name(buf, "Upgrade:"); */
+        /* if (upgrade_header){ */
+        /*         if (strcmp(upgrade_header, "websocket")==0){ */
+        /*                 format_ws_request() */
+
         return 0;
 
 
@@ -471,14 +476,13 @@ void free_http_infos(http_infos_t *hi)
  * This function does the same as `create_http_socket()`, except that it performs SSL/TLS
  * interception (if asked by configuration).
  */
-int create_https_socket(request_t *req, sock_t *cli_sock, sock_t *srv_sock, ssl_context_t* ctx)
+int create_ssl_socket_with_interception(request_t *req, sock_t *cli_sock, sock_t *srv_sock, ssl_context_t* ctx)
 {
         char *connect_buf = NULL;
         http_infos_t* http_infos = &req->http_infos;
         int retcode = -1;
         bool use_proxy = (cfg->proxy.host != NULL);
         bool use_http_proxy = use_proxy && (cfg->is_socks_proxy==false);
-        // bool use_socks_proxy = use_proxy && (cfg->is_socks_proxy==true);
 
         /* disable all interception if ssl intercept was explicitely disabled by config */
         if (cfg->ssl_intercept == false)
@@ -719,8 +723,7 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
                  */
                 if(strcmp(peek_read, "GET")!=0){
                         ssl_ctx->use_ssl = req->is_ssl = true;
-                        http_infos->proto_type = HTTPS;
-                        return create_https_socket(req, client_sock, server_sock, ssl_ctx);
+                        return create_ssl_socket_with_interception(req, client_sock, server_sock, ssl_ctx);
                 }
 
                 xlog(LOG_INFO, "%s\n", "Upgrading to WebSocket");
