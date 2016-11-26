@@ -588,12 +588,6 @@ void proxenet_process_http_request(sock_t server_socket)
                                         break;
                                 }
 
-                                /* is it WebSocket? */
-                                /*if(req.http_infos.proto_type == WS || req.http_infos.proto_type == WSS) {
-                                        proxenet_xfree(req.data);
-                                        is_new_http_connection = true;
-                                        continue;
-                                        }*/
 
                                 if (req.is_ssl){
                                         /*
