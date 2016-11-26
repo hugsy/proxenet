@@ -247,7 +247,7 @@ endif(USE_JAVA_PLUGIN)
 add_definitions(-DHAVE_CONFIG_H)
 configure_file ("config.h.in" "config.h")
 include_directories("." "..")
-
+add_subdirectory(tests)
 
 # wrap-up message
 message("--------------------------------------------------------------------------")
@@ -306,3 +306,7 @@ add_custom_command (TARGET uninstall
   COMMAND @echo "* Deleting ${PROGNAME} tree"
   COMMAND @rm -fr "${CMAKE_INSTALL_PREFIX}" "${MANDIR}/${PROGNAME}.1.gz"
   )
+
+# unit tests
+enable_testing()
+add_test(NAME check_utils COMMAND check_utils)
