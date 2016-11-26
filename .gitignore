@@ -36,3 +36,5 @@ proxenet-plugins
 keys/proxenet.p12
 keys/proxenet.p7b
 install_manifest.txt
+CTestTestfile.cmake
+Testing/
