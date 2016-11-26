@@ -87,7 +87,6 @@ static void usage(int retcode)
                 "\t-E, --intercept-except\t\t\tIntercept everything except hostnames matching pattern\n"
                 "\t-m, --pattern=PATTERN\t\t\tSpecify a hostname matching pattern (default: '%s')\n"
                 "\t-N, --no-ssl-intercept\t\t\tDo not intercept any SSL traffic\n"
-                "\t-i, --ie-compatibility\t\t\tToggle old IE compatibility mode (default: on)\n"
                 ,
 
                 CFG_DEFAULT_INTERCEPT_PATTERN
@@ -260,7 +259,6 @@ static int parse_options (int argc, char** argv)
                 { "sslcli-keyfile",                    1, 0, 'y' },
                 { "sslcli-keyfile-passphrase",         1, 0, 'Y' },
 
-                { "ie-compat",                         0, 0, 'i'},
                 { "no-ssl-intercept",                  0, 0, 'N'},
 
                 { 0, 0, 0, 0 }
@@ -295,7 +293,6 @@ static int parse_options (int argc, char** argv)
         sslcli_keyfile		= NULL;
         sslcli_keyfile_pwd	= CFG_DEFAULT_SSL_KEYFILE_PWD;
 
-        cfg->ie_compat          = true;
         cfg->ssl_intercept      = true;
 
         cfg->do_restart         = false;
@@ -305,7 +302,7 @@ static int parse_options (int argc, char** argv)
         while (1) {
                 curopt_idx = 0;
                 curopt = getopt_long (argc,argv,
-                                      "dn46Vhvb:p:l:t:c:k:K:x:X:P:z:y:Y:IEm:NiD",
+                                      "dn46Vhvb:p:l:t:c:k:K:x:X:P:z:y:Y:IEm:ND",
                                       long_opts, &curopt_idx);
                 if (curopt == -1) break;
 
@@ -339,9 +336,6 @@ static int parse_options (int argc, char** argv)
                         case 'y': sslcli_keyfile = optarg; break;
                         case 'Y': sslcli_keyfile_pwd = optarg; break;
                         case 'N': cfg->ssl_intercept = false; break;
-                        case 'i':
-                                cfg->ie_compat= cfg->ie_compat?false:true;
-                                break;
 
                         case '?':
                         default:
