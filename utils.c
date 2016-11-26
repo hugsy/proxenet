@@ -250,7 +250,7 @@ void proxenet_lstrip(char* str)
         if (len==0)
                 return;
 
-        for(i=0; i<=len-1 && (str[i]=='\t' || str[i]=='\n' || str[i]==' '); i++);
+        for(i=0; i<=len-1 && (str[i]=='\t' || str[i]=='\r' || str[i]=='\n' || str[i]==' '); i++);
         if(i == len-1)
                 return;
 
@@ -278,13 +278,12 @@ void proxenet_rstrip(char* str)
         if (len==0)
                 return;
 
-        for(i=len-1; i && (str[i]=='\t' || str[i]=='\n' || str[i]==' '); i--);
+        for(i=len-1; i && (str[i]=='\t' || str[i]=='\r' || str[i]=='\n' || str[i]==' '); i--);
         if(i == len-1)
                 return;
 
-        for(j=i; j<len; j++)
+        for(j=i+1; j<len; j++)
                 str[j] = '\x00';
-
         return;
 }
 

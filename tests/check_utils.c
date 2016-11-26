@@ -30,6 +30,60 @@ START_TEST(proxenet_xstrdup2_test)
 END_TEST
 
 
+START_TEST(proxenet_lstrip_test)
+{
+        const char orig[] = "X-Header-Test: blahblah";
+        char *str;
+
+        str = proxenet_xstrdup2(orig);
+        proxenet_lstrip(str);
+        ck_assert_str_eq(str, orig);
+        proxenet_xfree(str);
+
+        str = proxenet_xstrdup2("   \t \rX-Header-Test: blahblah");
+        proxenet_lstrip(str);
+        ck_assert_str_eq(str, orig);
+        proxenet_xfree(str);
+}
+END_TEST
+
+
+START_TEST(proxenet_rstrip_test)
+{
+        const char orig[] = "X-Header-Test: blahblah";
+        char *str;
+
+        str = proxenet_xstrdup2(orig);
+        proxenet_rstrip(str);
+        ck_assert_str_eq(str, orig);
+        proxenet_xfree(str);
+
+        str = proxenet_xstrdup2("X-Header-Test: blahblah   \t \r\n");
+        proxenet_rstrip(str);
+        ck_assert_str_eq(str, orig);
+        proxenet_xfree(str);
+}
+END_TEST
+
+
+START_TEST(proxenet_strip_test)
+{
+        const char orig[] = "X-Header-Test: blahblah";
+        char *str;
+
+        str = proxenet_xstrdup2(orig);
+        proxenet_strip(str);
+        ck_assert_str_eq(str, orig);
+        proxenet_xfree(str);
+
+        str = proxenet_xstrdup2("   \t \nX-Header-Test: blahblah   \t \r\n");
+        proxenet_strip(str);
+        ck_assert_str_eq(str, orig);
+        proxenet_xfree(str);
+}
+END_TEST
+
+
 Suite * utils_suite(void)
 {
     Suite *s;
@@ -44,6 +98,9 @@ Suite * utils_suite(void)
     /* Test for string manipulation functions */
     tc_string = tcase_create("String");
     tcase_add_test(tc_string, proxenet_xstrdup2_test);
+    tcase_add_test(tc_string, proxenet_lstrip_test);
+    tcase_add_test(tc_string, proxenet_rstrip_test);
+    tcase_add_test(tc_string, proxenet_strip_test);
 
     suite_add_tcase(s, tc_memory);
     suite_add_tcase(s, tc_string);
