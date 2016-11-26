@@ -243,23 +243,23 @@ char* proxenet_xstrdup2(const char *data)
  */
 void proxenet_lstrip(char* str)
 {
-        size_t i, j, d;
+        size_t i, j;
         size_t len = strlen(str);
+        char* tmp;
 
-        if (!len)
+        if (len==0)
                 return;
 
         for(i=0; i<=len-1 && (str[i]=='\t' || str[i]=='\n' || str[i]==' '); i++);
         if(i == len-1)
                 return;
 
-        d = len-i;
-        for(j=0; j<d; j++, i++)
-                str[j] = str[i];
-
-        for(j=i-1; j<len; j++)
-                str[j] = '\x00';
-
+        j = len-i;
+        tmp = alloca(j+1);
+        memset(tmp, '\x00', j+1);
+        memcpy(tmp, str+i, j);
+        memcpy(str, tmp, j);
+        memset(str+j, '\x00', len-j);
         return;
 }
 
@@ -275,7 +275,7 @@ void proxenet_rstrip(char* str)
         size_t i, j;
         size_t len = strlen(str);
 
-        if (!len)
+        if (len==0)
                 return;
 
         for(i=len-1; i && (str[i]=='\t' || str[i]=='\n' || str[i]==' '); i--);

@@ -589,14 +589,17 @@ void proxenet_process_http_request(sock_t server_socket)
                                 }
 
                                 /* is it WebSocket? */
-                                if(req.http_infos.proto_type == WS || req.http_infos.proto_type == WSS) {
+                                /*if(req.http_infos.proto_type == WS || req.http_infos.proto_type == WSS) {
                                         proxenet_xfree(req.data);
                                         is_new_http_connection = true;
                                         continue;
-                                }
+                                        }*/
 
-                                /* is the new request for HTTPS? */
-                                if (req.is_ssl) {
+                                if (req.is_ssl){
+                                        /*
+                                         * If the request was SSL/TLS interecepted, continue the loop for the
+                                         * next HTTP request (GET/POST/etc.).
+                                         */
 
                                         if (req.do_intercept == false) {
 #ifdef DEBUG
@@ -619,7 +622,19 @@ void proxenet_process_http_request(sock_t server_socket)
                                         xlog(LOG_ERROR, "%s\n", "Failed to establish interception");
                                         proxenet_xfree(req.data);
                                         break;
+
+                                } else if (strcmp(req.http_infos.method, "CONNECT")==0){
+                                        /*
+                                         * If here, the connection is not SSL/TLS based *but* the client
+                                         * asked for a CONNECT. It is likely a WebSocket upgrade, so mark the
+                                         * connection as `new` as continue the loop to get the HTTP Upgrade
+                                         * GET request.
+                                         */
+                                        proxenet_xfree(req.data);
+                                        is_new_http_connection = true;
+                                        continue;
                                 }
+
 
                                 is_new_http_connection = true;
                         }
@@ -658,7 +673,19 @@ void proxenet_process_http_request(sock_t server_socket)
                                                 default:
                                                         break;
                                         }
+
+                                        /*
+                                         * Probe the new connection for a WebSocket upgrade (according to
+                                         * RFC 6455).
+                                         */
+                                        if (prepare_websocket(&req) < 0){
+                                                xlog(LOG_ERROR, "%s\n", "An error occured while preparing WebSocket, bailing");
+                                                proxenet_xfree(req.data);
+                                                break;
+                                        }
+
                                 } else {
+
                                         /* if here, at least 1 request has been to server */
                                         /* so simply forward  */
                                         /* e.g. using HTTP/1.1 100 Continue */
@@ -679,11 +706,11 @@ void proxenet_process_http_request(sock_t server_socket)
 
 
                         if (is_ssl)
-                                retcode = ie_compat_read_post_body(server_socket, &req, &(ssl_context.server.context));
+                                retcode = get_http_request_body(server_socket, &req, &(ssl_context.server.context));
                         else
-                                retcode = ie_compat_read_post_body(server_socket, &req, NULL);
+                                retcode = get_http_request_body(server_socket, &req, NULL);
                         if (retcode < 0){
-                                xlog(LOG_ERROR, "%s\n", "Extending IE POST: failed");
+                                xlog(LOG_ERROR, "get_http_request_body() failed: retcode=%d\n", retcode);
                                 proxenet_xfree(req.data);
                                 break;
                         }

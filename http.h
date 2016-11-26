@@ -67,6 +67,7 @@ int      format_http_request(request_t*);
 int      format_ws_request(request_t*);
 int      parse_http_request(request_t*);
 void     free_http_infos(http_infos_t *);
-int      ie_compat_read_post_body(sock_t, request_t*, proxenet_ssl_context_t*);
+int      get_http_request_body(sock_t, request_t*, proxenet_ssl_context_t*);
+int      prepare_websocket(request_t*);
 
 #endif /* _HTTP_H */

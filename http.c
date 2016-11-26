@@ -431,11 +431,6 @@ int parse_http_request(request_t *req)
                 }
         }
 
-        /* char *upgrade_header = get_header_by_name(buf, "Upgrade:"); */
-        /* if (upgrade_header){ */
-        /*         if (strcmp(upgrade_header, "websocket")==0){ */
-        /*                 format_ws_request() */
-
         return 0;
 
 
@@ -717,24 +712,18 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
                         return -1;
                 }
 
-                /* From WebSocket RFC (6455):
+                /*
+                 * From WebSocket RFC (6455):
                  * "The method of the request MUST be GET, and the HTTP version MUST
                  * be at least 1.1."
+                 *
+                 * This means that if the next message from Web Browser does not start with GET,
+                 * we can assume the connection is SSL/TLS (i.e. HTTPS or WSS).
                  */
                 if(strcmp(peek_read, "GET")!=0){
                         ssl_ctx->use_ssl = req->is_ssl = true;
+                        req->http_infos.proto_type = HTTPS;
                         return create_ssl_socket_with_interception(req, client_sock, server_sock, ssl_ctx);
-                }
-
-                xlog(LOG_INFO, "%s\n", "Upgrading to WebSocket");
-                if(http_infos->port != HTTP_DEFAULT_PORT){
-                        req->http_infos.proto_type = WSS;
-                        req->http_infos.proto = WSS_STRING;
-                        req->http_infos.port = WSS_DEFAULT_PORT;
-                } else {
-                        req->http_infos.proto_type = WS;
-                        req->http_infos.proto = WS_STRING;
-                        req->http_infos.port = WS_DEFAULT_PORT;
                 }
         }
         return 0;
@@ -749,7 +738,7 @@ int create_http_socket(request_t* req, sock_t* server_sock, sock_t* client_sock,
 *
 * @return 0 if successful, -1 otherwise
 */
-int ie_compat_read_post_body(sock_t sock, request_t* req, proxenet_ssl_context_t* sslctx)
+int get_http_request_body(sock_t sock, request_t* req, proxenet_ssl_context_t* sslctx)
 {
         int nb;
         size_t old_len, body_len;
@@ -808,4 +797,56 @@ int ie_compat_read_post_body(sock_t sock, request_t* req, proxenet_ssl_context_t
 #endif
 
         return 0;
+}
+
+
+/**
+ * If a GET request is received, check if it is part of a WebSocket handshake (as defined in
+ * https://tools.ietf.org/html/rfc6455#section-4.2.1)
+ *
+ * @param req is a pointer to the request structure
+ * @return 0 if no error occured, but the request is not a WS upgrade message
+ * @return 1 if no error occured, and the request is a WS upgrade message
+ * @return -1 if an error occured
+ */
+int prepare_websocket(request_t* req)
+{
+        int res = 0;
+        char *upgrade_header, *connection_header;
+
+        xlog(LOG_DEBUG,  "testing websocket for req #%d\n", req->id);
+
+        connection_header = get_header_by_name(req->data, "Connection: ");
+        upgrade_header = get_header_by_name(req->data, "Upgrade: ");
+
+        if(connection_header && strcasestr(connection_header, "Upgrade") && \
+           upgrade_header && strcasecmp(upgrade_header, "WebSocket")==0){
+
+                xlog(LOG_INFO, "Upgrading request %d to WebSocket\n", req->id);
+
+                /* And header the request status accordingly */
+                if (req->is_ssl){
+                        req->http_infos.proto_type = WSS;
+                        req->http_infos.proto = WSS_STRING;
+                } else {
+                        req->http_infos.proto_type = WS;
+                        req->http_infos.proto = WS_STRING;
+                }
+
+                update_http_infos_uri(req);
+
+                res = 1;
+        }
+
+#ifdef DEBUG
+        xlog(LOG_DEBUG,  "Processing WebSocket handshake for request #%d ('%s')\n",
+             req->id, req->http_infos.uri);
+#endif
+
+        if(connection_header)
+                proxenet_xfree(connection_header);
+        if(upgrade_header)
+                proxenet_xfree(upgrade_header);
+
+        return res;
 }
