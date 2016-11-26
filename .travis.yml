@@ -18,7 +18,7 @@ addons:
         - default-jdk
 
 before_script:
-- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update && brew install mbedtls; fi
+- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update && brew install mbedtls check; fi
 - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then curl -fSsL https://tls.mbed.org/download/mbedtls-2.2.1-gpl.tgz|tar xz && cd mbedtls-2.2.1 && cmake . -DCMAKE_C_FLAGS="-fPIC" -DCMAKE_SHARED_LINKER_FLAGS="-pie" && make && sudo make install && cd .. ; fi
 
 script:
