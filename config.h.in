@@ -72,7 +72,7 @@
 
 #define SYSTEM          "@CMAKE_SYSTEM@"
 #define CC              "@CMAKE_C_COMPILER_ID@"
-
+#define CXX             "@CMAKE_CXX_COMPILER_ID@"
 
 #cmakedefine _MBEDTLS_VERSION_ "@MBEDTLS_VERSION@"
 

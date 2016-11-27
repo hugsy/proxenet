@@ -5,7 +5,7 @@
 #
 
 cmake_minimum_required(VERSION 2.6)
-project(proxenet C)
+project(proxenet C CXX)
 
 # extra variables
 set (PROGNAME proxenet)
@@ -39,9 +39,12 @@ set (CMAKE_INSTALL_PREFIX "/opt/${PROGNAME}")
 # plugin cmake build path
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/ ${CMAKE_MODULE_PATH})
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Werror-implicit-function-declaration")
+set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Werror-implicit-function-declaration")
+
 if(PREFIX)
         set(CMAKE_INSTALL_PREFIX ${PREFIX} CACHE PATH "Install path prefix" FORCE)
 endif(PREFIX)
+
 
 
 # scripts supports (if libraries can be found)
@@ -67,9 +70,9 @@ option(DEBUG_LEAK             "Enable memleak checks"                  OFF)
 
 if (DEBUG)
   message("-- Compiling as debug mode")
-  set(CMAKE_BUILD_TYPE Debug)
-  set(CMAKE_C_FLAGS_DEBUG "-ggdb -DDEBUG -O0")
   set(CMAKE_VERBOSE_MAKEFILE ON)
+  set(CMAKE_BUILD_TYPE Debug)
+  set(CMAKE_C_FLAGS_DEBUG "-ggdb -DDEBUG -O0 -fPIC")
 
   if(DEBUG_LEAK)
     message("-- Compiling with sanitizers")
@@ -81,9 +84,12 @@ if (DEBUG)
     set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -DDEBUG_SSL")
   endif(DEBUG_SSL)
 
+  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG}")
+
 else()
   set(CMAKE_BUILD_TYPE None)
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -fstack-protector-all -fPIE -fPIC -D_FORTIFY_SOURCE")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -fstack-protector-all -fPIE -D_FORTIFY_SOURCE")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -fstack-protector-all -fPIE -D_FORTIFY_SOURCE")
   set(CMAKE_VERBOSE_MAKEFILE OFF)
 
   if( ${CMAKE_SYSTEM_NAME} MATCHES "Linux" )
@@ -249,7 +255,7 @@ if (USE_JAVASCRIPT_PLUGIN)
   if(JAVASCRIPT_FOUND)
     include_directories(${V8_INCLUDE_DIR})
     set(EXTRA_LIBS ${EXTRA_LIBS} ${V8_LIBRARY})
-    set(ALL_FILES ${ALL_FILES} plugin-javascript.cpp plugin-javascript.hpp)
+    set(ALL_FILES ${ALL_FILES} plugin-javascript.cpp plugin-javascript.h)
     set(_JAVASCRIPT_VERSION_ ${V8_VERSION})
     set(_JAVASCRIPT_MAJOR_ ${V8_VERSION_MAJOR})
     set(_JAVASCRIPT_MINOR_ ${V8_VERSION_MINOR})
@@ -293,6 +299,7 @@ if(JAVASCRIPT_FOUND)
 endif()
 message("--------------------------------------------------------------------------")
 
+message(${ALL_FILES})
 
 # compile and link
 add_executable(proxenet ${ALL_FILES})

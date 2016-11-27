@@ -34,12 +34,12 @@ extern "C"
 #include "plugin.h"
 }
 
+#include "plugin-javascript.h"
 #include <v8.h>
 
-#define xlog_js(t, ...) xlog(t, "["_JAVASCRIPT_VERSION_"] " __VA_ARGS__)
-
-
 using namespace v8;
+
+#define xlog_js(t, ...) xlog(t, "[" _JAVASCRIPT_VERSION_ "] " __VA_ARGS__)
 
 
 /**
@@ -49,7 +49,7 @@ static void proxenet_javascript_print_exception(v8::TryCatch *trycatch)
 {
     Local<Value> exception = trycatch->Exception();
     String::Utf8Value str_exception(exception);
-    xlog_js("Exception raised: %s\n", *str_exception);
+    printf("Exception raised: %s\n", *str_exception);
 }
 
 
@@ -60,7 +60,7 @@ int proxenet_javascript_initialize_vm(plugin_t* plugin)
 {
 	proxenet_js_t* vm;
 
-        vm = (proxenet_js_t*)proxenet_xmalloc(sizeof(proxenet_js_t))
+        vm = (proxenet_js_t*)proxenet_xmalloc(sizeof(proxenet_js_t));
         vm->global = ObjectTemplate::New();
         vm->context = Context::New(NULL, vm->global);
 
@@ -89,7 +89,7 @@ int proxenet_javascript_destroy_plugin(plugin_t* plugin)
  */
 int proxenet_javascript_destroy_vm(interpreter_t* interpreter)
 {
-        proxenet_js_t* vm = interpreter->vm;
+        proxenet_js_t* vm = (proxenet_js_t*)interpreter->vm;
         vm->context.Dispose();
         proxenet_xfree(vm);
 
@@ -105,7 +105,7 @@ int proxenet_javascript_destroy_vm(interpreter_t* interpreter)
  */
 static bool is_valid_function(interpreter_t* interpreter, const char *function)
 {
-        proxenet_js_t* vm = interpreter->vm;
+        proxenet_js_t* vm = (proxenet_js_t*)interpreter->vm;
         Context::Scope context_scope(vm->context);
         Handle<Object> global = vm->context->Global();
         Handle<Value> value = global->Get(String::New(function));
@@ -121,25 +121,25 @@ int proxenet_javascript_initialize_plugin(plugin_t* plugin)
         interpreter_t* interpreter;
 	proxenet_js_t *vm;
         v8::TryCatch trycatch;
-        char function_names[] = { CFG_REQUEST_PLUGIN_FUNCTION,
-                                  CFG_RESPONSE_PLUGIN_FUNCTION,
-                                  CFG_ONLOAD_PLUGIN_FUNCTION,
-                                  CFG_ONLEAVE_PLUGIN_FUNCTION,
-                                  NULL
+        const char* function_names[5] = { CFG_REQUEST_PLUGIN_FUNCTION,
+                                          CFG_RESPONSE_PLUGIN_FUNCTION,
+                                          CFG_ONLOAD_PLUGIN_FUNCTION,
+                                          CFG_ONLEAVE_PLUGIN_FUNCTION,
+                                          NULL
         };
-        char **n;
+        const char **n;
 
         if (plugin->interpreter==NULL || plugin->interpreter->ready==false){
-                xlog_js(LOG_ERROR, "%s\n", "not ready");
+                //xlog_js(LOG_ERROR, "%s\n", "not ready");
                 return -1;
         }
 
-        interpreter = (proxenet_js_t*)plugin->interpreter;
+        interpreter = (interpreter_t*)plugin->interpreter;
         vm = (proxenet_js_t*)interpreter->vm;
 
         // switch to plugin context
         Context::Scope context_scope(vm->context);
-        vm->source = String::New(fname);
+        vm->source = String::New(plugin->fullpath);
         vm->script = Script::Compile(vm->source);
 
         if (vm->script.IsEmpty()){
@@ -155,7 +155,7 @@ int proxenet_javascript_initialize_plugin(plugin_t* plugin)
 
         for(n=function_names; *n; n++){
                 if(!is_valid_function(interpreter, *n)){
-                        xlog_js("'%s' is not a valid function\n", *n);
+                        //xlog_js("'%s' is not a valid function\n", *n);
                         return -1;
                 }
         }
@@ -169,7 +169,7 @@ int proxenet_javascript_initialize_plugin(plugin_t* plugin)
  */
 char* proxenet_javascript_plugin(plugin_t *plugin, request_t *request)
 {
-	return "";
+	return NULL;
 }
 
 #endif

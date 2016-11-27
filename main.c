@@ -149,12 +149,14 @@ static void help()
         printf("Written by %s\n"
                "Released under: %s\n"
                "Using library: mbedTLS %s\n"
-               "Compiled by %s (%s) with support for :\n"
+               "Compiled by %s/%s (%s) with support for :\n"
                ,
                AUTHOR,
                LICENSE,
                _MBEDTLS_VERSION_,
-               CC, SYSTEM);
+               CC,
+               CXX,
+               SYSTEM);
 
         i = 0;
         while (true) {

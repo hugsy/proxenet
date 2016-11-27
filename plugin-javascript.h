@@ -4,6 +4,7 @@
 
 #ifdef _JAVASCRIPT_PLUGIN
 
+#include "plugin.h"
 #include <v8.h>
 
 using namespace v8;
@@ -16,9 +17,6 @@ typedef struct {
                 Handle<Script> script;
 } proxenet_js_t;
 
-extern "C"{
-#include "plugin.h"
-}
 
 int proxenet_javascript_initialize_vm(plugin_t* plugin);
 int proxenet_javascript_destroy_vm(interpreter_t* interpreter);
