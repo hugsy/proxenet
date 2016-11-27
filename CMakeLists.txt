@@ -31,7 +31,7 @@ endif()
 set (VERSION_MAJOR 0)
 set (VERSION_MINOR 5)
 
-set (CODENAME "Joli Cagoule")
+set (CODENAME "Jolie Cagoule")
 set (VERSION "${VERSION_MAJOR}.${VERSION_MINOR}-${VERSION_REL}")
 
 set (CMAKE_INSTALL_PREFIX "/opt/${PROGNAME}")
