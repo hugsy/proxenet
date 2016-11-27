@@ -103,7 +103,7 @@ START_TEST(expand_file_path_test)
         proxenet_xfree(res);
 
         res = expand_file_path( (char*)path_test_nok );
-        ck_assert_ptr_eq(res, NULL);
+        ck_assert(res == NULL);
         ck_assert_int_eq(errno, ENOENT);
 }
 END_TEST
@@ -116,7 +116,7 @@ START_TEST(is_file_test)
         char *res;
 
         res = expand_file_path( (char*)path_test_ok );
-        ck_assert_ptr_ne(res, NULL);
+        ck_assert(res != NULL);
         ck_assert_int_eq(is_file(res), true);
         proxenet_xfree(res);
 
@@ -132,7 +132,7 @@ START_TEST(is_readable_file_test)
         char *res;
 
         res = expand_file_path( (char*)path_test_ok );
-        ck_assert_ptr_ne(res, NULL);
+        ck_assert(res != NULL);
         ck_assert_int_eq(is_readable_file(res), true);
         proxenet_xfree(res);
 
@@ -148,7 +148,7 @@ START_TEST(is_writable_file_test)
         char *res;
 
         res = expand_file_path( (char*)path_test_ok );
-        ck_assert_ptr_ne(res, NULL);
+        ck_assert(res != NULL);
         ck_assert_int_eq( is_writable_file(res), true);
         proxenet_xfree(res);
 
@@ -164,7 +164,7 @@ START_TEST(is_dir_test)
         char *res;
 
         res = expand_file_path( (char*)path_test_ok );
-        ck_assert_ptr_ne(res, NULL);
+        ck_assert(res != NULL);
         ck_assert_int_eq( is_dir(res), true);
         proxenet_xfree(res);
 
