@@ -102,3 +102,8 @@
 #cmakedefine _JAVA_MAJOR_      @Java_VERSION_MAJOR@
 #cmakedefine _JAVA_MINOR_      @Java_VERSION_MINOR@
 #cmakedefine _JAVA_VERSION_    "Java@_JAVA_VERSION_@"
+
+#cmakedefine _JAVASCRIPT_PLUGIN
+#cmakedefine _JAVASCRIPT_MAJOR_      @V8_VERSION_MAJOR@
+#cmakedefine _JAVASCRIPT_MINOR_      @V8_VERSION_MINOR@
+#cmakedefine _JAVASCRIPT_VERSION_    "V8_@_JAVASCRIPT_VERSION_@"

@@ -38,3 +38,5 @@ keys/proxenet.p7b
 install_manifest.txt
 CTestTestfile.cmake
 Testing/
+tests/check_http
+tests/check_utils

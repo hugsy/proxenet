@@ -21,15 +21,15 @@ if( ${MBEDTLS_LIBRARIES-NOTFOUND} )
 endif()
 
 execute_process(
-    COMMAND bash -c "echo \"#include <mbedtls/version.h>\n#include <stdio.h>\nint main(){printf(MBEDTLS_VERSION_STRING);return 0;}\">a.c;cc a.c -I${MBEDTLS_INCLUDE_DIR} ${MBEDTLS_LIBRARIES} ;./a.out;rm -f a.c a.out"
+    COMMAND bash -c "echo \"#include <mbedtls/version.h>\n#include <stdio.h>\nint main(){printf(MBEDTLS_VERSION_STRING);return 0;}\">a.c;cc a.c -I${MBEDTLS_INCLUDE_DIR} -lmbedtls ;./a.out;rm -f a.c a.out"
     OUTPUT_VARIABLE MBEDTLS_VERSION
     )
 
 string(REPLACE "." ";" MBEDTLS_VERSION_LIST ${MBEDTLS_VERSION})
 
-list(GET ${MBEDTLS_VERSION_LIST} 0 MBEDTLS_VERSION_MAJOR)
-list(GET ${MBEDTLS_VERSION_LIST} 1 MBEDTLS_VERSION_MINOR)
-list(GET ${MBEDTLS_VERSION_LIST} 2 MBEDTLS_VERSION_PATCH)
+list(GET MBEDTLS_VERSION_LIST 0 MBEDTLS_VERSION_MAJOR)
+list(GET MBEDTLS_VERSION_LIST 1 MBEDTLS_VERSION_MINOR)
+list(GET MBEDTLS_VERSION_LIST 2 MBEDTLS_VERSION_PATCH)
 
 if( ${MBEDTLS_VERSION} VERSION_LESS "2.1.0")
   message(FATAL_ERROR "Mbedtls 2.1+ is required for compiling ${PROGNAME} (current is ${MBEDTLS_VERSION}).")

@@ -53,6 +53,7 @@ option(USE_RUBY_PLUGIN        "Add Ruby2 script support"               ON)
 option(USE_PERL_PLUGIN        "Add Perl script support"                ON)
 option(USE_TCL_PLUGIN         "Add Tcl script support"                 ON)
 option(USE_JAVA_PLUGIN        "Add Java script support"                ON)
+option(USE_JAVASCRIPT_PLUGIN  "Add JavaScript script support"          ON)
 
 # enforcing debug compil when in branch dev
 if(GIT_RELEASE_BRANCH STREQUAL "dev")
@@ -242,6 +243,20 @@ if (USE_JAVA_PLUGIN)
   endif(Java_FOUND)
 endif(USE_JAVA_PLUGIN)
 
+# javascript (libv8)
+if (USE_JAVASCRIPT_PLUGIN)
+  find_package(V8)
+  if(JAVASCRIPT_FOUND)
+    include_directories(${V8_INCLUDE_DIR})
+    set(EXTRA_LIBS ${EXTRA_LIBS} ${V8_LIBRARY})
+    set(ALL_FILES ${ALL_FILES} plugin-javascript.cpp plugin-javascript.hpp)
+    set(_JAVASCRIPT_VERSION_ ${V8_VERSION})
+    set(_JAVASCRIPT_MAJOR_ ${V8_VERSION_MAJOR})
+    set(_JAVASCRIPT_MINOR_ ${V8_VERSION_MINOR})
+    set(_JAVASCRIPT_PLUGIN 1)
+  endif(JAVASCRIPT_FOUND)
+endif(USE_JAVASCRIPT_PLUGIN)
+
 
 # generate config file
 add_definitions(-DHAVE_CONFIG_H)
@@ -272,6 +287,9 @@ if(TCL_FOUND)
 endif()
 if(Java_FOUND)
   message("- Java plugin: ${_JAVA_VERSION_}")
+endif()
+if(JAVASCRIPT_FOUND)
+  message("- JavaScript plugin: ${_JAVASCRIPT_VERSION_}")
 endif()
 message("--------------------------------------------------------------------------")
 

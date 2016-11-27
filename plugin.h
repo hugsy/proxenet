@@ -36,6 +36,9 @@ typedef enum __supported_plugins_t {
 #ifdef _JAVA_PLUGIN
 	_JAVA_,
 #endif
+#ifdef _JAVASCRIPT_PLUGIN
+	_JAVASCRIPT_,
+#endif
   END_VALUE
 } supported_plugins_t;
 
@@ -69,6 +72,10 @@ static const UNUSED char* supported_plugins_str[] = {
 	_JAVA_VERSION_,
 #endif
 
+#ifdef _JAVASCRIPT_PLUGIN
+	_JAVASCRIPT_VERSION_,
+#endif
+
   NULL
 };
 
@@ -100,6 +107,10 @@ static const UNUSED char* plugins_extensions_str[] = {
 
 #ifdef _JAVA_PLUGIN
 	".class",
+#endif
+
+#ifdef _JAVASCRIPT_PLUGIN
+	".js",
 #endif
 
   NULL
