@@ -29,69 +29,77 @@ void _xlog(int type, const char* fmt, ...)
 	va_list ap;
         time_t t = time(NULL);
         struct tm tm = *localtime(&t);
+        FILE* fd;
+        bool use_color;
+
+
+#ifdef CCHECK_TEST
+        return;
+#else
+        fd = cfg->logfile_fd;
+        use_color = cfg->use_color;
+#endif
 
 	/* lock tty before printing */
         pthread_mutex_lock(&tty_mutex);
 
 #ifdef DEBUG
-        fprintf(cfg->logfile_fd,
-                "%.4d/%.2d/%.2d ",
+        fprintf(fd, "%.4d/%.2d/%.2d ",
                 tm.tm_year + 1900,
                 tm.tm_mon + 1,
                 tm.tm_mday);
 #endif
 
-        fprintf(cfg->logfile_fd,
-                "%.2d:%.2d:%.2d-",
+        fprintf(fd, "%.2d:%.2d:%.2d-",
                 tm.tm_hour, tm.tm_min,
                 tm.tm_sec);
 
 
 	switch (type) {
 		case LOG_CRITICAL:
-			if (cfg->use_color) fprintf(cfg->logfile_fd, DARK);
-			fprintf(cfg->logfile_fd, "CRITICAL");
+			if (use_color) fprintf(fd, DARK);
+			fprintf(fd, "CRITICAL");
 			break;
 
 		case LOG_ERROR:
-			if (cfg->use_color) fprintf(cfg->logfile_fd, RED);
-			fprintf(cfg->logfile_fd, "ERROR");
+			if (use_color) fprintf(fd, RED);
+			fprintf(fd, "ERROR");
 			break;
 
 		case LOG_WARNING:
-			if (cfg->use_color) fprintf(cfg->logfile_fd, YELLOW);
-			fprintf(cfg->logfile_fd, "WARNING");
+			if (use_color) fprintf(fd, YELLOW);
+			fprintf(fd, "WARNING");
 			break;
 
 		case LOG_DEBUG:
-			if (cfg->use_color) fprintf(cfg->logfile_fd, BLUE);
-			fprintf(cfg->logfile_fd, "DEBUG");
+			if (use_color) fprintf(fd, BLUE);
+			fprintf(fd, "DEBUG");
 			break;
 
 		case LOG_INFO:
 		default:
-			if (cfg->use_color) fprintf(cfg->logfile_fd, GREEN);
-			fprintf(cfg->logfile_fd, "INFO");
+			if (use_color) fprintf(fd, GREEN);
+			fprintf(fd, "INFO");
 			break;
 	}
 
 
-        if (cfg->use_color)
-                fprintf(cfg->logfile_fd, NOCOLOR);
+        if (use_color)
+                fprintf(fd, NOCOLOR);
 
-        fprintf(cfg->logfile_fd, "-");
+        fprintf(fd, "-");
 
 #ifdef DEBUG
 #if defined __LINUX__
-	fprintf(cfg->logfile_fd, "tid-%lu ", pthread_self());
+	fprintf(fd, "tid-%lu ", pthread_self());
 #elif defined __FREEBSD__ || defined __DARWIN__
-        fprintf(cfg->logfile_fd, "tid-%p ", pthread_self());
+        fprintf(fd, "tid-%p ", pthread_self());
 #endif
 #endif
 
 	va_start(ap, fmt);
-	vfprintf(cfg->logfile_fd, fmt, ap);
-	fflush(cfg->logfile_fd);
+	vfprintf(fd, fmt, ap);
+	fflush(fd);
 	va_end(ap);
 
 	/* release lock */
@@ -359,6 +367,8 @@ bool is_valid_plugin_path(char* plugin_path, char** plugins_path_ptr, char** aut
 
 /**
  * Expand the file path, including with ~ or other bash characters.
+ * If the path exists, a buffer with its absolute path will be allocated on heap.
+ * This buffer *MUST* be free-ed by the caller.
  *
  * @return the absolute file path allocated in heap on success, NULL on failure
  */
@@ -366,21 +376,28 @@ char* expand_file_path(char* file_path)
 {
         char *p, *p2;
         wordexp_t expanded_result;
+        int retcode;
 
         /* expand the path for bash character */
-        if (wordexp(file_path, &expanded_result, 0)<0){
+        retcode = wordexp(file_path, &expanded_result, 0);
+        if (retcode){
                 xlog(LOG_CRITICAL, "wordexp('%s') failed: %s\n", file_path, strerror(errno));
                 return NULL;
         }
 
-        p = expanded_result.we_wordv[0];
+        if (expanded_result.we_wordc < 1){
+                wordfree(&expanded_result);
+                xlog(LOG_CRITICAL, "wordexp('%s') failed: %s\n", file_path, "No matching result");
+                return NULL;
+        }
 
         /* check the plugins path */
+        p = expanded_result.we_wordv[0];
         p2 = realpath(p, NULL);
         wordfree(&expanded_result);
 
 	if (p2 == NULL){
-		xlog(LOG_CRITICAL, "realpath('%s') failed: %s\n", file_path, strerror(errno));
+                xlog(LOG_CRITICAL, "realpath('%s') failed: %s\n", file_path, strerror(errno));
 		return NULL;
 	}
 

@@ -9,6 +9,8 @@ set(EXTRA_LIBS ${EXTRA_LIBS} "-lpthread")
 find_package(Check REQUIRED)
 include_directories(${CHECK_INCLUDE_DIRS})
 
+add_definitions(-DCCHECK_TEST)
+
 set(TEST_SOURCES
   ../utils.c ../utils.h ./check_utils.c
 )

@@ -4,12 +4,18 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <errno.h>
 
 #include <check.h>
 
 #include "../utils.h"
 
+#ifndef CCHECK_TEST
+#define CCHECK_TEST 1
+#endif
 
+
+/* Memory */
 START_TEST(proxenet_xzero_test)
 {
         char *buf = proxenet_xmalloc(10);
@@ -28,8 +34,9 @@ START_TEST(proxenet_xstrdup2_test)
         proxenet_xfree(buf);
 }
 END_TEST
+/* */
 
-
+/* String */
 START_TEST(proxenet_lstrip_test)
 {
         const char orig[] = "X-Header-Test: blahblah";
@@ -82,12 +89,31 @@ START_TEST(proxenet_strip_test)
         proxenet_xfree(str);
 }
 END_TEST
+/* */
+
+/* Filesystem */
+START_TEST(expand_file_path_test)
+{
+        const char path_test_ok[] = "~/../..//.././../../../..//////etc/./passwd";
+        const char path_test_nok[] = "~/../..//.././..//////kawa/./bunga/";
+        char *res;
+
+        res = expand_file_path( (char*)path_test_ok );
+        ck_assert_str_eq(res, "/etc/passwd");
+        proxenet_xfree(res);
+
+        res = expand_file_path( (char*)path_test_nok );
+        ck_assert_ptr_eq(res, NULL);
+        ck_assert_int_eq(errno, ENOENT);
+}
+END_TEST
+/* */
 
 
 Suite * utils_suite(void)
 {
     Suite *s;
-    TCase *tc_memory, *tc_string;
+    TCase *tc_memory, *tc_string, *tc_fs;
 
     s = suite_create("utils");
 
@@ -102,8 +128,14 @@ Suite * utils_suite(void)
     tcase_add_test(tc_string, proxenet_rstrip_test);
     tcase_add_test(tc_string, proxenet_strip_test);
 
+    /* Test for filesystem path manipulation functions */
+    tc_fs = tcase_create("Filesystem");
+    tcase_add_test(tc_fs, expand_file_path_test);
+
+
     suite_add_tcase(s, tc_memory);
     suite_add_tcase(s, tc_string);
+    suite_add_tcase(s, tc_fs);
     return s;
 }
 
