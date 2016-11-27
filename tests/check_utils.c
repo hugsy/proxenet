@@ -1,5 +1,5 @@
 /**
- * Test suite for utils.h
+ * Test suite for utils.c
  */
 #include <string.h>
 #include <unistd.h>

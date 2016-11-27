@@ -13,6 +13,7 @@ add_definitions(-DCCHECK_TEST)
 
 set(TEST_SOURCES
   ../utils.c ../utils.h ./check_utils.c
+  ../http.c ../http.h ./check_http.c
 )
 
 
