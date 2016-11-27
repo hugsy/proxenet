@@ -42,3 +42,11 @@ List of some nice references found on about interacting high levels VM with C
 * http://cory.li/bytecode-hacking/
 * http://docs.oracle.com/javase/7/docs/technotes/guides/jni/spec/invocation.html
 * http://www.ishaanguliani.com/content/calling-java-functions-c-linux-ubuntu-jni
+
+## JavaScript (V8) ##
+
+ * https://v8docs.nodesource.com/io.js-3.0/d2/dc3/namespacev8.html
+ * https://github.com/weechat/weechat/blob/master/src/plugins/javascript/weechat-js-v8.cpp
+ * `/usr/include/v8.h`
+ * http://jcla1.com/blog/exploring-the-v8-js-engine-part-1
+ * http://jcla1.com/blog/exploring-the-v8-js-engine-part-2

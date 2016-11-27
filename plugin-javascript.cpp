@@ -8,14 +8,8 @@
 
 /*******************************************************************************
  *
- * JavaScript plugin
+ * JavaScript plugin (using V8 engine - https://v8docs.nodesource.com)
  *
- * References:
- * - https://v8docs.nodesource.com/io.js-3.0/d2/dc3/namespacev8.html
- * - https://github.com/weechat/weechat/blob/master/src/plugins/javascript/weechat-js-v8.cpp
- * - /usr/include/v8.h
- * - http://jcla1.com/blog/exploring-the-v8-js-engine-part-1
- * - http://jcla1.com/blog/exploring-the-v8-js-engine-part-2
  */
 
 #include <dlfcn.h>
