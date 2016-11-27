@@ -12,7 +12,8 @@
 
 if(V8_FOUND)
   # Already in cache, be silent
-  SET(V8_FIND_QUIETLY TRUE)
+  set(V8_FIND_QUIETLY TRUE)
+  return()
 endif()
 
 set(V8_INC_PATHS
@@ -27,7 +28,7 @@ find_library(V8_LIBRARY
 
 find_package_handle_standard_args(V8 DEFAULT_MSG V8_LIBRARY V8_INCLUDE_DIR)
 
-if(V8_LIBRARY-NOTFOUND)
+if(NOT V8_LIBRARY)
   set(JAVASCRIPT_FOUND False)
   return()
 endif()
