@@ -312,3 +312,4 @@ add_custom_command (TARGET uninstall
 # unit tests
 enable_testing()
 add_test(NAME check_utils COMMAND check_utils)
+add_test(NAME check_http COMMAND check_http)
