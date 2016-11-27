@@ -299,8 +299,6 @@ if(JAVASCRIPT_FOUND)
 endif()
 message("--------------------------------------------------------------------------")
 
-message(${ALL_FILES})
-
 # compile and link
 add_executable(proxenet ${ALL_FILES})
 target_link_libraries(proxenet ${EXTRA_LIBS} ${CMAKE_LINK_HARDEN})

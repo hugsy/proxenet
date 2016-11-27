@@ -25,6 +25,10 @@ find_library(V8_LIBRARY
   PATHS /lib /usr/lib /usr/local/lib /usr/pkg/lib
 )
 
+if(V8_LIBRARY-NOTFOUND)
+  return()
+endif()
+
 find_package_handle_standard_args(V8 DEFAULT_MSG V8_LIBRARY V8_INCLUDE_DIR)
 
 execute_process(
