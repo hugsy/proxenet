@@ -107,6 +107,71 @@ START_TEST(expand_file_path_test)
         ck_assert_int_eq(errno, ENOENT);
 }
 END_TEST
+
+
+START_TEST(is_file_test)
+{
+        const char path_test_ok[] = "~/../../../../../../tmp/proxenet.tmp";
+        const char path_test_nok[] = "/../..//.././..//////kawa/./bunga/";
+        char *res;
+
+        res = expand_file_path( (char*)path_test_ok );
+        ck_assert_ptr_ne(res, NULL);
+        ck_assert_int_eq(is_file(res), true);
+        proxenet_xfree(res);
+
+        ck_assert_int_eq(is_writable_file((char*)path_test_nok), false);
+}
+END_TEST
+
+
+START_TEST(is_readable_file_test)
+{
+        const char path_test_ok[] = "~/../../../../../../tmp/proxenet.tmp";
+        const char path_test_nok[] = "./../..//.././..//////kawa/./bunga/";
+        char *res;
+
+        res = expand_file_path( (char*)path_test_ok );
+        ck_assert_ptr_ne(res, NULL);
+        ck_assert_int_eq(is_readable_file(res), true);
+        proxenet_xfree(res);
+
+        ck_assert_int_eq(is_writable_file((char*)path_test_nok), false);
+}
+END_TEST
+
+
+START_TEST(is_writable_file_test)
+{
+        const char path_test_ok[] = "~/../../../../../../tmp/proxenet.tmp";
+        const char path_test_nok[] = "../../..//.././..//////kawa/./bunga/";
+        char *res;
+
+        res = expand_file_path( (char*)path_test_ok );
+        ck_assert_ptr_ne(res, NULL);
+        ck_assert_int_eq( is_writable_file(res), true);
+        proxenet_xfree(res);
+
+        ck_assert_int_eq( is_writable_file((char*)path_test_nok), false);
+}
+END_TEST
+
+
+START_TEST(is_dir_test)
+{
+        const char path_test_ok[] = "~/../..//.././../../../..//////tmp";
+        const char path_test_nok[] = "~/../..//.././..//////kawa/./bunga/";
+        char *res;
+
+        res = expand_file_path( (char*)path_test_ok );
+        ck_assert_ptr_ne(res, NULL);
+        ck_assert_int_eq( is_dir(res), true);
+        proxenet_xfree(res);
+
+        ck_assert_int_eq( is_dir((char*)path_test_nok), false);
+}
+END_TEST
+
 /* */
 
 
@@ -131,7 +196,10 @@ Suite * utils_suite(void)
     /* Test for filesystem path manipulation functions */
     tc_fs = tcase_create("Filesystem");
     tcase_add_test(tc_fs, expand_file_path_test);
-
+    tcase_add_test(tc_fs, is_file_test);
+    tcase_add_test(tc_fs, is_readable_file_test);
+    tcase_add_test(tc_fs, is_writable_file_test);
+    tcase_add_test(tc_fs, is_dir_test);
 
     suite_add_tcase(s, tc_memory);
     suite_add_tcase(s, tc_string);
@@ -146,11 +214,16 @@ int main(void)
          Suite *s;
          SRunner *sr;
 
+         system("touch /tmp/proxenet.tmp");
+
          s = utils_suite();
          sr = srunner_create(s);
 
          srunner_run_all(sr, CK_NORMAL);
          number_failed = srunner_ntests_failed(sr);
          srunner_free(sr);
+
+         system("rm -f /tmp/proxenet.tmp");
+
          return (number_failed == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
 }

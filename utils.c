@@ -2,6 +2,8 @@
 #include "config.h"
 #endif
 
+#define _GNU_SOURCE     1
+
 #include <stdarg.h>
 #include <time.h>
 #include <stdio.h>
@@ -357,7 +359,6 @@ bool is_valid_plugin_path(char* plugin_path, char** plugins_path_ptr, char** aut
 	if (*autoload_path_ptr == NULL){
 		xlog(LOG_CRITICAL, "realpath('%s') failed: %s\n", autoload_path, strerror(errno));
                 proxenet_xfree(*plugins_path_ptr);
-                *plugins_path_ptr = NULL;
 		return false;
 	}
 
