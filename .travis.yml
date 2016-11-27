@@ -22,7 +22,7 @@ before_script:
 - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then curl -fSsL https://tls.mbed.org/download/mbedtls-2.2.1-gpl.tgz|tar xz && cd mbedtls-2.2.1 && cmake . -DCMAKE_C_FLAGS="-fPIC" -DCMAKE_SHARED_LINKER_FLAGS="-pie" && make && sudo make install && cd .. ; fi
 
 script:
-- cmake . -DDEBUG=on  && make && make test && sudo make install
+- cmake . -DDEBUG=on  && make && sudo make install ; make test 
 
 after_script:
 - /opt/proxenet/bin/proxenet --help
