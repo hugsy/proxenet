@@ -25,11 +25,12 @@ find_library(V8_LIBRARY
   PATHS /lib /usr/lib /usr/local/lib /usr/pkg/lib
 )
 
+find_package_handle_standard_args(V8 DEFAULT_MSG V8_LIBRARY V8_INCLUDE_DIR)
+
 if(V8_LIBRARY-NOTFOUND)
+  set(JAVASCRIPT_FOUND False)
   return()
 endif()
-
-find_package_handle_standard_args(V8 DEFAULT_MSG V8_LIBRARY V8_INCLUDE_DIR)
 
 execute_process(
     COMMAND bash -c "echo \"#include <v8.h>\nusing namespace v8;\nint main(){printf(V8::GetVersion());return 0;}\">a.c;c++ a.c -I${V8_INCLUDE_DIR} ${V8_LIBRARY} ;./a.out;rm -f a.c a.out"
@@ -42,8 +43,9 @@ list(GET V8_VERSION_LIST 0 V8_VERSION_MAJOR)
 list(GET V8_VERSION_LIST 1 V8_VERSION_MINOR)
 list(GET V8_VERSION_LIST 2 V8_VERSION_PATCH)
 
-set(JAVASCRIPT_FOUND 1)
+set(JAVASCRIPT_FOUND True)
 mark_as_advanced(
+  JAVASCRIPT_FOUND
   V8_INCLUDE_DIR
   V8_LIBRARY
   V8_VERSION
