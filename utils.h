@@ -64,6 +64,8 @@ bool      is_dir(char*);
 bool      is_readable_file(char*);
 bool      is_writable_file(char*);
 char*     expand_file_path(char*);
+ssize_t   get_file_size(char *path);
+char*     get_file_content(char *path);
 void      proxenet_hexdump(char*, int);
 void      proxenet_perror(int level, int errnum);
 

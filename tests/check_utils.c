@@ -176,6 +176,38 @@ START_TEST(is_dir_test)
 }
 END_TEST
 
+
+START_TEST(get_file_size_test)
+{
+        const char path_test_ok[] = "/tmp/proxenet.tmp";
+        const char path_test_nok[] = "~/../..//.././..//////kawa/./bunga";
+        ssize_t res;
+
+        res = get_file_size( (char*)path_test_ok );
+        ck_assert_int_eq(res, 6); // strlen('foobar')
+
+        res = get_file_size( (char*)path_test_nok );
+        ck_assert_int_eq(res, -1);
+}
+END_TEST
+
+
+START_TEST(get_file_content_test)
+{
+        const char path_test_ok[] = "//tmp/proxenet.tmp";
+        const char path_test_nok[] = "~/../..//.././..//////kawa/./bunga";
+        char *res;
+
+        res = get_file_content( (char*)path_test_ok );
+        ck_assert(res != NULL);
+        ck_assert_str_eq(res, "foobar");
+        proxenet_xfree(res);
+
+        res = get_file_content( (char*)path_test_nok );
+        ck_assert(res==NULL);
+}
+END_TEST
+
 /* */
 
 
@@ -204,6 +236,8 @@ Suite * utils_suite(void)
     tcase_add_test(tc_fs, is_readable_file_test);
     tcase_add_test(tc_fs, is_writable_file_test);
     tcase_add_test(tc_fs, is_dir_test);
+    tcase_add_test(tc_fs, get_file_size_test);
+    tcase_add_test(tc_fs, get_file_content_test);
 
     suite_add_tcase(s, tc_memory);
     suite_add_tcase(s, tc_string);
@@ -218,7 +252,7 @@ int main(void)
          Suite *s;
          SRunner *sr;
 
-         system("touch /tmp/proxenet.tmp");
+         system("echo -n foobar > /tmp/proxenet.tmp");
 
          s = utils_suite();
          sr = srunner_create(s);
@@ -227,7 +261,7 @@ int main(void)
          number_failed = srunner_ntests_failed(sr);
          srunner_free(sr);
 
-         system("rm -f /tmp/proxenet.tmp");
+         system("rm -f -- /tmp/proxenet.tmp");
 
          return (number_failed == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
 }

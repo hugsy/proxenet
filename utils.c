@@ -12,9 +12,10 @@
 #include <string.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <wordexp.h>
+#include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <wordexp.h>
 
 #include "core.h"
 #include "utils.h"
@@ -454,6 +455,67 @@ bool is_dir(char* path)
 {
 	struct stat buf;
 	return (stat(path, &buf) || !S_ISDIR(buf.st_mode)) ?  false : true;
+}
+
+
+
+/**
+ * Retrieve the size of a file
+ *
+ * @param path is the path to the file to get the size of
+ * @return a null or positive integer with the file size on succes
+ * @return -1 on error, errno is set accordingly
+ */
+ssize_t get_file_size(char *path)
+{
+        struct stat st;
+        if (stat(path, &st) < 0)
+                return -1;
+
+        return st.st_size;
+}
+
+
+/**
+ * Read the entire content of the file given in parameter. On success the content
+ * is stored locally in the heap and *MUST* be free-ed by the caller.
+ *
+ * @param path is the path to the file to read
+ * @return a pointer to the heap allocated chunk with the file content in it
+ * @return NULL on error, errno is set accordingly
+ */
+char* get_file_content(char *path)
+{
+        ssize_t sz, n;
+        char *buf;
+        int fd;
+
+        if (!is_readable_file(path))
+                return NULL;
+
+        sz = get_file_size(path);
+        if (sz < 0)
+                return NULL;
+
+        fd = open(path, O_RDONLY);
+        if (fd < 0)
+                return NULL;
+
+        buf = proxenet_xmalloc(sz);
+        n = read(fd, buf, sz);
+        close(fd);
+
+        if(n == sz)
+                return buf;
+
+        if(n < 0){
+                proxenet_perror(LOG_ERROR, errno);
+        } else {
+                xlog(LOG_ERROR, "Failed to read file content (expected %d bytes, got %d)", sz, n);
+        }
+
+        proxenet_xfree(buf);
+        return NULL;
 }
 
 
