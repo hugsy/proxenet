@@ -94,12 +94,16 @@ END_TEST
 /* Filesystem */
 START_TEST(expand_file_path_test)
 {
-        const char path_test_ok[] = "~/../..//.././../../../..//////etc/./passwd";
+        const char path_test_ok[] = "~/../../../../../..///././tmp/proxenet.tmp";
         const char path_test_nok[] = "~/../..//.././..//////kawa/./bunga/";
         char *res;
 
         res = expand_file_path( (char*)path_test_ok );
-        ck_assert_str_eq(res, "/etc/passwd");
+#ifdef __DARWIN__
+        ck_assert_str_eq(res, "/private/tmp/proxenet.tmp");
+#else
+        ck_assert_str_eq(res, "/tmp/proxenet.tmp");
+#endif
         proxenet_xfree(res);
 
         res = expand_file_path( (char*)path_test_nok );
