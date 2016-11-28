@@ -65,6 +65,9 @@
 #include "plugin-java.h"
 #endif
 
+#ifdef _JAVASCRIPT_PLUGIN
+#include "plugin-javascript.h"
+#endif
 
 static pthread_mutex_t request_id_mutex;
 
@@ -157,6 +160,14 @@ void proxenet_initialize_plugins()
                                         proxenet_plugin_set_state(plugin, ACTIVE);
                                 break;
 #endif
+
+#ifdef _JAVASCRIPT_PLUGIN
+                        case _JAVASCRIPT_:
+                                if (!proxenet_javascript_initialize_vm(plugin) && !proxenet_javascript_load_file(plugin))
+                                        proxenet_plugin_set_state(plugin, ACTIVE);
+                                break;
+#endif
+
                         default:
                                 break;
                 }
@@ -229,6 +240,9 @@ void proxenet_destroy_plugins_vm()
 #ifdef _JAVA_PLUGIN
                         case _JAVA_:     proxenet_java_destroy_plugin(p); break;
 #endif
+#ifdef _JAVASCRIPT_PLUGIN
+                        case _JAVASCRIPT_:   proxenet_javascript_destroy_plugin(p); break;
+#endif
                         default: break;
                 }
                 if(cfg->verbose)
@@ -265,6 +279,10 @@ void proxenet_destroy_plugins_vm()
 #ifdef _JAVA_PLUGIN
                         case _JAVA_:     proxenet_java_destroy_vm(vm); break;
 #endif
+#ifdef _JAVASCRIPT_PLUGIN
+                        case _JAVASCRIPT_:     proxenet_javascript_destroy_vm(vm); break;
+#endif
+
                         default: break;
                 }
 
@@ -301,6 +319,7 @@ int proxenet_toggle_plugin(int plugin_id)
                         return 0;
 
                 default:
+                        xlog(LOG_CRITICAL, "Unknown plugin state %d\n", p->state);
                         return -1;
         }
 
@@ -345,6 +364,9 @@ static int proxenet_apply_plugins(request_t *request)
 #endif
 #ifdef _JAVA_PLUGIN
                         case _JAVA_:    plugin_function = proxenet_java_plugin; break;
+#endif
+#ifdef _JAVASCRIPT_PLUGIN
+                        case _JAVASCRIPT_:    plugin_function = proxenet_javascript_plugin; break;
 #endif
                         default:
                                 xlog(LOG_CRITICAL, "Type %d not supported (yet)\n", p->type);

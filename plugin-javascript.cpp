@@ -16,10 +16,6 @@
 #include <string.h>
 #include <cstdio>
 
-#ifdef __LINUX__
-#include <alloca.h>
-#endif
-
 extern "C"
 {
 #include "core.h"
@@ -31,9 +27,18 @@ extern "C"
 #include "plugin-javascript.h"
 #include <v8.h>
 
+#define xlog_js(t, ...) xlog(t, "[" _JAVASCRIPT_VERSION_ "] " __VA_ARGS__)
+
 using namespace v8;
 
-#define xlog_js(t, ...) xlog(t, "[" _JAVASCRIPT_VERSION_ "] " __VA_ARGS__)
+
+typedef struct {
+                v8::HandleScope handle_scope;
+                v8::Persistent<v8::Context> context;
+                v8::Handle<v8::ObjectTemplate> global;
+                v8::Handle<v8::String> source;
+                Handle<Script> script;
+} proxenet_js_t;
 
 
 /**
@@ -43,7 +48,7 @@ static void proxenet_javascript_print_exception(v8::TryCatch *trycatch)
 {
     Local<Value> exception = trycatch->Exception();
     String::Utf8Value str_exception(exception);
-    printf("Exception raised: %s\n", *str_exception);
+    xlog_js(LOG_ERROR, "Exception raised: %s\n", *str_exception);
 }
 
 
@@ -53,6 +58,10 @@ static void proxenet_javascript_print_exception(v8::TryCatch *trycatch)
 int proxenet_javascript_initialize_vm(plugin_t* plugin)
 {
 	proxenet_js_t* vm;
+
+        if(!plugin->interpreter->ready){
+                V8::Initialize();
+        }
 
         vm = (proxenet_js_t*)proxenet_xmalloc(sizeof(proxenet_js_t));
         vm->global = ObjectTemplate::New();
@@ -110,7 +119,7 @@ static bool is_valid_function(interpreter_t* interpreter, const char *function)
 /**
  *
  */
-int proxenet_javascript_initialize_plugin(plugin_t* plugin)
+int proxenet_javascript_load_file(plugin_t* plugin)
 {
         interpreter_t* interpreter;
 	proxenet_js_t *vm;
@@ -124,7 +133,7 @@ int proxenet_javascript_initialize_plugin(plugin_t* plugin)
         const char **n;
 
         if (plugin->interpreter==NULL || plugin->interpreter->ready==false){
-                //xlog_js(LOG_ERROR, "%s\n", "not ready");
+                xlog_js(LOG_ERROR, "%s\n", "not ready");
                 return -1;
         }
 
@@ -149,7 +158,7 @@ int proxenet_javascript_initialize_plugin(plugin_t* plugin)
 
         for(n=function_names; *n; n++){
                 if(!is_valid_function(interpreter, *n)){
-                        //xlog_js("'%s' is not a valid function\n", *n);
+                        xlog_js(LOG_ERROR, "'%s' is not a valid function\n", *n);
                         return -1;
                 }
         }
