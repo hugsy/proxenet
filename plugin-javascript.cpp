@@ -34,9 +34,11 @@ using namespace v8;
 v8::HandleScope handle_scope;
 
 typedef struct {
+                v8::Isolate *env;
                 v8::Persistent<v8::Context> context;
-                // v8::Handle<v8::ObjectTemplate> global;
+                v8::HandleScope handle_scope;
                 v8::Handle<Script> script;
+                v8::Handle<v8::ObjectTemplate> global;
 } proxenet_js_t;
 
 
@@ -58,16 +60,23 @@ int proxenet_javascript_initialize_vm(plugin_t* plugin)
 {
         proxenet_js_t* vm;
 
+#ifdef DEBUG
+        xlog_js(LOG_DEBUG, "Loading JavaScript VM (v8: %s)\n", _JAVASCRIPT_VERSION_);
+#endif
+
         if(!plugin->interpreter->ready){
                 V8::Initialize();
         }
 
         vm = (proxenet_js_t*)proxenet_xmalloc(sizeof(proxenet_js_t));
-        // vm->global = ObjectTemplate::New();
+        vm->global = ObjectTemplate::New();
         vm->context = Context::New();
 
         plugin->interpreter->vm = (void*)vm;
         plugin->interpreter->ready = true;
+
+        if (cfg->verbose)
+                xlog(LOG_INFO, "JavaScript VM (using v8: %s) successfully loaded\n", _JAVASCRIPT_VERSION_);
         return 0;
 }
 
@@ -82,6 +91,8 @@ int proxenet_javascript_destroy_plugin(plugin_t* plugin)
         plugin->pre_function = NULL;
         plugin->post_function = NULL;
         plugin->onleave_function = NULL;
+        if (cfg->verbose)
+                xlog(LOG_INFO, "Successfully disabled\n", plugin->name);
         return 0;
 }
 
@@ -98,6 +109,9 @@ int proxenet_javascript_destroy_vm(interpreter_t* interpreter)
         interpreter->vm = NULL;
         interpreter->ready = false;
         interpreter = NULL;
+
+        if (cfg->verbose)
+                xlog(LOG_INFO, "JavaScript VM (using v8: %s) unloaded\n", _JAVASCRIPT_VERSION_);
         return 0;
 }
 
@@ -105,14 +119,27 @@ int proxenet_javascript_destroy_vm(interpreter_t* interpreter)
 /**
  *
  */
-static bool is_valid_function(interpreter_t* interpreter, const char *function)
+static inline bool is_valid_function(interpreter_t* interpreter, char* plugin_name, const char *function)
 {
+#ifdef DEBUG
+                xlog_js(LOG_DEBUG, "Checking if '%s.%s' is a valid method\n", plugin_name, function);
+#endif
         proxenet_js_t* vm = (proxenet_js_t*)interpreter->vm;
-        Context::Scope context_scope(vm->context);
         Handle<v8::Object> global = vm->context->Global();
-        Handle<v8::Value> value = global->Get(String::New(function));
-        vm->context.Dispose();
-        return value->IsFunction();
+
+        Handle<Function> classptr = v8::Handle<v8::Function>::Cast(global->Get(String::New(plugin_name)));
+        if(!classptr->IsFunction()){
+                xlog_js(LOG_ERROR, "'%s' is not a valid class\n", plugin_name);
+                return false;
+        }
+
+        Handle<Object> object = classptr->NewInstance(0, NULL);
+        Handle<v8::Value> value = object->Get(String::New(function));
+        if (value->IsFunction())
+                return true;
+
+        xlog_js(LOG_ERROR, "'%s.%s' is not a valid function\n", plugin_name, function);
+        return false;
 }
 
 
@@ -173,12 +200,15 @@ int proxenet_javascript_load_file(plugin_t* plugin)
         }
 
         for(n=function_names; *n; n++){
-                if(!is_valid_function(interpreter, *n)){
-                        xlog_js(LOG_ERROR, "'%s' is not a valid function\n", *n);
+                if(!is_valid_function(interpreter, plugin->name, *n)){
                         return -1;
                 }
         }
 
+        if(cfg->verbose)
+                xlog_js(LOG_INFO, "Plugin '%s' successfully loaded\n", plugin->name);
+
+        vm->context.Dispose();
         return 0;
 }
 
@@ -201,6 +231,7 @@ static void proxenet_javascript_unlock_vm(interpreter_t *interpreter)
         pthread_mutex_unlock(&interpreter->mutex);
 }
 
+// todo implem on_load() and on_leave() calls
 
 /**
  *
@@ -219,14 +250,22 @@ char* proxenet_javascript_plugin(plugin_t *plugin, request_t *request)
         vm = (proxenet_js_t*)interpreter->vm;
 
         proxenet_javascript_lock_vm(interpreter);
+        Context::Scope context_scope(vm->context);
         global = vm->context->Global();
 
+        /* get a handle to class "plugin_name" */
+        Handle<Function> classptr = v8::Handle<v8::Function>::Cast(global->Get(String::New(plugin->name)));
+
+        /* instanciate it */
+        Handle<Object> object = classptr->NewInstance(0, NULL);
+
+        /* only now can we call the proxenet hooks */
         switch(request->type){
                 case REQUEST:
-                        value = global->Get(String::New(CFG_REQUEST_PLUGIN_FUNCTION));
+                        value = object->Get(String::New(CFG_REQUEST_PLUGIN_FUNCTION));
                         break;
                 case RESPONSE:
-                        value = global->Get(String::New(CFG_RESPONSE_PLUGIN_FUNCTION));
+                        value = object->Get(String::New(CFG_RESPONSE_PLUGIN_FUNCTION));
                         break;
                 default:
                         xlog(LOG_CRITICAL, "%s\n", "Should never be here");
@@ -242,6 +281,7 @@ char* proxenet_javascript_plugin(plugin_t *plugin, request_t *request)
         args[2] = v8::String::New(request->http_infos.uri);
         js_result = func->Call(global, 3, args);
 
+        vm->context.Dispose();
         proxenet_javascript_unlock_vm(interpreter);
 
         /* convert the result to char */
